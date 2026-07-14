@@ -319,6 +319,18 @@
 
   ::-webkit-scrollbar{width:10px;}
   ::-webkit-scrollbar-thumb{background:#c4cad6;border-radius:10px;}
+
+  /* ---------- Mis visitas ---------- */
+  .mv-table-wrap{overflow-x:auto;}
+  table.mv-table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
+  table.mv-table th{background:var(--menu-bar);color:#fff;padding:12px 14px;text-align:left;font-size:12.5px;letter-spacing:.3px;}
+  table.mv-table td{padding:11px 14px;font-size:13px;border-bottom:1px solid #eef0f4;vertical-align:middle;}
+  table.mv-table tr:last-child td{border-bottom:none;}
+  table.mv-table tr:hover td{background:#f9fafb;}
+  .btn-editar{border:none;background:var(--purple-1);color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;}
+  .btn-editar:hover{background:var(--purple-2);}
+  .warn-banner{background:#fff7e6;border:1.5px solid #e8b84b;border-radius:10px;padding:12px 16px;font-size:13px;color:#7a5200;margin-bottom:20px;display:flex;gap:10px;align-items:flex-start;}
+  .warn-banner b{display:block;margin-bottom:2px;}
 </style>
 </head>
 <body>
@@ -413,6 +425,12 @@
             <h3>Área de Acceso</h3>
             <p>Modo caseta / kiosko para registrar la llegada de visitantes.</p>
             <button onclick="showScreen('screen-kiosk-login')">Entrar al kiosko</button>
+          </div>
+          <div class="module-card">
+            <div class="card-icon" style="background:radial-gradient(circle at 35% 30%,#4f8ef7,#1a5fd4);">📋</div>
+            <h3>Mis visitas</h3>
+            <p>Consulta y modifica las visitas que tú registraste.</p>
+            <button onclick="openMisVisitas()">Ver mis visitas</button>
           </div>
         </div>
       </div>
@@ -715,6 +733,77 @@
           <button class="btn-secondary" style="width:auto;padding:11px 22px;margin-top:0;" onclick="exportarCSV()">⬇️ Exportar CSV</button>
         </div>
         <div id="reportTableWrap"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== MIS VISITAS =================== -->
+<section class="screen" id="screen-mis-visitas">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right"><button class="btn-logout" onclick="doLogout()">Cerrar sesión</button></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;overflow:auto;">
+        <button class="breadcrumb-back" onclick="showScreen('screen-visitas-home')">‹ Volver</button>
+        <div class="content-title">Mis visitas</div>
+        <div id="misVisitasWrap"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== EDITAR VISITA =================== -->
+<section class="screen" id="screen-editar-visita">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right"><span class="session-chip">👤 <span id="editUserLabel"></span></span></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;overflow:auto;">
+        <button class="breadcrumb-back" onclick="showScreen('screen-mis-visitas')">‹ Volver a mis visitas</button>
+        <div class="content-title" style="max-width:640px;">Editar visita</div>
+        <div id="editWarnBanner"></div>
+        <div class="form-card">
+          <div class="form-grid">
+            <div class="field"><label>Nombre</label><input id="eNombre"></div>
+            <div class="field"><label>Apellido paterno</label><input id="eApP"></div>
+            <div class="field"><label>Apellido materno</label><input id="eApM"></div>
+            <div class="field"><label>Correo electrónico</label><input id="eCorreo" type="email"></div>
+            <div class="field"><label>Empresa</label><input id="eEmpresa"></div>
+            <div class="field"><label>Área a visitar</label>
+              <select id="eArea">
+                <option>Dirección General</option>
+                <option>Sistemas / TI</option>
+                <option>Finanzas</option>
+                <option>Recursos Humanos</option>
+                <option>Comercial</option>
+                <option>Almacén / Logística</option>
+                <option>Contraloría Interna</option>
+                <option>Otro</option>
+              </select>
+            </div>
+            <div class="field full"><label>Motivo de la visita</label><input id="eMotivo" placeholder="ej. Reunión de proveedores"></div>
+            <div class="field full"><label>Persona que visita (anfitrión)</label><input id="eAnfitrion"></div>
+            <div class="toggle-row">
+              <label class="switch"><input type="checkbox" id="eTraeAuto" onchange="toggleEditAutoFields()"><span class="slider"></span></label>
+              <label>¿El visitante trae vehículo?</label>
+            </div>
+            <div class="auto-fields" id="editAutoFields">
+              <div class="field"><label>Marca</label><input id="eMarca"></div>
+              <div class="field"><label>Modelo</label><input id="eModelo"></div>
+              <div class="field"><label>Placas</label><input id="ePlacas"></div>
+            </div>
+          </div>
+          <div class="login-error" id="editError"></div>
+          <div class="form-actions">
+            <button class="btn-primary" onclick="guardarEdicion()">Guardar cambios</button>
+            <button class="btn-secondary" onclick="showScreen('screen-mis-visitas')">Cancelar</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1205,6 +1294,105 @@ function renderSalidaDone(visit){
     <div class="badge-row"><span>Hora de salida</span><span>${fmtFecha(visit.fechaSalida)}</span></div>
     <div class="badge-row"><span>Tiempo de estancia</span><span>${calcDuracion(visit.fechaAcceso, visit.fechaSalida)}</span></div>
   `;
+}
+
+/* ---------- mis visitas ---------- */
+let editingVisitId = null;
+
+function openMisVisitas(){
+  renderMisVisitas();
+  showScreen('screen-mis-visitas');
+}
+
+function renderMisVisitas(){
+  const wrap = document.getElementById('misVisitasWrap');
+  const mias = visits.filter(v => v.registradoPor === session.username);
+  if(!mias.length){
+    wrap.innerHTML = '<div class="empty-note">Aún no has registrado ninguna visita.</div>';
+    return;
+  }
+  mias.sort((a,b) => b.fechaRegistro - a.fechaRegistro);
+  const rows = mias.map(v => {
+    let estadoLabel, estadoClass;
+    if(v.status !== 'accesado'){ estadoLabel = 'Pendiente'; estadoClass = 'pendiente'; }
+    else if(!v.fechaSalida){ estadoLabel = 'Dentro'; estadoClass = 'dentro'; }
+    else { estadoLabel = 'Salida registrada'; estadoClass = 'salida'; }
+    return `<tr>
+      <td>${v.foto ? `<img src="${v.foto}" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
+      <td><b>${v.nombre} ${v.apellidoP} ${v.apellidoM}</b><br><span style="color:#8b93a3;font-size:12px;">${v.empresa}</span></td>
+      <td>${v.area}</td>
+      <td><span class="status-pill ${estadoClass}">${estadoLabel}</span></td>
+      <td>${fmtFecha(v.fechaRegistro)}</td>
+      <td><button class="btn-editar" onclick="abrirEditar('${v.id}')">Editar</button></td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `
+    <div class="mv-table-wrap">
+      <table class="mv-table">
+        <thead><tr><th></th><th>Visitante</th><th>Área</th><th>Estado</th><th>Registrada</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function abrirEditar(id){
+  const v = visits.find(x => x.id === id);
+  if(!v) return;
+  editingVisitId = id;
+  document.getElementById('editUserLabel').textContent = session.username || '';
+  document.getElementById('eNombre').value  = v.nombre;
+  document.getElementById('eApP').value     = v.apellidoP;
+  document.getElementById('eApM').value     = v.apellidoM;
+  document.getElementById('eCorreo').value  = v.correo;
+  document.getElementById('eEmpresa').value = v.empresa;
+  document.getElementById('eArea').value    = v.area;
+  document.getElementById('eMotivo').value  = v.motivo;
+  document.getElementById('eAnfitrion').value = v.anfitrion;
+  document.getElementById('eTraeAuto').checked = v.traeAuto;
+  document.getElementById('eMarca').value   = v.marca || '';
+  document.getElementById('eModelo').value  = v.modelo || '';
+  document.getElementById('ePlacas').value  = v.placas || '';
+  document.getElementById('editAutoFields').classList.toggle('show', v.traeAuto);
+  document.getElementById('editError').textContent = '';
+  const banner = document.getElementById('editWarnBanner');
+  if(v.status === 'accesado'){
+    banner.innerHTML = `<div class="warn-banner">⚠️ <div><b>Esta visita ya fue utilizada para acceso.</b>Los cambios se guardarán en el registro pero el QR generado no cambia.</div></div>`;
+  } else {
+    banner.innerHTML = '';
+  }
+  showScreen('screen-editar-visita');
+}
+
+function toggleEditAutoFields(){
+  document.getElementById('editAutoFields').classList.toggle('show', document.getElementById('eTraeAuto').checked);
+}
+
+function guardarEdicion(){
+  const v = visits.find(x => x.id === editingVisitId);
+  if(!v) return;
+  const nombre   = document.getElementById('eNombre').value.trim();
+  const apP      = document.getElementById('eApP').value.trim();
+  const apM      = document.getElementById('eApM').value.trim();
+  const correo   = document.getElementById('eCorreo').value.trim();
+  const empresa  = document.getElementById('eEmpresa').value.trim();
+  const area     = document.getElementById('eArea').value;
+  const motivo   = document.getElementById('eMotivo').value.trim();
+  const anfitrion= document.getElementById('eAnfitrion').value.trim();
+  const traeAuto = document.getElementById('eTraeAuto').checked;
+  const marca    = document.getElementById('eMarca').value.trim();
+  const modelo   = document.getElementById('eModelo').value.trim();
+  const placas   = document.getElementById('ePlacas').value.trim();
+  const err = document.getElementById('editError');
+  if(!nombre || !apP || !apM || !correo || !empresa || !motivo || !anfitrion){
+    err.textContent = 'Completa todos los campos obligatorios.'; return;
+  }
+  if(traeAuto && (!marca || !modelo || !placas)){
+    err.textContent = 'Indica marca, modelo y placas del vehículo.'; return;
+  }
+  err.textContent = '';
+  Object.assign(v, { nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area, motivo, anfitrion, traeAuto, marca, modelo, placas });
+  renderMisVisitas();
+  showScreen('screen-mis-visitas');
 }
 
 /* ---------- reportes ---------- */
