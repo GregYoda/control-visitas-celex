@@ -470,7 +470,8 @@
               </select>
             </div>
             <div class="field full"><label>Motivo de la visita</label><input id="fMotivo" placeholder="ej. Reunión de proveedores"></div>
-            <div class="field full"><label>Persona que visita (anfitrión)</label><input id="fAnfitrion"></div>
+            <div class="field"><label>Fecha de visita</label><input id="fFechaVisita" type="date"></div>
+            <div class="field"><label>Persona que visita (anfitrión)</label><input id="fAnfitrion"></div>
 
             <div class="toggle-row">
               <label class="switch"><input type="checkbox" id="fTraeAuto" onchange="toggleAutoFields()"><span class="slider"></span></label>
@@ -787,7 +788,8 @@
               </select>
             </div>
             <div class="field full"><label>Motivo de la visita</label><input id="eMotivo" placeholder="ej. Reunión de proveedores"></div>
-            <div class="field full"><label>Persona que visita (anfitrión)</label><input id="eAnfitrion"></div>
+            <div class="field"><label>Fecha de visita</label><input id="eFechaVisita" type="date"></div>
+            <div class="field"><label>Persona que visita (anfitrión)</label><input id="eAnfitrion"></div>
             <div class="toggle-row">
               <label class="switch"><input type="checkbox" id="eTraeAuto" onchange="toggleEditAutoFields()"><span class="slider"></span></label>
               <label>¿El visitante trae vehículo?</label>
@@ -851,6 +853,11 @@ function normaliza(str){
 function fmtFecha(d){
   if(!d) return '—';
   return d.toLocaleString('es-MX',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function fmtFechaVisita(s){
+  if(!s) return '—';
+  const [y,m,d] = s.split('-');
+  return new Date(+y,+m-1,+d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
 }
 
 /* ---------- navegación ---------- */
@@ -919,6 +926,7 @@ function generarQR(){
   const empresa = document.getElementById('fEmpresa').value.trim();
   const area = document.getElementById('fArea').value;
   const motivo = document.getElementById('fMotivo').value.trim();
+  const fechaVisita = document.getElementById('fFechaVisita').value;
   const anfitrion = document.getElementById('fAnfitrion').value.trim();
   const traeAuto = document.getElementById('fTraeAuto').checked;
   const marca = document.getElementById('fMarca').value.trim();
@@ -926,7 +934,7 @@ function generarQR(){
   const placas = document.getElementById('fPlacas').value.trim();
 
   const err = document.getElementById('regError');
-  if(!nombre || !apP || !apM || !correo || !empresa || !motivo || !anfitrion){
+  if(!nombre || !apP || !apM || !correo || !empresa || !motivo || !fechaVisita || !anfitrion){
     err.textContent = 'Completa todos los campos obligatorios.'; return;
   }
   if(traeAuto && (!marca || !modelo || !placas)){
@@ -936,7 +944,7 @@ function generarQR(){
 
   const visit = {
     id: uid(), nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area, motivo,
-    anfitrion, registradoPor: session.username, traeAuto, marca, modelo, placas,
+    fechaVisita, anfitrion, registradoPor: session.username, traeAuto, marca, modelo, placas,
     status:'pendiente', fechaRegistro:new Date(), fechaAcceso:null, foto:null, codigoSalida:null, fechaSalida:null
   };
   visits.push(visit);
@@ -957,6 +965,7 @@ function renderQR(visit){
      Empresa: <b>${visit.empresa}</b><br>
      Visita a: <b>${visit.area}</b> — Anfitrión: <b>${visit.anfitrion}</b><br>
      Motivo: ${visit.motivo}<br>
+     Fecha de visita: <b>${fmtFechaVisita(visit.fechaVisita)}</b><br>
      ${visit.traeAuto ? `Vehículo: ${visit.marca} ${visit.modelo} — Placas ${visit.placas}` : 'Sin vehículo registrado'}`;
   document.getElementById('qrMsg').textContent='';
 }
@@ -1321,6 +1330,7 @@ function renderMisVisitas(){
       <td>${v.foto ? `<img src="${v.foto}" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
       <td><b>${v.nombre} ${v.apellidoP} ${v.apellidoM}</b><br><span style="color:#8b93a3;font-size:12px;">${v.empresa}</span></td>
       <td>${v.area}</td>
+      <td>${fmtFechaVisita(v.fechaVisita)}</td>
       <td><span class="status-pill ${estadoClass}">${estadoLabel}</span></td>
       <td>${fmtFecha(v.fechaRegistro)}</td>
       <td><button class="btn-editar" onclick="abrirEditar('${v.id}')">Editar</button></td>
@@ -1329,7 +1339,7 @@ function renderMisVisitas(){
   wrap.innerHTML = `
     <div class="mv-table-wrap">
       <table class="mv-table">
-        <thead><tr><th></th><th>Visitante</th><th>Área</th><th>Estado</th><th>Registrada</th><th></th></tr></thead>
+        <thead><tr><th></th><th>Visitante</th><th>Área</th><th>Fecha visita</th><th>Estado</th><th>Registrada</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
@@ -1347,6 +1357,7 @@ function abrirEditar(id){
   document.getElementById('eEmpresa').value = v.empresa;
   document.getElementById('eArea').value    = v.area;
   document.getElementById('eMotivo').value  = v.motivo;
+  document.getElementById('eFechaVisita').value = v.fechaVisita || '';
   document.getElementById('eAnfitrion').value = v.anfitrion;
   document.getElementById('eTraeAuto').checked = v.traeAuto;
   document.getElementById('eMarca').value   = v.marca || '';
@@ -1377,20 +1388,21 @@ function guardarEdicion(){
   const empresa  = document.getElementById('eEmpresa').value.trim();
   const area     = document.getElementById('eArea').value;
   const motivo   = document.getElementById('eMotivo').value.trim();
+  const fechaVisita = document.getElementById('eFechaVisita').value;
   const anfitrion= document.getElementById('eAnfitrion').value.trim();
   const traeAuto = document.getElementById('eTraeAuto').checked;
   const marca    = document.getElementById('eMarca').value.trim();
   const modelo   = document.getElementById('eModelo').value.trim();
   const placas   = document.getElementById('ePlacas').value.trim();
   const err = document.getElementById('editError');
-  if(!nombre || !apP || !apM || !correo || !empresa || !motivo || !anfitrion){
+  if(!nombre || !apP || !apM || !correo || !empresa || !motivo || !fechaVisita || !anfitrion){
     err.textContent = 'Completa todos los campos obligatorios.'; return;
   }
   if(traeAuto && (!marca || !modelo || !placas)){
     err.textContent = 'Indica marca, modelo y placas del vehículo.'; return;
   }
   err.textContent = '';
-  Object.assign(v, { nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area, motivo, anfitrion, traeAuto, marca, modelo, placas });
+  Object.assign(v, { nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area, motivo, fechaVisita, anfitrion, traeAuto, marca, modelo, placas });
   renderMisVisitas();
   showScreen('screen-mis-visitas');
 }
