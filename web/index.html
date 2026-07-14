@@ -1433,6 +1433,7 @@ function generarReporte(){
       <td>${v.empresa}</td>
       <td>${v.area}</td>
       <td>${v.anfitrion}</td>
+      <td>${fmtFechaVisita(v.fechaVisita)}</td>
       <td><span class="status-pill ${estadoClass}">${estadoLabel}</span></td>
       <td>${fmtFecha(v.fechaRegistro)}</td>
       <td>${v.fechaAcceso ? fmtFecha(v.fechaAcceso) : '—'}</td>
@@ -1442,15 +1443,15 @@ function generarReporte(){
     </tr>`;}).join('');
   wrap.innerHTML = `
     <table class="report-table">
-      <thead><tr><th></th><th>Visitante</th><th>Empresa</th><th>Área</th><th>Anfitrión</th><th>Estado</th><th>Registro</th><th>Acceso</th><th>Cód. salida</th><th>Salida</th><th>Duración</th></tr></thead>
+      <thead><tr><th></th><th>Visitante</th><th>Empresa</th><th>Área</th><th>Anfitrión</th><th>Fecha visita</th><th>Estado</th><th>Registro</th><th>Acceso</th><th>Cód. salida</th><th>Salida</th><th>Duración</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
 function exportarCSV(){
   if(!visits.length){ alert('No hay datos para exportar.'); return; }
-  const header = ['Nombre','ApellidoPaterno','ApellidoMaterno','Empresa','Area','Anfitrion','Motivo','Estado','FechaRegistro','FechaAcceso','CodigoSalida','FechaSalida'];
+  const header = ['Nombre','ApellidoPaterno','ApellidoMaterno','Empresa','Area','Anfitrion','Motivo','FechaVisita','Estado','FechaRegistro','FechaAcceso','CodigoSalida','FechaSalida'];
   const rows = visits.map(v=>[
-    v.nombre,v.apellidoP,v.apellidoM,v.empresa,v.area,v.anfitrion,v.motivo,v.status,
+    v.nombre,v.apellidoP,v.apellidoM,v.empresa,v.area,v.anfitrion,v.motivo,v.fechaVisita||'',v.status,
     v.fechaRegistro.toISOString(), v.fechaAcceso? v.fechaAcceso.toISOString(): '',
     v.codigoSalida || '', v.fechaSalida? v.fechaSalida.toISOString(): ''
   ].map(x=>`"${String(x).replace(/"/g,'""')}"`).join(','));
