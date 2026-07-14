@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Visitas · Celex</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
+<style>
+  :root{
+    --navy-top:#0a1024;
+    --navy-1:#122a63;
+    --navy-2:#1d3f8f;
+    --sidebar-1:#5b6270;
+    --sidebar-2:#4a505c;
+    --sidebar-hover:#3a414d;
+    --content-1:#e9edf4;
+    --content-2:#dbe2ec;
+    --menu-bar:#6e655e;
+    --purple-1:#7b3fe4;
+    --purple-2:#9a66ff;
+    --teal-badge-1:#0f6a6b;
+    --teal-badge-2:#1a8a8b;
+    --teal-1:#0d3b3c;
+    --teal-2:#155e5f;
+    --teal-3:#1d7677;
+    --ok:#1f9d55;
+    --err:#d64545;
+    --warn:#c98a1c;
+    --ink:#232733;
+    --white:#ffffff;
+    --radius:14px;
+    --shadow:0 6px 20px rgba(15,25,55,.16);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:'Segoe UI',Roboto,Arial,sans-serif;
+    color:var(--ink);
+    background:var(--content-1);
+    overflow-x:hidden;
+  }
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+  .screen{display:none;min-height:100vh;position:relative;}
+  .screen.active{display:block;}
+
+  /* ---------- Layout shell (topbar + sidebar) ---------- */
+  .app-shell{display:flex;min-height:100vh;flex-direction:column;}
+  .topbar{
+    background:linear-gradient(90deg,var(--navy-1),var(--navy-2) 60%,#2a54b8);
+    border-top:6px solid var(--navy-top);
+    padding:18px 30px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand-badge{
+    width:46px;height:46px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#3a5fc4,#0e1c46);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:700;font-size:18px;letter-spacing:1px;
+    border:2px solid rgba(255,255,255,.55);
+  }
+  .brand-name{color:#fff;font-size:15px;letter-spacing:2px;font-weight:600;opacity:.9;}
+  .topbar-right{display:flex;align-items:center;gap:16px;}
+  .session-chip{color:#dfe6ff;font-size:13px;}
+  .btn-logout{
+    background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);
+    padding:8px 14px;border-radius:20px;font-size:13px;
+  }
+  .btn-logout:hover{background:rgba(255,255,255,.22);}
+
+  .body-row{display:flex;flex:1;min-height:0;}
+  .sidebar{
+    width:280px;flex-shrink:0;
+    background:linear-gradient(180deg,var(--sidebar-1),var(--sidebar-2));
+    padding-top:6px;
+  }
+  .side-item{
+    display:flex;align-items:center;gap:14px;
+    padding:13px 22px;color:#f1f2f5;font-size:14.5px;
+    border-bottom:1px solid rgba(255,255,255,.05);
+    position:relative;
+  }
+  .side-item:hover{background:var(--sidebar-hover);}
+  .side-item.new-module{background:rgba(122,63,228,.18);}
+  .side-item.new-module:hover{background:rgba(122,63,228,.32);}
+  .side-icon{width:20px;text-align:center;opacity:.9;}
+  .side-item.active-mod{background:var(--sidebar-hover);border-left:3px solid var(--purple-2);}
+
+  .content{flex:1;padding:34px 40px;position:relative;overflow:auto;}
+  .content-title{
+    background:var(--menu-bar);color:#fff;padding:14px 22px;font-size:22px;font-weight:700;
+    border-radius:4px;margin-bottom:34px;
+  }
+  .breadcrumb-back{
+    display:inline-flex;align-items:center;gap:6px;color:#556;background:none;border:none;
+    font-size:13.5px;margin-bottom:16px;padding:0;
+  }
+  .breadcrumb-back:hover{text-decoration:underline;}
+
+  .cards-row{display:flex;gap:24px;flex-wrap:wrap;}
+  .big-card{
+    background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:22px 30px;display:flex;align-items:center;gap:18px;
+    min-width:300px;border:1px solid #eef0f4;transition:transform .12s;
+  }
+  .big-card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(15,25,55,.2);}
+  .card-icon{
+    width:52px;height:52px;border-radius:50%;flex-shrink:0;
+    background:radial-gradient(circle at 35% 30%,var(--purple-2),var(--purple-1));
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;
+  }
+  .card-icon.teal{background:radial-gradient(circle at 35% 30%,var(--teal-badge-2),var(--teal-badge-1));}
+  .card-label{font-weight:700;letter-spacing:1.5px;font-size:15px;color:#3a3f4b;text-transform:uppercase;}
+  .card-sub{font-size:12.5px;color:#8b93a3;letter-spacing:.5px;margin-top:3px;text-transform:none;font-weight:400;}
+
+  /* bottom teal wave decoration */
+  .wave-wrap{position:fixed;left:0;right:0;bottom:0;height:70px;pointer-events:none;z-index:0;}
+
+  /* ---------- Login ---------- */
+  .login-wrap{
+    min-height:100vh;display:flex;flex-direction:column;
+    background:linear-gradient(180deg,var(--content-1),var(--content-2));
+  }
+  .login-topbar{
+    background:linear-gradient(90deg,var(--navy-1),var(--navy-2) 60%,#2a54b8);
+    border-top:6px solid var(--navy-top);padding:20px 30px;
+  }
+  .login-center{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .login-card{
+    background:#fff;border-radius:18px;box-shadow:var(--shadow);
+    padding:40px 44px;width:380px;max-width:92vw;
+  }
+  .login-card h2{margin:0 0 4px;font-size:20px;color:var(--ink);}
+  .login-card p.hint{margin:0 0 24px;color:#8b93a3;font-size:13px;}
+  .field{margin-bottom:18px;}
+  .field label{display:block;font-size:12.5px;color:#5a6070;margin-bottom:6px;font-weight:600;letter-spacing:.3px;}
+  .field input,.field select,.field textarea{
+    width:100%;padding:11px 13px;border:1.5px solid #dfe3ea;border-radius:9px;font-size:14.5px;
+    background:#fbfcfe;
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--purple-2);background:#fff;}
+  .btn-primary{
+    width:100%;padding:12px;border:none;border-radius:9px;
+    background:linear-gradient(90deg,var(--purple-1),var(--purple-2));
+    color:#fff;font-weight:700;font-size:14.5px;letter-spacing:.5px;
+  }
+  .btn-primary:hover{filter:brightness(1.06);}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-secondary{
+    width:100%;padding:12px;border:1.5px solid #d8dce3;border-radius:9px;background:#fff;
+    color:#444a58;font-weight:600;font-size:14px;margin-top:10px;
+  }
+  .btn-secondary:hover{background:#f4f5f8;}
+  .login-error{color:var(--err);font-size:13px;margin-top:10px;min-height:16px;}
+  .demo-note{margin-top:18px;font-size:11.5px;color:#a7adba;text-align:center;line-height:1.5;}
+
+  /* ---------- Module home cards ---------- */
+  .module-card{
+    background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:30px;width:280px;text-align:center;border:1px solid #eef0f4;
+  }
+  .module-card .card-icon{margin:0 auto 16px;width:64px;height:64px;font-size:26px;}
+  .module-card h3{margin:0 0 8px;font-size:16px;}
+  .module-card p{margin:0 0 18px;font-size:12.5px;color:#8b93a3;line-height:1.5;}
+  .module-card button{
+    border:none;background:var(--purple-1);color:#fff;padding:10px 20px;border-radius:20px;
+    font-weight:600;font-size:13px;
+  }
+  .module-card button:hover{background:var(--purple-2);}
+  .module-card.kiosk-card .card-icon{background:radial-gradient(circle at 35% 30%,var(--teal-badge-2),var(--teal-badge-1));}
+  .module-card.kiosk-card button{background:var(--teal-2);}
+  .module-card.kiosk-card button:hover{background:var(--teal-3);}
+
+  /* ---------- Form (registro) ---------- */
+  .form-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:32px 36px;max-width:640px;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;}
+  .form-grid .field.full{grid-column:1/-1;}
+  .toggle-row{display:flex;align-items:center;gap:12px;margin:6px 0 16px;grid-column:1/-1;}
+  .toggle-row label{font-size:13.5px;font-weight:600;color:#5a6070;}
+  .switch{position:relative;width:46px;height:24px;flex-shrink:0;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;background:#d8dce3;border-radius:24px;transition:.2s;}
+  .slider:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+  .switch input:checked + .slider{background:var(--purple-1);}
+  .switch input:checked + .slider:before{transform:translateX(22px);}
+  .auto-fields{display:none;grid-template-columns:1fr 1fr 1fr;gap:0 14px;grid-column:1/-1;}
+  .auto-fields.show{display:grid;}
+  .form-actions{display:flex;gap:12px;margin-top:8px;}
+  .form-actions .btn-primary{width:auto;padding:12px 30px;}
+  .form-actions .btn-secondary{width:auto;padding:12px 24px;margin-top:0;}
+
+  /* ---------- QR display ---------- */
+  .qr-wrap{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:36px 40px;max-width:480px;text-align:center;}
+  #qrcode{display:flex;justify-content:center;margin:20px 0;padding:16px;background:#fff;border:1px solid #eef0f4;border-radius:10px;}
+  .qr-summary{text-align:left;background:#f7f8fb;border-radius:10px;padding:16px 18px;font-size:13.5px;color:#444a58;line-height:1.7;margin-bottom:20px;}
+  .qr-summary b{color:var(--ink);}
+  .qr-actions{display:flex;gap:10px;flex-wrap:wrap;}
+  .qr-actions button{flex:1;min-width:140px;}
+
+  /* ---------- Kiosk mode ---------- */
+  .kiosk-shell{min-height:100vh;background:linear-gradient(180deg,var(--teal-1),#0a2324 60%,#071718);color:#fff;display:flex;flex-direction:column;}
+  .kiosk-top{padding:22px 34px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.08);}
+  .kiosk-top .brand-name{color:#fff;}
+  .kiosk-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:26px;text-align:center;}
+  .kiosk-body h1{font-size:32px;margin:0;}
+  .kiosk-body p.sub{color:#bcd9d9;font-size:15px;margin:0 0 10px;}
+  .btn-kiosk-main{
+    background:linear-gradient(90deg,var(--teal-badge-2),var(--teal-badge-1));
+    color:#fff;border:none;padding:30px 60px;border-radius:20px;font-size:22px;font-weight:700;
+    letter-spacing:1px;box-shadow:0 10px 30px rgba(0,0,0,.35);min-height:90px;
+  }
+  .btn-kiosk-main:hover{filter:brightness(1.1);}
+  .btn-kiosk-main.salida{background:linear-gradient(90deg,#d99a2c,#b3790f);}
+  .btn-kiosk-secondary{
+    background:rgba(255,255,255,.08);color:#fff;border:1.5px solid rgba(255,255,255,.35);
+    padding:16px 32px;border-radius:14px;font-size:15px;font-weight:600;min-height:56px;
+  }
+  .btn-kiosk-secondary:hover{background:rgba(255,255,255,.16);}
+  .kiosk-card-box{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:36px 44px;max-width:560px;width:100%;}
+  .kiosk-video-wrap{position:relative;width:340px;height:340px;max-width:80vw;max-height:80vw;border-radius:20px;overflow:hidden;border:3px solid rgba(255,255,255,.3);background:#000;margin:0 auto;}
+  .kiosk-video-wrap video{width:100%;height:100%;object-fit:cover;}
+  .scan-frame{position:absolute;inset:14%;border:3px solid var(--teal-badge-2);border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.25);}
+  #photoVideo{transform:scaleX(-1);}
+  .face-guide{position:absolute;inset:12% 24%;border:3px dashed rgba(255,255,255,.7);border-radius:50% / 40%;pointer-events:none;}
+  .photo-preview-wrap{position:relative;width:340px;height:340px;max-width:80vw;max-height:80vw;border-radius:20px;overflow:hidden;border:3px solid rgba(255,255,255,.3);background:#000;margin:0 auto;}
+  .photo-preview-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+  .kiosk-field{width:100%;max-width:340px;}
+  .kiosk-field input{
+    width:100%;padding:18px 16px;border-radius:14px;border:none;font-size:22px;text-align:center;
+    background:#fff;color:var(--ink);
+  }
+  .kiosk-msg{font-size:14px;min-height:20px;}
+  .kiosk-msg.err{color:#ff9d9d;}
+  .kiosk-msg.ok{color:#8dffb0;}
+  .sim-toggle{background:none;border:none;color:#9fdcdc;text-decoration:underline;font-size:13px;margin-top:6px;}
+  .sim-box{background:rgba(255,255,255,.07);border-radius:12px;padding:16px;margin-top:10px;display:none;}
+  .sim-box.show{display:block;}
+  .sim-box select{width:100%;padding:10px;border-radius:8px;border:none;margin-bottom:10px;font-size:13.5px;}
+
+  /* ---------- Badge ---------- */
+  .badge-card{
+    background:#fff;color:var(--ink);border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.35);
+    padding:34px 40px;max-width:420px;width:100%;text-align:center;
+  }
+  .badge-check{width:64px;height:64px;border-radius:50%;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px;}
+  .badge-photo-wrap{position:relative;width:96px;height:96px;margin:0 auto 14px;}
+  .badge-photo{width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid #eef0f4;background:#f0f1f5;display:block;}
+  .badge-photo-placeholder{display:flex;align-items:center;justify-content:center;font-size:40px;color:#c3c8d3;}
+  .badge-photo-check{position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-radius:50%;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #fff;}
+  .badge-title{font-weight:800;color:var(--ok);letter-spacing:1px;font-size:15px;margin-bottom:18px;}
+  .badge-name{font-size:22px;font-weight:700;margin-bottom:4px;}
+  .badge-row{display:flex;justify-content:space-between;font-size:13.5px;padding:8px 0;border-bottom:1px dashed #e4e6ec;text-align:left;}
+  .badge-row span:first-child{color:#8b93a3;}
+  .badge-row span:last-child{font-weight:600;color:var(--ink);text-align:right;}
+  .exit-code-box{margin-top:16px;padding:14px;border-radius:12px;background:#fff7e6;border:1.5px dashed #e8b84b;}
+  .exit-code-label{font-size:11px;color:#a1720c;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
+  .exit-code-value{font-size:30px;font-weight:800;letter-spacing:7px;color:#a1720c;}
+
+  /* ---------- PIN pad (registro de salida) ---------- */
+  .pin-display{display:flex;gap:10px;}
+  .pin-box{width:46px;height:56px;border-radius:10px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;}
+  .pin-box.filled{background:rgba(255,255,255,.22);border-color:#d99a2c;}
+  .pin-pad{display:grid;grid-template-columns:repeat(3,78px);gap:14px;}
+  .pin-key{width:78px;height:78px;border-radius:50%;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:24px;font-weight:700;}
+  .pin-key:active{background:#d99a2c;}
+  .pin-key-fn{font-size:16px;background:rgba(255,255,255,.06);}
+
+  /* ---------- Reports ---------- */
+  .filters-row{display:flex;gap:14px;align-items:end;flex-wrap:wrap;background:#fff;padding:20px 24px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:24px;}
+  .filters-row .field{margin:0;}
+  table.report-table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
+  table.report-table th{background:var(--menu-bar);color:#fff;padding:12px 14px;text-align:left;font-size:12.5px;letter-spacing:.3px;}
+  table.report-table td{padding:11px 14px;font-size:13px;border-bottom:1px solid #eef0f4;}
+  table.report-table tr:last-child td{border-bottom:none;}
+  .status-pill{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:.3px;}
+  .status-pill.pendiente{background:#fff3d6;color:#a1720c;}
+  .status-pill.accesado{background:#dff5e6;color:#1f9d55;}
+  .status-pill.dentro{background:#e3edff;color:#1d4ed8;}
+  .status-pill.salida{background:#f1e8ff;color:#7b3fe4;}
+  .report-thumb{width:34px;height:34px;border-radius:50%;object-fit:cover;display:block;}
+  .report-thumb-empty{display:flex;align-items:center;justify-content:center;background:#eef0f4;color:#b5bac6;font-size:16px;}
+  .empty-note{color:#8b93a3;font-size:13.5px;padding:30px;text-align:center;}
+
+  /* ---------- Virtual keyboard ---------- */
+  .vkb-toggle{
+    position:fixed;right:26px;bottom:26px;z-index:500;
+    background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.4);color:#fff;
+    padding:14px 20px;border-radius:30px;font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center;
+  }
+  .vkb-toggle:hover{background:rgba(255,255,255,.22);}
+  .vkb-panel{
+    position:fixed;z-index:600;background:#232733;border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.5);
+    display:none;flex-direction:column;overflow:hidden;min-width:320px;min-height:200px;
+    width:560px;height:230px;
+  }
+  .vkb-panel.show{display:flex;}
+  .vkb-header{
+    background:#181b23;color:#fff;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;
+    cursor:grab;font-size:12.5px;letter-spacing:.5px;flex-shrink:0;user-select:none;
+  }
+  .vkb-header button{background:none;border:none;color:#fff;font-size:16px;opacity:.8;}
+  .vkb-header button:hover{opacity:1;}
+  .vkb-keys{flex:1;display:flex;flex-direction:column;gap:5px;padding:8px;min-height:0;}
+  .vkb-row{display:flex;gap:5px;flex:1;}
+  .vkb-key{
+    flex:1;background:#333a48;color:#fff;border:none;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;font-size:15px;user-select:none;
+  }
+  .vkb-key:active{background:var(--purple-1);}
+  .vkb-key.wide{flex:2;}
+  .vkb-key.space{flex:6;}
+  .vkb-resize{
+    position:absolute;right:2px;bottom:2px;width:16px;height:16px;cursor:nwse-resize;
+    background:linear-gradient(135deg,transparent 50%,#555 50%);border-bottom-right-radius:10px;
+  }
+  .vkb-panel-inner{position:relative;flex:1;display:flex;flex-direction:column;min-height:0;}
+
+  ::-webkit-scrollbar{width:10px;}
+  ::-webkit-scrollbar-thumb{background:#c4cad6;border-radius:10px;}
+</style>
+</head>
+<body>
+
+<!-- =================== LOGIN (empleado) =================== -->
+<section class="screen active" id="screen-login">
+  <div class="login-wrap">
+    <div class="login-topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+    </div>
+    <div class="login-center">
+      <div class="login-card">
+        <h2>Iniciar sesión</h2>
+        <p class="hint">Usa tu usuario y contraseña de WishPOS</p>
+        <div class="field"><label>Usuario</label><input id="loginUser" type="text" placeholder="ej. gcastro"></div>
+        <div class="field"><label>Contraseña</label><input id="loginPass" type="password" placeholder="••••••••"></div>
+        <button class="btn-primary" onclick="doLogin()">Entrar</button>
+        <div class="login-error" id="loginError"></div>
+        <p class="demo-note">Mockup funcional: cualquier usuario / contraseña no vacíos inician sesión.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== MENU PRINCIPAL =================== -->
+<section class="screen" id="screen-menu">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right">
+        <span class="session-chip">👤 <span id="menuUserLabel"></span></span>
+        <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
+      </div>
+    </div>
+    <div class="body-row">
+      <div class="sidebar" id="sidebarList"></div>
+      <div class="content">
+        <div class="content-title">Menú</div>
+        <div class="cards-row">
+          <div class="big-card">
+            <div class="card-icon">🏢</div>
+            <div><div class="card-label">Administración Comercial</div></div>
+          </div>
+          <div class="big-card">
+            <div class="card-icon">🔧</div>
+            <div><div class="card-label">Herramientas Comerciales</div></div>
+          </div>
+          <div class="big-card" style="cursor:pointer" onclick="showScreen('screen-visitas-home')">
+            <div class="card-icon teal">🪪</div>
+            <div>
+              <div class="card-label">Control de Visitas</div>
+              <div class="card-sub">Registro, acceso y bitácora de visitantes</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="wave-wrap"><svg viewBox="0 0 1600 90" preserveAspectRatio="none" width="100%" height="100%"><path d="M0,40 C300,90 500,0 800,30 C1100,60 1300,10 1600,40 L1600,90 L0,90 Z" fill="url(#g1)"/><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0d3b3c"/><stop offset="1" stop-color="#1d7677"/></linearGradient></defs></svg></div>
+</section>
+
+<!-- =================== MODULO: HOME VISITAS =================== -->
+<section class="screen" id="screen-visitas-home">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right">
+        <span class="session-chip">👤 <span id="visitasUserLabel"></span></span>
+        <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
+      </div>
+    </div>
+    <div class="body-row">
+      <div class="sidebar" id="sidebarList2"></div>
+      <div class="content">
+        <div class="content-title">Control de Visitas</div>
+        <button class="breadcrumb-back" onclick="showScreen('screen-menu')">‹ Volver al menú</button>
+        <div class="cards-row">
+          <div class="module-card">
+            <div class="card-icon">📝</div>
+            <h3>Registrar visita</h3>
+            <p>Captura los datos de tu visitante y genera su código QR de acceso.</p>
+            <button onclick="openRegistro()">Registrar</button>
+          </div>
+          <div class="module-card">
+            <div class="card-icon">📊</div>
+            <h3>Reportes / Bitácora</h3>
+            <p>Consulta accesos por rango de fechas y exporta el reporte.</p>
+            <button onclick="openReportes()">Ver reportes</button>
+          </div>
+          <div class="module-card kiosk-card">
+            <div class="card-icon">🛡️</div>
+            <h3>Área de Acceso</h3>
+            <p>Modo caseta / kiosko para registrar la llegada de visitantes.</p>
+            <button onclick="showScreen('screen-kiosk-login')">Entrar al kiosko</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="wave-wrap"><svg viewBox="0 0 1600 90" preserveAspectRatio="none" width="100%" height="100%"><path d="M0,40 C300,90 500,0 800,30 C1100,60 1300,10 1600,40 L1600,90 L0,90 Z" fill="url(#g1b)"/><defs><linearGradient id="g1b" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0d3b3c"/><stop offset="1" stop-color="#1d7677"/></linearGradient></defs></svg></div>
+</section>
+
+<!-- =================== REGISTRO DE VISITA =================== -->
+<section class="screen" id="screen-registro">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right"><span class="session-chip">👤 <span id="regUserLabel"></span></span></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;overflow:auto;">
+        <button class="breadcrumb-back" onclick="showScreen('screen-visitas-home')">‹ Volver</button>
+        <div class="content-title" style="max-width:640px;">Registrar visita</div>
+        <div class="form-card">
+          <div class="form-grid">
+            <div class="field"><label>Nombre</label><input id="fNombre"></div>
+            <div class="field"><label>Apellido paterno</label><input id="fApP"></div>
+            <div class="field"><label>Apellido materno</label><input id="fApM"></div>
+            <div class="field"><label>Correo electrónico</label><input id="fCorreo" type="email"></div>
+            <div class="field"><label>Empresa</label><input id="fEmpresa"></div>
+            <div class="field"><label>Área a visitar</label>
+              <select id="fArea">
+                <option>Dirección General</option>
+                <option>Sistemas / TI</option>
+                <option>Finanzas</option>
+                <option>Recursos Humanos</option>
+                <option>Comercial</option>
+                <option>Almacén / Logística</option>
+                <option>Contraloría Interna</option>
+                <option>Otro</option>
+              </select>
+            </div>
+            <div class="field full"><label>Motivo de la visita</label><input id="fMotivo" placeholder="ej. Reunión de proveedores"></div>
+            <div class="field full"><label>Persona que visita (anfitrión)</label><input id="fAnfitrion"></div>
+
+            <div class="toggle-row">
+              <label class="switch"><input type="checkbox" id="fTraeAuto" onchange="toggleAutoFields()"><span class="slider"></span></label>
+              <label>¿El visitante trae vehículo?</label>
+            </div>
+            <div class="auto-fields" id="autoFields">
+              <div class="field"><label>Marca</label><input id="fMarca"></div>
+              <div class="field"><label>Modelo</label><input id="fModelo"></div>
+              <div class="field"><label>Placas</label><input id="fPlacas"></div>
+            </div>
+          </div>
+          <div class="login-error" id="regError"></div>
+          <div class="form-actions">
+            <button class="btn-primary" onclick="generarQR()">Generar QR de acceso</button>
+            <button class="btn-secondary" onclick="showScreen('screen-visitas-home')">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== QR GENERADO =================== -->
+<section class="screen" id="screen-qr">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;display:flex;flex-direction:column;align-items:center;overflow:auto;">
+        <button class="breadcrumb-back" style="align-self:flex-start;" onclick="showScreen('screen-visitas-home')">‹ Volver al módulo</button>
+        <div class="qr-wrap">
+          <h2 style="margin:0 0 4px;">Código QR generado</h2>
+          <p style="color:#8b93a3;font-size:13px;margin:0 0 6px;">Pide al visitante que tome una foto de este código o envíalo por correo.</p>
+          <div id="qrcode"></div>
+          <div class="qr-summary" id="qrSummary"></div>
+          <div class="qr-actions">
+            <button class="btn-primary" onclick="enviarCorreo()">✉️ Enviar por correo</button>
+            <button class="btn-secondary" onclick="descargarQR()">⬇️ Descargar QR</button>
+          </div>
+          <div class="login-error" id="qrMsg" style="color:var(--ok);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: LOGIN =================== -->
+<section class="screen" id="screen-kiosk-login">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <div class="kiosk-card-box">
+        <h1 style="font-size:22px;">Acceso al módulo de caseta</h1>
+        <p class="sub">Ingresa el usuario y contraseña de la caseta de vigilancia</p>
+        <div class="kiosk-field" style="margin-bottom:14px;"><input id="kioskUser" placeholder="Usuario"></div>
+        <div class="kiosk-field" style="margin-bottom:14px;"><input id="kioskPass" type="password" placeholder="Contraseña"></div>
+        <button class="btn-kiosk-main" style="width:100%;padding:20px;font-size:17px;" onclick="doKioskLogin()">Entrar</button>
+        <div class="kiosk-msg err" id="kioskLoginError"></div>
+        <button class="btn-kiosk-secondary" style="margin-top:16px;width:100%;" onclick="showScreen('screen-visitas-home')">‹ Volver</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: HOME =================== -->
+<section class="screen" id="screen-kiosk-home">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+      <button class="btn-kiosk-secondary" onclick="doKioskLogout()">Cerrar sesión</button>
+    </div>
+    <div class="kiosk-body">
+      <h1>Bienvenido al control de accesos</h1>
+      <p class="sub">Toca el botón para registrar la llegada o salida de un visitante</p>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;">
+        <button class="btn-kiosk-main" onclick="openScan()">📷 REGISTRAR ACCESO</button>
+        <button class="btn-kiosk-main salida" onclick="openSalidaCodigo()">🚪 REGISTRAR SALIDA</button>
+      </div>
+      <button class="btn-kiosk-secondary" onclick="showScreen('screen-visitas-home')">‹ Salir del kiosko</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: ESCANEO QR =================== -->
+<section class="screen" id="screen-scan">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <h1 style="font-size:24px;">Escanea el código QR</h1>
+      <p class="sub">Apunta la cámara al código que recibió el visitante por correo</p>
+      <div class="kiosk-video-wrap">
+        <video id="scanVideo" muted playsinline></video>
+        <div class="scan-frame"></div>
+      </div>
+      <div class="kiosk-msg err" id="scanMsg"></div>
+      <button class="sim-toggle" onclick="toggleSimBox()">¿Sin cámara disponible? Simular escaneo</button>
+      <div class="sim-box" id="simBox">
+        <select id="simSelect"></select>
+        <button class="btn-kiosk-secondary" style="width:100%;" onclick="simulateScan()">Usar este QR</button>
+      </div>
+      <button class="btn-kiosk-secondary" onclick="closeScanAndGo('screen-kiosk-home')">‹ Cancelar</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: VALIDAR APELLIDO =================== -->
+<section class="screen" id="screen-validate">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <h1 style="font-size:24px;">Confirma tu identidad</h1>
+      <p class="sub">Por seguridad, escribe tu apellido paterno tal como fue registrado</p>
+      <div class="kiosk-field">
+        <input id="validateApP" placeholder="Apellido paterno" autocomplete="off">
+      </div>
+      <button class="btn-kiosk-main" style="padding:18px 44px;font-size:17px;" onclick="submitValidate()">Validar</button>
+      <div class="kiosk-msg err" id="validateMsg"></div>
+      <button class="btn-kiosk-secondary" onclick="showScreen('screen-kiosk-home')">‹ Cancelar</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: FOTOGRAFÍA DE LA VISITA =================== -->
+<section class="screen" id="screen-photo">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <h1 style="font-size:24px;">Foto de la visita</h1>
+      <p class="sub">Para la credencial de acceso, toma una fotografía del visitante</p>
+
+      <div class="kiosk-video-wrap" id="photoVideoWrap">
+        <video id="photoVideo" muted playsinline autoplay></video>
+        <div class="face-guide"></div>
+      </div>
+      <div class="photo-preview-wrap" id="photoPreviewWrap" style="display:none;">
+        <img id="photoPreviewImg" alt="Foto capturada">
+      </div>
+
+      <div class="kiosk-msg err" id="photoMsg"></div>
+
+      <div id="photoActionsCapture" style="display:flex;gap:12px;">
+        <button class="btn-kiosk-main" style="padding:18px 40px;font-size:17px;" onclick="takePhoto()">📸 Tomar foto</button>
+      </div>
+      <div id="photoActionsConfirm" style="display:none;gap:12px;">
+        <button class="btn-kiosk-secondary" onclick="retakePhoto()">🔁 Repetir foto</button>
+        <button class="btn-kiosk-main" style="padding:16px 34px;font-size:16px;" onclick="confirmPhotoAndContinue(false)">✅ Usar esta foto</button>
+      </div>
+
+      <button class="sim-toggle" onclick="confirmPhotoAndContinue(true)">Continuar sin foto</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: ETIQUETA DE ACCESO =================== -->
+<section class="screen" id="screen-badge">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <div class="badge-card" id="badgeCard">
+        <!-- filled by JS -->
+      </div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn-kiosk-secondary" onclick="window.print()">🖨️ Imprimir etiqueta</button>
+        <button class="btn-kiosk-main" style="padding:16px 30px;font-size:15px;" onclick="showScreen('screen-kiosk-home')">Nuevo registro</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: CÓDIGO DE SALIDA =================== -->
+<section class="screen" id="screen-salida-codigo">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <h1 style="font-size:24px;">Registrar salida</h1>
+      <p class="sub">Ingresa tu código de 6 dígitos (el que recibiste al entrar)</p>
+      <div class="pin-display" id="salidaPinDisplay">
+        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
+        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
+      </div>
+      <div class="kiosk-msg err" id="salidaMsg"></div>
+      <div class="pin-pad">
+        <button class="pin-key" onclick="pinPress('1')">1</button>
+        <button class="pin-key" onclick="pinPress('2')">2</button>
+        <button class="pin-key" onclick="pinPress('3')">3</button>
+        <button class="pin-key" onclick="pinPress('4')">4</button>
+        <button class="pin-key" onclick="pinPress('5')">5</button>
+        <button class="pin-key" onclick="pinPress('6')">6</button>
+        <button class="pin-key" onclick="pinPress('7')">7</button>
+        <button class="pin-key" onclick="pinPress('8')">8</button>
+        <button class="pin-key" onclick="pinPress('9')">9</button>
+        <button class="pin-key pin-key-fn" onclick="pinClear()">C</button>
+        <button class="pin-key" onclick="pinPress('0')">0</button>
+        <button class="pin-key pin-key-fn" onclick="pinBackspace()">⌫</button>
+      </div>
+      <p style="font-size:12.5px;color:#8ec4c4;margin:4px 0 0;">¿Olvidaste tu código? Solicita apoyo en recepción.</p>
+      <button class="btn-kiosk-secondary" onclick="showScreen('screen-kiosk-home')">‹ Cancelar</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: CONFIRMAR SALIDA =================== -->
+<section class="screen" id="screen-salida-confirm">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <h1 style="font-size:22px;">¿Eres tú?</h1>
+      <div class="badge-card" id="salidaConfirmCard" style="max-width:380px;"><!-- filled by JS --></div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn-kiosk-secondary" onclick="rechazarSalidaConfirm()">❌ No soy yo</button>
+        <button class="btn-kiosk-main" style="padding:16px 30px;font-size:15px;" onclick="confirmarSalida()">✅ Confirmar salida</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: SALIDA REGISTRADA =================== -->
+<section class="screen" id="screen-salida-done">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <div class="badge-card" id="salidaDoneCard" style="max-width:380px;"><!-- filled by JS --></div>
+      <button class="btn-kiosk-main" style="padding:16px 30px;font-size:15px;" onclick="showScreen('screen-kiosk-home')">Finalizar</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== REPORTES =================== -->
+<section class="screen" id="screen-reportes">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right"><button class="btn-logout" onclick="doLogout()">Cerrar sesión</button></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;overflow:auto;">
+        <button class="breadcrumb-back" onclick="showScreen('screen-visitas-home')">‹ Volver</button>
+        <div class="content-title">Reportes / Bitácora de accesos</div>
+        <div class="filters-row">
+          <div class="field"><label>Fecha inicio</label><input type="date" id="repDesde"></div>
+          <div class="field"><label>Fecha fin</label><input type="date" id="repHasta"></div>
+          <button class="btn-primary" style="width:auto;padding:11px 22px;" onclick="generarReporte()">Generar reporte</button>
+          <button class="btn-secondary" style="width:auto;padding:11px 22px;margin-top:0;" onclick="exportarCSV()">⬇️ Exportar CSV</button>
+        </div>
+        <div id="reportTableWrap"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== TECLADO VIRTUAL (kiosko) =================== -->
+<button class="vkb-toggle" id="vkbToggle" onclick="toggleKeyboard()" style="display:none;">⌨️ Teclado en pantalla</button>
+<div class="vkb-panel" id="vkbPanel">
+  <div class="vkb-panel-inner">
+    <div class="vkb-header" id="vkbHeader">
+      <span>TECLADO EN PANTALLA — arrastra aquí</span>
+      <button onclick="toggleKeyboard()">✕</button>
+    </div>
+    <div class="vkb-keys" id="vkbKeys"></div>
+    <div class="vkb-resize" id="vkbResize"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   ESTADO GLOBAL (en memoria — en producción esto vendría de
+   una API / SQL Server, similar al resto del stack de Celex)
+   ========================================================= */
+let session = { username: null };
+let kioskSession = { active: false };
+let visits = [];          // bitácora completa
+let pendingVisitId = null;
+let scanStream = null;
+let scanRAFId = null;
+let attemptCount = 0;
+
+const AREAS_MENU = [
+  ["✉️","Garantías (WP)"],["🎧","Accesorios"],["📊","CRISTEST (WP)"],["🪪","Dyno"],
+  ["💲","Siscom"],["🚚","Fulfillment"],["📱","TAE"],["€","Finanzas"],
+  ["🏛️","Contraloría Interna"],["📍","Entrega Domicilio"],["🛡️","Mesa de Control"],
+  ["🗄️","Chips"],["⚙️","Herramientas"],["📱","Teléfonos"],["🔖","Documentos RK (WP)"]
+];
+
+function uid(){
+  return (crypto.randomUUID ? crypto.randomUUID() : 'v-'+Date.now()+'-'+Math.random().toString(16).slice(2));
+}
+function normaliza(str){
+  return (str||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function fmtFecha(d){
+  if(!d) return '—';
+  return d.toLocaleString('es-MX',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+/* ---------- navegación ---------- */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // el teclado en pantalla solo aplica a las pantallas de caseta (kiosko)
+  const kioskScreens = ['screen-kiosk-login','screen-kiosk-home','screen-scan','screen-validate','screen-photo','screen-badge','screen-salida-codigo','screen-salida-confirm','screen-salida-done'];
+  document.getElementById('vkbToggle').style.display = kioskScreens.includes(id) ? 'flex' : 'none';
+  if(!kioskScreens.includes(id)){
+    document.getElementById('vkbPanel').classList.remove('show');
+  }
+}
+
+function buildSidebar(targetId, activeLabel){
+  const el = document.getElementById(targetId);
+  if(!el) return;
+  let html = '';
+  AREAS_MENU.forEach(([icon,label])=>{
+    html += `<div class="side-item"><span class="side-icon">${icon}</span>${label}</div>`;
+  });
+  html += `<div class="side-item new-module ${activeLabel==='visitas'?'active-mod':''}" onclick="showScreen('screen-visitas-home')"><span class="side-icon">🪪</span>Control de Visitas</div>`;
+  el.innerHTML = html;
+}
+
+/* ---------- login empleado ---------- */
+function doLogin(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  const err = document.getElementById('loginError');
+  if(!u || !p){ err.textContent = 'Ingresa tu usuario y contraseña.'; return; }
+  err.textContent='';
+  session.username = u;
+  document.getElementById('menuUserLabel').textContent = u;
+  document.getElementById('visitasUserLabel').textContent = u;
+  document.getElementById('regUserLabel').textContent = u;
+  document.getElementById('fAnfitrion').value = u;
+  buildSidebar('sidebarList','menu');
+  buildSidebar('sidebarList2','visitas');
+  showScreen('screen-menu');
+}
+function doLogout(){
+  session.username = null;
+  document.getElementById('loginUser').value='';
+  document.getElementById('loginPass').value='';
+  showScreen('screen-login');
+}
+
+/* ---------- registro de visita ---------- */
+function openRegistro(){
+  document.getElementById('regUserLabel').textContent = session.username || '';
+  if(!document.getElementById('fAnfitrion').value){
+    document.getElementById('fAnfitrion').value = session.username || '';
+  }
+  document.getElementById('regError').textContent='';
+  showScreen('screen-registro');
+}
+function toggleAutoFields(){
+  document.getElementById('autoFields').classList.toggle('show', document.getElementById('fTraeAuto').checked);
+}
+function generarQR(){
+  const nombre = document.getElementById('fNombre').value.trim();
+  const apP = document.getElementById('fApP').value.trim();
+  const apM = document.getElementById('fApM').value.trim();
+  const correo = document.getElementById('fCorreo').value.trim();
+  const empresa = document.getElementById('fEmpresa').value.trim();
+  const area = document.getElementById('fArea').value;
+  const motivo = document.getElementById('fMotivo').value.trim();
+  const anfitrion = document.getElementById('fAnfitrion').value.trim();
+  const traeAuto = document.getElementById('fTraeAuto').checked;
+  const marca = document.getElementById('fMarca').value.trim();
+  const modelo = document.getElementById('fModelo').value.trim();
+  const placas = document.getElementById('fPlacas').value.trim();
+
+  const err = document.getElementById('regError');
+  if(!nombre || !apP || !apM || !correo || !empresa || !motivo || !anfitrion){
+    err.textContent = 'Completa todos los campos obligatorios.'; return;
+  }
+  if(traeAuto && (!marca || !modelo || !placas)){
+    err.textContent = 'Indica marca, modelo y placas del vehículo.'; return;
+  }
+  err.textContent='';
+
+  const visit = {
+    id: uid(), nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area, motivo,
+    anfitrion, registradoPor: session.username, traeAuto, marca, modelo, placas,
+    status:'pendiente', fechaRegistro:new Date(), fechaAcceso:null, foto:null, codigoSalida:null, fechaSalida:null
+  };
+  visits.push(visit);
+  pendingVisitId = visit.id;
+  renderQR(visit);
+  showScreen('screen-qr');
+}
+function renderQR(visit){
+  const box = document.getElementById('qrcode');
+  box.innerHTML = '';
+  try{
+    new QRCode(box, { text: visit.id, width:220, height:220, colorDark:'#132a63', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.H });
+  }catch(e){
+    box.innerHTML = '<div style="padding:30px;color:#c33;">No se pudo generar el QR (sin conexión a la librería).</div>';
+  }
+  document.getElementById('qrSummary').innerHTML =
+    `<b>${visit.nombre} ${visit.apellidoP} ${visit.apellidoM}</b><br>
+     Empresa: <b>${visit.empresa}</b><br>
+     Visita a: <b>${visit.area}</b> — Anfitrión: <b>${visit.anfitrion}</b><br>
+     Motivo: ${visit.motivo}<br>
+     ${visit.traeAuto ? `Vehículo: ${visit.marca} ${visit.modelo} — Placas ${visit.placas}` : 'Sin vehículo registrado'}`;
+  document.getElementById('qrMsg').textContent='';
+}
+function descargarQR(){
+  const canvas = document.querySelector('#qrcode canvas');
+  if(!canvas){ document.getElementById('qrMsg').style.color='var(--err)'; document.getElementById('qrMsg').textContent='No hay imagen para descargar.'; return; }
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'qr-acceso-celex.png';
+  a.click();
+}
+function enviarCorreo(){
+  const v = visits.find(x=>x.id===pendingVisitId);
+  if(!v) return;
+  const msg = document.getElementById('qrMsg');
+  msg.style.color='var(--ok)';
+  msg.textContent = `Correo simulado enviado a ${v.correo} con el código QR adjunto. (En producción se integraría con Outlook / Graph API).`;
+}
+
+/* ---------- kiosko: login ---------- */
+function doKioskLogin(){
+  const u = document.getElementById('kioskUser').value.trim();
+  const p = document.getElementById('kioskPass').value.trim();
+  const err = document.getElementById('kioskLoginError');
+  if(!u || !p){ err.textContent='Ingresa usuario y contraseña de caseta.'; return; }
+  err.textContent='';
+  kioskSession.active = true;
+  document.getElementById('kioskUser').value='';
+  document.getElementById('kioskPass').value='';
+  showScreen('screen-kiosk-home');
+}
+function doKioskLogout(){
+  kioskSession.active=false;
+  stopCamera();
+  stopPhotoCamera();
+  showScreen('screen-kiosk-login');
+}
+
+/* ---------- kiosko: escaneo QR ---------- */
+function openScan(){
+  attemptCount = 0;
+  document.getElementById('scanMsg').textContent='';
+  document.getElementById('simBox').classList.remove('show');
+  refreshSimSelect();
+  showScreen('screen-scan');
+  startCamera();
+}
+function refreshSimSelect(){
+  const sel = document.getElementById('simSelect');
+  const pend = visits.filter(v=>v.status==='pendiente');
+  sel.innerHTML = pend.length
+    ? pend.map(v=>`<option value="${v.id}">${v.nombre} ${v.apellidoP} — ${v.empresa}</option>`).join('')
+    : `<option value="">No hay visitas pendientes</option>`;
+}
+function toggleSimBox(){
+  document.getElementById('simBox').classList.toggle('show');
+}
+function startCamera(){
+  const video = document.getElementById('scanVideo');
+  const msg = document.getElementById('scanMsg');
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    msg.textContent = 'Este navegador no soporta acceso a cámara. Usa la simulación.';
+    document.getElementById('simBox').classList.add('show');
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({ video: { facingMode:'environment' } }).then(stream=>{
+    scanStream = stream;
+    video.srcObject = stream;
+    video.play();
+    scanTick();
+  }).catch(()=>{
+    msg.textContent = 'No se pudo acceder a la cámara. Usa la opción de simulación.';
+    document.getElementById('simBox').classList.add('show');
+  });
+}
+function scanTick(){
+  const video = document.getElementById('scanVideo');
+  if(video.readyState === video.HAVE_ENOUGH_DATA){
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
+    let code = null;
+    try{ code = jsQR(imgData.data, imgData.width, imgData.height); }catch(e){}
+    if(code && code.data){ onQRDetected(code.data); return; }
+  }
+  scanRAFId = requestAnimationFrame(scanTick);
+}
+function stopCamera(){
+  if(scanRAFId) cancelAnimationFrame(scanRAFId);
+  scanRAFId = null;
+  if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
+}
+function closeScanAndGo(target){
+  stopCamera();
+  showScreen(target);
+}
+function simulateScan(){
+  const id = document.getElementById('simSelect').value;
+  if(!id){ document.getElementById('scanMsg').textContent='Selecciona una visita para simular.'; return; }
+  onQRDetected(id);
+}
+function onQRDetected(token){
+  stopCamera();
+  const visit = visits.find(v=>v.id===token);
+  if(!visit){
+    showScreen('screen-scan');
+    document.getElementById('scanMsg').textContent = 'Código no reconocido. Intenta de nuevo.';
+    startCamera();
+    return;
+  }
+  if(visit.status === 'accesado'){
+    showScreen('screen-scan');
+    document.getElementById('scanMsg').textContent = 'Este código ya fue utilizado para un acceso.';
+    startCamera();
+    return;
+  }
+  pendingVisitId = visit.id;
+  attemptCount = 0;
+  document.getElementById('validateApP').value='';
+  document.getElementById('validateMsg').textContent='';
+  showScreen('screen-validate');
+}
+function submitValidate(){
+  const visit = visits.find(v=>v.id===pendingVisitId);
+  const msg = document.getElementById('validateMsg');
+  if(!visit){ msg.textContent='Sesión de escaneo perdida, vuelve a intentar.'; return; }
+  const entered = normaliza(document.getElementById('validateApP').value);
+  const expected = normaliza(visit.apellidoP);
+  if(entered && entered === expected){
+    msg.style.color='#8dffb0';
+    visit.status='accesado';
+    visit.fechaAcceso = new Date();
+    visit.codigoSalida = generarCodigoSalidaUnico();
+    openPhotoCapture();
+    return;
+  }
+  attemptCount++;
+  msg.style.color='#ff9d9d';
+  if(attemptCount>=3){
+    msg.textContent = 'Apellido no coincide (3 intentos). Solicita apoyo a seguridad / recepción.';
+  }else{
+    msg.textContent = `Apellido no coincide. Intento ${attemptCount} de 3.`;
+  }
+}
+function renderBadge(visit){
+  const fotoHtml = visit.foto
+    ? `<img src="${visit.foto}" class="badge-photo" alt="Foto del visitante">`
+    : `<div class="badge-photo badge-photo-placeholder">👤</div>`;
+  document.getElementById('badgeCard').innerHTML = `
+    <div class="badge-photo-wrap">
+      ${fotoHtml}
+      <div class="badge-photo-check">✓</div>
+    </div>
+    <div class="badge-title">ACCESO AUTORIZADO</div>
+    <div class="badge-name">${visit.nombre} ${visit.apellidoP} ${visit.apellidoM}</div>
+    <div style="color:#8b93a3;font-size:13px;margin-bottom:14px;">${visit.empresa}</div>
+    <div class="badge-row"><span>Área que visita</span><span>${visit.area}</span></div>
+    <div class="badge-row"><span>Persona que visita</span><span>${visit.anfitrion}</span></div>
+    <div class="badge-row"><span>Motivo</span><span>${visit.motivo}</span></div>
+    <div class="badge-row"><span>Fecha y hora de acceso</span><span>${fmtFecha(visit.fechaAcceso)}</span></div>
+    <div class="exit-code-box">
+      <div class="exit-code-label">CÓDIGO DE SALIDA — CONSÉRVALO</div>
+      <div class="exit-code-value">${visit.codigoSalida}</div>
+    </div>
+  `;
+}
+
+/* ---------- kiosko: foto de la visita ---------- */
+let photoStream = null;
+let capturedPhotoDataUrl = null;
+function openPhotoCapture(){
+  capturedPhotoDataUrl = null;
+  document.getElementById('photoMsg').textContent = '';
+  document.getElementById('photoVideoWrap').style.display = 'block';
+  document.getElementById('photoPreviewWrap').style.display = 'none';
+  document.getElementById('photoActionsCapture').style.display = 'flex';
+  document.getElementById('photoActionsConfirm').style.display = 'none';
+  showScreen('screen-photo');
+  startPhotoCamera();
+}
+function startPhotoCamera(){
+  const video = document.getElementById('photoVideo');
+  const msg = document.getElementById('photoMsg');
+  msg.textContent = '';
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    msg.textContent = 'Este dispositivo no tiene cámara disponible. Puedes continuar sin foto.';
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({ video: { facingMode:'user' } }).then(stream=>{
+    photoStream = stream;
+    video.srcObject = stream;
+    video.play();
+  }).catch(()=>{
+    msg.textContent = 'No se pudo acceder a la cámara. Puedes continuar sin foto.';
+  });
+}
+function stopPhotoCamera(){
+  if(photoStream){ photoStream.getTracks().forEach(t=>t.stop()); photoStream=null; }
+}
+function takePhoto(){
+  const video = document.getElementById('photoVideo');
+  const msg = document.getElementById('photoMsg');
+  if(!video.videoWidth){ msg.textContent = 'La cámara aún no está lista, intenta de nuevo.'; return; }
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.translate(canvas.width,0); ctx.scale(-1,1); // corrige el espejo de la vista previa
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  capturedPhotoDataUrl = canvas.toDataURL('image/jpeg',0.85);
+  document.getElementById('photoPreviewImg').src = capturedPhotoDataUrl;
+  document.getElementById('photoVideoWrap').style.display = 'none';
+  document.getElementById('photoPreviewWrap').style.display = 'block';
+  document.getElementById('photoActionsCapture').style.display = 'none';
+  document.getElementById('photoActionsConfirm').style.display = 'flex';
+  stopPhotoCamera();
+}
+function retakePhoto(){
+  capturedPhotoDataUrl = null;
+  document.getElementById('photoPreviewWrap').style.display = 'none';
+  document.getElementById('photoVideoWrap').style.display = 'block';
+  document.getElementById('photoActionsCapture').style.display = 'flex';
+  document.getElementById('photoActionsConfirm').style.display = 'none';
+  startPhotoCamera();
+}
+function confirmPhotoAndContinue(skip){
+  const visit = visits.find(v=>v.id===pendingVisitId);
+  stopPhotoCamera();
+  if(!visit){ showScreen('screen-kiosk-home'); return; }
+  visit.foto = skip ? null : capturedPhotoDataUrl;
+  renderBadge(visit);
+  showScreen('screen-badge');
+}
+
+/* ---------- kiosko: registro de salida (código de 6 dígitos) ---------- */
+function generarCodigoSalidaUnico(){
+  const hoy = new Date().toDateString();
+  let code, intentos = 0;
+  do{
+    code = String(Math.floor(100000 + Math.random()*900000)); // 6 dígitos
+    intentos++;
+  }while(
+    intentos < 50 &&
+    visits.some(v => v.codigoSalida === code && v.fechaAcceso && v.fechaAcceso.toDateString() === hoy && !v.fechaSalida)
+  );
+  return code;
+}
+function buscarVisitaPorCodigoSalida(code){
+  const hoy = new Date().toDateString();
+  return visits.find(v =>
+    v.codigoSalida === code && v.status === 'accesado' && !v.fechaSalida &&
+    v.fechaAcceso && v.fechaAcceso.toDateString() === hoy
+  );
+}
+function calcDuracion(entrada, salida){
+  if(!entrada || !salida) return '—';
+  const mins = Math.round((salida - entrada) / 60000);
+  const h = Math.floor(mins/60), m = mins%60;
+  return h > 0 ? `${h} h ${m} min` : `${m} min`;
+}
+
+let salidaCodigoBuffer = '';
+let pendingSalidaVisitId = null;
+
+function openSalidaCodigo(){
+  salidaCodigoBuffer = '';
+  updateSalidaPinDisplay();
+  document.getElementById('salidaMsg').textContent = '';
+  showScreen('screen-salida-codigo');
+}
+function updateSalidaPinDisplay(){
+  const boxes = document.querySelectorAll('#salidaPinDisplay .pin-box');
+  boxes.forEach((b,i)=>{
+    b.textContent = salidaCodigoBuffer[i] || '';
+    b.classList.toggle('filled', !!salidaCodigoBuffer[i]);
+  });
+}
+function pinPress(d){
+  if(salidaCodigoBuffer.length >= 6) return;
+  document.getElementById('salidaMsg').textContent = '';
+  salidaCodigoBuffer += d;
+  updateSalidaPinDisplay();
+  if(salidaCodigoBuffer.length === 6) setTimeout(submitSalidaCodigo, 150);
+}
+function pinBackspace(){
+  salidaCodigoBuffer = salidaCodigoBuffer.slice(0,-1);
+  updateSalidaPinDisplay();
+}
+function pinClear(){
+  salidaCodigoBuffer = '';
+  updateSalidaPinDisplay();
+}
+function submitSalidaCodigo(){
+  const msg = document.getElementById('salidaMsg');
+  const visit = buscarVisitaPorCodigoSalida(salidaCodigoBuffer);
+  if(!visit){
+    msg.textContent = 'Código no válido o ya utilizado. Verifica con recepción.';
+    salidaCodigoBuffer = '';
+    updateSalidaPinDisplay();
+    return;
+  }
+  pendingSalidaVisitId = visit.id;
+  renderSalidaConfirm(visit);
+  showScreen('screen-salida-confirm');
+}
+function renderSalidaConfirm(visit){
+  const fotoHtml = visit.foto
+    ? `<img src="${visit.foto}" class="badge-photo" alt="Foto del visitante">`
+    : `<div class="badge-photo badge-photo-placeholder">👤</div>`;
+  document.getElementById('salidaConfirmCard').innerHTML = `
+    <div class="badge-photo-wrap">${fotoHtml}</div>
+    <div class="badge-name">${visit.nombre} ${visit.apellidoP} ${visit.apellidoM}</div>
+    <div style="color:#8b93a3;font-size:13px;margin-bottom:14px;">${visit.empresa}</div>
+    <div class="badge-row"><span>Entrada registrada</span><span>${fmtFecha(visit.fechaAcceso)}</span></div>
+    <div class="badge-row"><span>Anfitrión</span><span>${visit.anfitrion}</span></div>
+  `;
+}
+function rechazarSalidaConfirm(){
+  pendingSalidaVisitId = null;
+  openSalidaCodigo();
+}
+function confirmarSalida(){
+  const visit = visits.find(v=>v.id===pendingSalidaVisitId);
+  if(!visit){ showScreen('screen-kiosk-home'); return; }
+  visit.fechaSalida = new Date();
+  renderSalidaDone(visit);
+  showScreen('screen-salida-done');
+}
+function renderSalidaDone(visit){
+  document.getElementById('salidaDoneCard').innerHTML = `
+    <div class="badge-check">✓</div>
+    <div class="badge-title">SALIDA REGISTRADA</div>
+    <div class="badge-name">${visit.nombre} ${visit.apellidoP} ${visit.apellidoM}</div>
+    <div class="badge-row"><span>Hora de salida</span><span>${fmtFecha(visit.fechaSalida)}</span></div>
+    <div class="badge-row"><span>Tiempo de estancia</span><span>${calcDuracion(visit.fechaAcceso, visit.fechaSalida)}</span></div>
+  `;
+}
+
+/* ---------- reportes ---------- */
+function openReportes(){
+  document.getElementById('reportTableWrap').innerHTML = '<div class="empty-note">Selecciona un rango de fechas y genera el reporte.</div>';
+  showScreen('screen-reportes');
+}
+function generarReporte(){
+  const desde = document.getElementById('repDesde').value;
+  const hasta = document.getElementById('repHasta').value;
+  const wrap = document.getElementById('reportTableWrap');
+  let list = visits.slice();
+  if(desde){ const d = new Date(desde+'T00:00:00'); list = list.filter(v=>v.fechaRegistro >= d); }
+  if(hasta){ const h = new Date(hasta+'T23:59:59'); list = list.filter(v=>v.fechaRegistro <= h); }
+  if(!list.length){ wrap.innerHTML = '<div class="empty-note">No hay registros en el rango seleccionado.</div>'; return; }
+  list.sort((a,b)=>b.fechaRegistro-a.fechaRegistro);
+  let rows = list.map(v=>{
+    let estadoLabel, estadoClass;
+    if(v.status !== 'accesado'){ estadoLabel='Pendiente'; estadoClass='pendiente'; }
+    else if(!v.fechaSalida){ estadoLabel='Dentro'; estadoClass='dentro'; }
+    else { estadoLabel='Salida registrada'; estadoClass='salida'; }
+    return `
+    <tr>
+      <td>${v.foto ? `<img src="${v.foto}" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
+      <td>${v.nombre} ${v.apellidoP} ${v.apellidoM}</td>
+      <td>${v.empresa}</td>
+      <td>${v.area}</td>
+      <td>${v.anfitrion}</td>
+      <td><span class="status-pill ${estadoClass}">${estadoLabel}</span></td>
+      <td>${fmtFecha(v.fechaRegistro)}</td>
+      <td>${v.fechaAcceso ? fmtFecha(v.fechaAcceso) : '—'}</td>
+      <td>${v.codigoSalida || '—'}</td>
+      <td>${v.fechaSalida ? fmtFecha(v.fechaSalida) : '—'}</td>
+      <td>${calcDuracion(v.fechaAcceso, v.fechaSalida)}</td>
+    </tr>`;}).join('');
+  wrap.innerHTML = `
+    <table class="report-table">
+      <thead><tr><th></th><th>Visitante</th><th>Empresa</th><th>Área</th><th>Anfitrión</th><th>Estado</th><th>Registro</th><th>Acceso</th><th>Cód. salida</th><th>Salida</th><th>Duración</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+function exportarCSV(){
+  if(!visits.length){ alert('No hay datos para exportar.'); return; }
+  const header = ['Nombre','ApellidoPaterno','ApellidoMaterno','Empresa','Area','Anfitrion','Motivo','Estado','FechaRegistro','FechaAcceso','CodigoSalida','FechaSalida'];
+  const rows = visits.map(v=>[
+    v.nombre,v.apellidoP,v.apellidoM,v.empresa,v.area,v.anfitrion,v.motivo,v.status,
+    v.fechaRegistro.toISOString(), v.fechaAcceso? v.fechaAcceso.toISOString(): '',
+    v.codigoSalida || '', v.fechaSalida? v.fechaSalida.toISOString(): ''
+  ].map(x=>`"${String(x).replace(/"/g,'""')}"`).join(','));
+  const csv = [header.join(','), ...rows].join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'bitacora-visitas-celex.csv';
+  a.click();
+}
+
+/* =========================================================
+   TECLADO VIRTUAL EN PANTALLA (solo pantallas de caseta)
+   ========================================================= */
+const KB_ROWS = [
+  ['1','2','3','4','5','6','7','8','9','0','⌫'],
+  ['q','w','e','r','t','y','u','i','o','p'],
+  ['a','s','d','f','g','h','j','k','l','ñ'],
+  ['z','x','c','v','b','n','m','.','-'],
+  ['espacio']
+];
+let activeInput = null;
+document.addEventListener('focusin', e=>{
+  if(e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA') activeInput = e.target;
+});
+function buildKeyboard(){
+  const keysWrap = document.getElementById('vkbKeys');
+  keysWrap.innerHTML = KB_ROWS.map(row=>{
+    const keys = row.map(k=>{
+      if(k==='espacio') return `<button type="button" class="vkb-key space" onclick="vkbPress(' ')">espacio</button>`;
+      if(k==='⌫') return `<button type="button" class="vkb-key wide" onclick="vkbBackspace()">⌫</button>`;
+      return `<button type="button" class="vkb-key" onclick="vkbPress('${k}')">${k}</button>`;
+    }).join('');
+    return `<div class="vkb-row">${keys}</div>`;
+  }).join('');
+}
+function vkbPress(ch){
+  if(!activeInput) return;
+  const start = activeInput.selectionStart ?? activeInput.value.length;
+  const end = activeInput.selectionEnd ?? activeInput.value.length;
+  activeInput.value = activeInput.value.slice(0,start) + ch + activeInput.value.slice(end);
+  activeInput.setSelectionRange(start+ch.length, start+ch.length);
+  activeInput.focus();
+}
+function vkbBackspace(){
+  if(!activeInput) return;
+  const start = activeInput.selectionStart ?? activeInput.value.length;
+  const end = activeInput.selectionEnd ?? activeInput.value.length;
+  if(start===end && start>0){
+    activeInput.value = activeInput.value.slice(0,start-1) + activeInput.value.slice(end);
+    activeInput.setSelectionRange(start-1,start-1);
+  }else{
+    activeInput.value = activeInput.value.slice(0,start) + activeInput.value.slice(end);
+    activeInput.setSelectionRange(start,start);
+  }
+  activeInput.focus();
+}
+function toggleKeyboard(){
+  const panel = document.getElementById('vkbPanel');
+  panel.classList.toggle('show');
+  if(panel.classList.contains('show')){
+    panel.style.left = (window.innerWidth/2 - panel.offsetWidth/2) + 'px';
+    panel.style.top = (window.innerHeight - panel.offsetHeight - 110) + 'px';
+  }
+}
+/* arrastrar */
+(function(){
+  const header = document.getElementById('vkbHeader');
+  const panel = document.getElementById('vkbPanel');
+  let dragging=false, offX=0, offY=0;
+  function start(x,y){ dragging=true; const r=panel.getBoundingClientRect(); offX=x-r.left; offY=y-r.top; }
+  function move(x,y){
+    if(!dragging) return;
+    let left = x-offX, top = y-offY;
+    left = Math.max(0, Math.min(window.innerWidth-panel.offsetWidth, left));
+    top = Math.max(0, Math.min(window.innerHeight-panel.offsetHeight, top));
+    panel.style.left = left+'px'; panel.style.top = top+'px';
+  }
+  header.addEventListener('mousedown', e=>start(e.clientX,e.clientY));
+  window.addEventListener('mousemove', e=>move(e.clientX,e.clientY));
+  window.addEventListener('mouseup', ()=>dragging=false);
+  header.addEventListener('touchstart', e=>{const t=e.touches[0]; start(t.clientX,t.clientY);}, {passive:true});
+  window.addEventListener('touchmove', e=>{const t=e.touches[0]; move(t.clientX,t.clientY);}, {passive:true});
+  window.addEventListener('touchend', ()=>dragging=false);
+})();
+/* redimensionar */
+(function(){
+  const handle = document.getElementById('vkbResize');
+  const panel = document.getElementById('vkbPanel');
+  let resizing=false;
+  function start(){ resizing=true; }
+  function move(x,y){
+    if(!resizing) return;
+    const r = panel.getBoundingClientRect();
+    const w = Math.max(320, Math.min(900, x-r.left));
+    const h = Math.max(200, Math.min(500, y-r.top));
+    panel.style.width = w+'px';
+    panel.style.height = h+'px';
+    const scale = Math.max(0.75, Math.min(1.5, w/560));
+    document.querySelectorAll('.vkb-key').forEach(k=>k.style.fontSize = (15*scale)+'px');
+  }
+  handle.addEventListener('mousedown', start);
+  window.addEventListener('mousemove', e=>move(e.clientX,e.clientY));
+  window.addEventListener('mouseup', ()=>resizing=false);
+  handle.addEventListener('touchstart', start, {passive:true});
+  window.addEventListener('touchmove', e=>{const t=e.touches[0]; move(t.clientX,t.clientY);}, {passive:true});
+  window.addEventListener('touchend', ()=>resizing=false);
+})();
+
+/* =========================================================
+   DATOS DE EJEMPLO (para poder ver el reporte sin capturar
+   nada manualmente al abrir el mockup)
+   ========================================================= */
+(function seed(){
+  const now = Date.now();
+  const v1 = {
+    id: uid(), nombre:'Laura', apellidoP:'Hernández', apellidoM:'Ruiz', correo:'laura.hernandez@proveedor.mx',
+    empresa:'Proveedor Ejemplo SA', area:'Comercial', motivo:'Presentación de catálogo',
+    anfitrion:'jgarcia', registradoPor:'jgarcia', traeAuto:true, marca:'Nissan', modelo:'Versa', placas:'JLA-2231',
+    status:'accesado', fechaRegistro:new Date(now-1000*60*60*26), fechaAcceso:new Date(now-1000*60*60*25), foto:null,
+    codigoSalida:'778241', fechaSalida:new Date(now-1000*60*60*24)
+  };
+  const v2 = {
+    id: uid(), nombre:'Marco', apellidoP:'Salinas', apellidoM:'Torres', correo:'marco.salinas@fedex.com',
+    empresa:'FedEx', area:'Almacén / Logística', motivo:'Revisión de guías',
+    anfitrion:'gcastro', registradoPor:'gcastro', traeAuto:false, marca:'', modelo:'', placas:'',
+    status:'pendiente', fechaRegistro:new Date(now-1000*60*60*3), fechaAcceso:null, foto:null,
+    codigoSalida:null, fechaSalida:null
+  };
+  const v3 = {
+    id: uid(), nombre:'Ana', apellidoP:'Torres', apellidoM:'Méndez', correo:'ana.torres@grupoabc.mx',
+    empresa:'Grupo ABC', area:'Sistemas / TI', motivo:'Soporte de infraestructura',
+    anfitrion:'lramirez', registradoPor:'lramirez', traeAuto:false, marca:'', modelo:'', placas:'',
+    status:'accesado', fechaRegistro:new Date(now-1000*60*20), fechaAcceso:new Date(now-1000*60*18), foto:null,
+    codigoSalida:'123456', fechaSalida:null // visitante "dentro" ahora mismo — prueba Registrar salida con 123456
+  };
+  visits.push(v1, v2, v3);
+  buildKeyboard();
+})();
+</script>
+</body>
+</html>

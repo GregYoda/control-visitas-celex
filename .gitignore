@@ -1,0 +1,23 @@
+# --- Editor / OS ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# --- Node (si la API termina siendo Node/Express) ---
+node_modules/
+npm-debug.log*
+.env
+.env.local
+
+# --- .NET (si la API termina siendo .NET) ---
+bin/
+obj/
+*.user
+
+# --- Claude Code (config local, no compartir entre máquinas) ---
+.claude/settings.local.json
+
+# --- Varios ---
+*.log
+*.tmp
