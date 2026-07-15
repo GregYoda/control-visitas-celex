@@ -467,16 +467,7 @@
             <div class="field"><label>Correo electrónico</label><input id="fCorreo" type="email"></div>
             <div class="field"><label>Empresa</label><input id="fEmpresa"></div>
             <div class="field"><label>Área a visitar</label>
-              <select id="fArea">
-                <option>Dirección General</option>
-                <option>Sistemas / TI</option>
-                <option>Finanzas</option>
-                <option>Recursos Humanos</option>
-                <option>Comercial</option>
-                <option>Almacén / Logística</option>
-                <option>Contraloría Interna</option>
-                <option>Otro</option>
-              </select>
+              <select id="fArea"><option value="">Cargando áreas…</option></select>
             </div>
             <div class="field full"><label>Motivo de la visita</label><input id="fMotivo" placeholder="ej. Reunión de proveedores"></div>
             <div class="field"><label>Fecha de visita</label><input id="fFechaVisita" type="date"></div>
@@ -838,6 +829,8 @@
    ESTADO GLOBAL (en memoria — en producción esto vendría de
    una API / SQL Server, similar al resto del stack de Celex)
    ========================================================= */
+const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro puerto
+
 let session = { username: null };
 let kioskSession = { active: false };
 let visits = [];          // bitácora completa
@@ -922,6 +915,7 @@ function doLogout(){
 /* ---------- registro de visita ---------- */
 function openRegistro(){
   document.getElementById('regUserLabel').textContent = session.username || '';
+  cargarAreas();
   if(!document.getElementById('fAnfitrion').value){
     document.getElementById('fAnfitrion').value = session.username || '';
   }
@@ -931,13 +925,26 @@ function openRegistro(){
 function toggleAutoFields(){
   document.getElementById('autoFields').classList.toggle('show', document.getElementById('fTraeAuto').checked);
 }
-function generarQR(){
+async function cargarAreas(){
+  const select = document.getElementById('fArea');
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/areas`);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const areas = await resp.json();
+    select.innerHTML = areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
+  }catch(e){
+    select.innerHTML = '<option value="">No se pudieron cargar las áreas (¿está corriendo la API?)</option>';
+  }
+}
+async function generarQR(){
   const nombre = document.getElementById('fNombre').value.trim();
   const apP = document.getElementById('fApP').value.trim();
   const apM = document.getElementById('fApM').value.trim();
   const correo = document.getElementById('fCorreo').value.trim();
   const empresa = document.getElementById('fEmpresa').value.trim();
-  const area = document.getElementById('fArea').value;
+  const areaSelect = document.getElementById('fArea');
+  const idArea = Number(areaSelect.value);
+  const areaNombre = areaSelect.options[areaSelect.selectedIndex]?.text || '';
   const motivo = document.getElementById('fMotivo').value.trim();
   const fechaVisita = document.getElementById('fFechaVisita').value;
   const anfitrion = document.getElementById('fAnfitrion').value.trim();
@@ -947,7 +954,7 @@ function generarQR(){
   const placas = document.getElementById('fPlacas').value.trim();
 
   const err = document.getElementById('regError');
-  if(!nombre || !apP || !apM || !correo || !empresa || !motivo || !fechaVisita || !anfitrion){
+  if(!nombre || !apP || !apM || !correo || !empresa || !idArea || !motivo || !fechaVisita || !anfitrion){
     err.textContent = 'Completa todos los campos obligatorios.'; return;
   }
   if(traeAuto && (!marca || !modelo || !placas)){
@@ -955,8 +962,26 @@ function generarQR(){
   }
   err.textContent='';
 
+  let data;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/visitas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo,
+        anfitrion, registradoPor: session.username, fechaVisita, traeAuto,
+        marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
+      })
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    data = await resp.json();
+  }catch(e){
+    err.textContent = 'No se pudo registrar la visita (¿está corriendo la API?).';
+    return;
+  }
+
   const visit = {
-    id: uid(), nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area, motivo,
+    id: data.uuid, nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area: areaNombre, motivo,
     fechaVisita, anfitrion, registradoPor: session.username, traeAuto, marca, modelo, placas,
     status:'pendiente', fechaRegistro:new Date(), fechaAcceso:null, foto:null, codigoSalida:null, fechaSalida:null
   };
