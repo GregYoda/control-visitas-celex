@@ -919,6 +919,9 @@ function openRegistro(){
   if(!document.getElementById('fAnfitrion').value){
     document.getElementById('fAnfitrion').value = session.username || '';
   }
+  if(!document.getElementById('fFechaVisita').value){
+    document.getElementById('fFechaVisita').value = hoyISO();
+  }
   document.getElementById('regError').textContent='';
   showScreen('screen-registro');
 }
@@ -1453,6 +1456,8 @@ function guardarEdicion(){
 
 /* ---------- reportes ---------- */
 function openReportes(){
+  document.getElementById('repDesde').value = hoyISO();
+  document.getElementById('repHasta').value = hoyISO();
   document.getElementById('reportTableWrap').innerHTML = '<div class="empty-note">Selecciona un rango de fechas y genera el reporte.</div>';
   showScreen('screen-reportes');
 }
