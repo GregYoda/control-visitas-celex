@@ -35,6 +35,11 @@ recepción/caseta por un flujo digital con QR, foto y código de salida.
 - Antes de cerrar la salida se muestra una pantalla de confirmación ("¿Eres tú?"
   con foto + nombre) para evitar cerrar el acceso de la persona equivocada por
   un error de tecleo.
+- Una visita **no puede iniciarse (accesarse) en una fecha distinta a su
+  `fechaVisita` registrada** — si al escanear el QR la fecha de hoy no
+  coincide, se rechaza el acceso con mensaje al usuario en vez de dejarlo
+  pasar a validación. Esta regla debe replicarse en el SP/endpoint real de
+  "registrar acceso" cuando exista la API.
 - El teclado en pantalla (QWERTY, arrastrable/redimensionable) solo debe
   aparecer en las pantallas del lado de **caseta/kiosko** (login de caseta,
   home, escaneo, validación, foto, badge, código de salida, confirmación,

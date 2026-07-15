@@ -868,6 +868,10 @@ function fmtFechaVisita(s){
   const [y,m,d] = s.split('-');
   return new Date(+y,+m-1,+d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
 }
+function hoyISO(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 
 /* ---------- navegación ---------- */
 function showScreen(id){
@@ -1090,6 +1094,12 @@ function onQRDetected(token){
   if(visit.status === 'accesado'){
     showScreen('screen-scan');
     document.getElementById('scanMsg').textContent = 'Este código ya fue utilizado para un acceso.';
+    startCamera();
+    return;
+  }
+  if(visit.fechaVisita && visit.fechaVisita !== hoyISO()){
+    showScreen('screen-scan');
+    document.getElementById('scanMsg').textContent = `Esta visita está registrada para el ${fmtFechaVisita(visit.fechaVisita)}, no para hoy. No se puede iniciar el acceso.`;
     startCamera();
     return;
   }
