@@ -320,6 +320,15 @@
   ::-webkit-scrollbar{width:10px;}
   ::-webkit-scrollbar-thumb{background:#c4cad6;border-radius:10px;}
 
+  @media print {
+    body * { visibility: hidden; }
+    #badgeCard, #badgeCard * { visibility: visible; }
+    #badgeCard {
+      position: fixed; top: 20mm; left: 50%; transform: translateX(-50%);
+      box-shadow: none; border: 1px solid #ddd; width: 90mm;
+    }
+  }
+
   /* ---------- Mis visitas ---------- */
   .mv-table-wrap{overflow-x:auto;}
   table.mv-table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
@@ -1126,7 +1135,6 @@ function renderBadge(visit){
     <div style="color:#8b93a3;font-size:13px;margin-bottom:14px;">${visit.empresa}</div>
     <div class="badge-row"><span>Área que visita</span><span>${visit.area}</span></div>
     <div class="badge-row"><span>Persona que visita</span><span>${visit.anfitrion}</span></div>
-    <div class="badge-row"><span>Motivo</span><span>${visit.motivo}</span></div>
     <div class="badge-row"><span>Fecha de visita</span><span>${fmtFechaVisita(visit.fechaVisita)}</span></div>
     <div class="badge-row"><span>Fecha y hora de acceso</span><span>${fmtFecha(visit.fechaAcceso)}</span></div>
     <div class="exit-code-box">
