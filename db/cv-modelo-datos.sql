@@ -65,6 +65,7 @@ CREATE TABLE dbo.CV_Visitas (
     Motivo                  NVARCHAR(300)   NOT NULL,
     Anfitrion               NVARCHAR(100)   NOT NULL,   -- usuario WishPOS de la persona visitada
     RegistradoPor           NVARCHAR(100)   NOT NULL,   -- usuario WishPOS que capturó el registro
+    FechaVisita             DATE            NOT NULL,   -- día para el que se agendó; el acceso solo se permite ese día
 
     TraeAuto                BIT             NOT NULL DEFAULT (0),
     Marca                   NVARCHAR(50)    NULL,
@@ -137,6 +138,7 @@ CREATE PROCEDURE dbo.sp_CV_Visitas_Registrar
     @Motivo             NVARCHAR(300),
     @Anfitrion          NVARCHAR(100),
     @RegistradoPor      NVARCHAR(100),
+    @FechaVisita        DATE,
     @TraeAuto           BIT             = 0,
     @Marca              NVARCHAR(50)    = NULL,
     @Modelo             NVARCHAR(50)    = NULL,
@@ -148,10 +150,10 @@ BEGIN
 
     INSERT INTO dbo.CV_Visitas
         (UUID, Nombre, ApellidoPaterno, ApellidoMaterno, Correo, Empresa, ID_Area, Motivo,
-         Anfitrion, RegistradoPor, TraeAuto, Marca, Modelo, Placas)
+         Anfitrion, RegistradoPor, FechaVisita, TraeAuto, Marca, Modelo, Placas)
     VALUES
         (@NuevoUUID, @Nombre, @ApellidoPaterno, @ApellidoMaterno, @Correo, @Empresa, @ID_Area, @Motivo,
-         @Anfitrion, @RegistradoPor, @TraeAuto, @Marca, @Modelo, @Placas);
+         @Anfitrion, @RegistradoPor, @FechaVisita, @TraeAuto, @Marca, @Modelo, @Placas);
 
     SELECT SCOPE_IDENTITY() AS ID, @NuevoUUID AS UUID;  -- @NuevoUUID -> lo que va dentro del QR
 END
@@ -161,7 +163,8 @@ GO
    sp_CV_Visitas_ValidarAcceso
    Paso 2: la caseta leyó el QR (UUID) y el visitante tecleó su apellido paterno.
    Si coincide, marca el acceso, guarda la foto y genera el código de salida.
-   Resultado posible: OK | NO_ENCONTRADO | YA_UTILIZADO | APELLIDO_NO_COINCIDE
+   Resultado posible: OK | NO_ENCONTRADO | YA_UTILIZADO | FECHA_NO_COINCIDE |
+                      APELLIDO_NO_COINCIDE
    ----------------------------------------------------------------------------- */
 CREATE PROCEDURE dbo.sp_CV_Visitas_ValidarAcceso
     @UUID               UNIQUEIDENTIFIER,
@@ -170,9 +173,9 @@ CREATE PROCEDURE dbo.sp_CV_Visitas_ValidarAcceso
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @ID BIGINT, @ApellidoReal NVARCHAR(100), @Status NVARCHAR(20);
+    DECLARE @ID BIGINT, @ApellidoReal NVARCHAR(100), @Status NVARCHAR(20), @FechaVisita DATE;
 
-    SELECT @ID = ID, @ApellidoReal = ApellidoPaterno, @Status = Status
+    SELECT @ID = ID, @ApellidoReal = ApellidoPaterno, @Status = Status, @FechaVisita = FechaVisita
     FROM dbo.CV_Visitas WHERE UUID = @UUID;
 
     IF @ID IS NULL
@@ -184,6 +187,13 @@ BEGIN
     IF @Status = N'Accesado'
     BEGIN
         SELECT N'YA_UTILIZADO' AS Resultado;
+        RETURN;
+    END
+
+    -- Una visita solo puede accesarse el día para el que fue registrada.
+    IF @FechaVisita <> CAST(GETDATE() AS DATE)
+    BEGIN
+        SELECT N'FECHA_NO_COINCIDE' AS Resultado, @FechaVisita AS FechaVisita;
         RETURN;
     END
 
@@ -217,7 +227,8 @@ BEGIN
         VALUES (@ID, @ApellidoTecleado, N'Exitoso');
 
         SELECT N'OK' AS Resultado, v.ID, v.Nombre, v.ApellidoPaterno, v.ApellidoMaterno,
-               v.Empresa, v.Motivo, v.Anfitrion, a.Nombre AS Area, v.CodigoSalida, v.FechaAcceso
+               v.Empresa, v.Motivo, v.Anfitrion, a.Nombre AS Area, v.FechaVisita,
+               v.CodigoSalida, v.FechaAcceso
         FROM dbo.CV_Visitas v
         JOIN dbo.CV_Areas a ON a.ID = v.ID_Area
         WHERE v.ID = @ID;
@@ -289,7 +300,7 @@ BEGIN
             WHEN v.FechaSalida IS NULL   THEN N'Dentro'
             ELSE N'Salida registrada'
         END AS Estado,
-        v.FechaRegistro, v.FechaAcceso, v.CodigoSalida, v.FechaSalida,
+        v.FechaVisita, v.FechaRegistro, v.FechaAcceso, v.CodigoSalida, v.FechaSalida,
         DATEDIFF(MINUTE, v.FechaAcceso, v.FechaSalida) AS MinutosEstancia,
         v.FotoRuta
     FROM dbo.CV_Visitas v

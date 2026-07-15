@@ -18,9 +18,23 @@ recepción/caseta por un flujo digital con QR, foto y código de salida.
   servidor real.
 - ✅ **Checklist de despliegue en modo kiosco** (`docs/checklist-modo-kiosco.md`)
   — certificado HTTPS interno, Windows Assigned Access, flags de Chrome, etc.
-- ⬜ **Pendiente:** capa de API que conecte el frontend a los stored procedures,
-  autenticación real contra WishPOS, envío de correo real (Graph API / M365),
-  subir la foto capturada a disco/blob en vez de mantenerla solo en memoria.
+- ✅ **Ambiente beta local** — SQL Server Express corriendo en esta computadora
+  (instancia default `MSSQLSERVER`, no `SQLEXPRESS`), base de datos
+  `ControlVisitas_Celex` ya creada con el script de `db/cv-modelo-datos.sql`.
+- ✅ **Scaffold de la API** (`api/`) — proyecto ASP.NET Core Web API (net8.0,
+  controladores), con la cadena de conexión en `appsettings.Development.json`
+  (Trusted Connection a `localhost`/`ControlVisitas_Celex`) y un endpoint de
+  prueba `GET /api/areas` que ya lee de SQL Server real. Sirve como plantilla
+  para los endpoints reales (registrar visita, validar acceso, etc.).
+- ✅ **Columna `FechaVisita`** agregada a `CV_Visitas`, `sp_CV_Visitas_Registrar`
+  (parámetro `@FechaVisita`), `sp_CV_Visitas_ValidarAcceso` (nuevo resultado
+  `FECHA_NO_COINCIDE` si se escanea en un día distinto al registrado) y
+  `sp_CV_Visitas_Reporte`. Probado con `sqlcmd` contra la base local: rechaza
+  el acceso en fecha distinta y deja pasar en la fecha correcta.
+- ⬜ **Pendiente:** el resto de endpoints de la API contra los demás stored
+  procedures, autenticación real contra WishPOS, envío de correo real
+  (Graph API / M365), subir la foto capturada a disco/blob en vez de
+  mantenerla solo en memoria.
 
 ## Decisiones de diseño ya tomadas (no las reabras sin razón)
 
@@ -62,29 +76,42 @@ recepción/caseta por un flujo digital con QR, foto y código de salida.
 - Comparación de apellidos: quitar acentos + mayúsculas antes de comparar
   (mismo criterio que la normalización de direcciones ya existente — si ya
   hay una función para esto, reutilizarla en vez de `fn_CV_QuitarAcentos`).
+- **Ojo al correr el script con `sqlcmd`:** el archivo está en UTF-8 sin BOM;
+  si se corre con `sqlcmd -i cv-modelo-datos.sql` a secas, los literales
+  `N'...'` con acentos se guardan corruptos (mojibake, ej. `AlmacÃ©n`). Hay que
+  forzar el codepage de entrada: `sqlcmd -f i:65001 -i cv-modelo-datos.sql`.
+  Avisar de esto al DBA cuando corra el script en el servidor productivo.
 
 ## Estructura del repo
 
 ```
 control-visitas-celex/
 ├── web/    → frontend (hoy: mockup HTML autocontenido; mañana: app real conectada a la API)
+├── api/    → API en ASP.NET Core (net8.0) que expone los stored procedures como REST
 ├── db/     → modelo de datos SQL Server (tablas + stored procedures)
 └── docs/   → checklist de despliegue del kiosko y cualquier otra documentación
 ```
 
 ## Siguientes pasos (backlog sugerido)
 
-1. Definir stack de la API (Node/Express o .NET) que exponga los stored
-   procedures de `db/cv-modelo-datos.sql` como endpoints REST.
-2. Resolver autenticación contra WishPOS (¿hay tabla/API de usuarios expuesta,
+1. ✅ Stack de la API: **.NET (ASP.NET Core)** — se eligió sobre Node/Express
+   por su integración nativa con IIS (módulo ANCM), ya que el plan de
+   despliegue es desarrollar en esta computadora (con SQL Server Express
+   local) y después mover a un servidor IIS + SQL Server productivos. Ya hay
+   scaffold en `api/` con un endpoint de prueba funcionando end-to-end.
+2. ✅ `FechaVisita` agregada a `CV_Visitas` y a los SPs de registrar/validar
+   acceso/reporte (ver "Estado actual" arriba).
+3. Construir los endpoints reales de la API sobre los stored procedures que
+   faltan: registrar visita, validar acceso, buscar/confirmar salida, reporte.
+4. Resolver autenticación contra WishPOS (¿hay tabla/API de usuarios expuesta,
    o hay que integrar AD/LDAP?) — este es el punto que más puede mover el
    calendario, ver conversación previa.
-3. Reemplazar el estado en memoria de `web/index.html` por llamadas reales a
+5. Reemplazar el estado en memoria de `web/index.html` por llamadas reales a
    la API (login, registrar visita, validar acceso, registrar salida, reporte).
-4. Subir la foto capturada a disco/blob storage (hoy vive como data URL en
+6. Subir la foto capturada a disco/blob storage (hoy vive como data URL en
    memoria) y guardar la ruta en `CV_Visitas.FotoRuta`.
-5. Integrar envío de correo real vía Graph API (mismo patrón que Circulares Telcel).
-6. Seguir `docs/checklist-modo-kiosco.md` para el despliegue en la caseta.
+7. Integrar envío de correo real vía Graph API (mismo patrón que Circulares Telcel).
+8. Seguir `docs/checklist-modo-kiosco.md` para el despliegue en la caseta.
 
 ## Idioma y tono
 

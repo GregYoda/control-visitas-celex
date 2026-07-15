@@ -8,6 +8,9 @@ salida y reportes) para reemplazar el registro en papel de recepción/caseta.
 - **`web/`** — Mockup funcional (HTML/CSS/JS, sin dependencias de build).
   Ábrelo directo en el navegador para probarlo. Incluye lectura/generación
   real de QR por cámara.
+- **`api/`** — API en ASP.NET Core (net8.0) que expone los stored procedures
+  de `db/` como endpoints REST. Corre con `dotnet run` desde `api/`; usa la
+  cadena de conexión de `appsettings.Development.json` (SQL Server local).
 - **`db/`** — Modelo de datos SQL Server (tablas + stored procedures).
   Revisar con el DBA antes de correr en el servidor real.
 - **`docs/`** — Checklist de despliegue en modo kiosco para el equipo de caseta.
