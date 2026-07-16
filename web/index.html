@@ -765,37 +765,27 @@
       <div style="flex:1;padding:34px 40px;overflow:auto;">
         <button class="breadcrumb-back" onclick="showScreen('screen-mis-visitas')">‹ Volver a mis visitas</button>
         <div class="content-title" style="max-width:640px;">Editar visita</div>
-        <div id="editWarnBanner"></div>
         <div class="form-card">
           <div class="form-grid">
-            <div class="field"><label>Nombre</label><input id="eNombre"></div>
-            <div class="field"><label>Apellido paterno</label><input id="eApP"></div>
-            <div class="field"><label>Apellido materno</label><input id="eApM"></div>
-            <div class="field"><label>Correo electrónico</label><input id="eCorreo" type="email"></div>
-            <div class="field"><label>Empresa</label><input id="eEmpresa"></div>
-            <div class="field"><label>Área a visitar</label>
-              <select id="eArea">
-                <option>Dirección General</option>
-                <option>Sistemas / TI</option>
-                <option>Finanzas</option>
-                <option>Recursos Humanos</option>
-                <option>Comercial</option>
-                <option>Almacén / Logística</option>
-                <option>Contraloría Interna</option>
-                <option>Otro</option>
-              </select>
+            <div class="field"><label class="required">Nombre</label><input id="eNombre"></div>
+            <div class="field"><label class="required">Apellido paterno</label><input id="eApP"></div>
+            <div class="field"><label class="required">Apellido materno</label><input id="eApM"></div>
+            <div class="field"><label class="required">Correo electrónico</label><input id="eCorreo" type="email"></div>
+            <div class="field"><label class="required">Empresa</label><input id="eEmpresa"></div>
+            <div class="field"><label class="required">Área a visitar</label>
+              <select id="eArea"><option value="">Cargando áreas…</option></select>
             </div>
-            <div class="field full"><label>Motivo de la visita</label><input id="eMotivo" placeholder="ej. Reunión de proveedores"></div>
-            <div class="field"><label>Fecha de visita</label><input id="eFechaVisita" type="date"></div>
-            <div class="field"><label>Persona que visita (anfitrión)</label><input id="eAnfitrion"></div>
+            <div class="field full"><label class="required">Motivo de la visita</label><input id="eMotivo" placeholder="ej. Reunión de proveedores"></div>
+            <div class="field"><label class="required">Fecha de visita</label><input id="eFechaVisita" type="date"></div>
+            <div class="field"><label class="required">Persona que visita (anfitrión)</label><input id="eAnfitrion"></div>
             <div class="toggle-row">
               <label class="switch"><input type="checkbox" id="eTraeAuto" onchange="toggleEditAutoFields()"><span class="slider"></span></label>
               <label>¿El visitante trae vehículo?</label>
             </div>
             <div class="auto-fields" id="editAutoFields">
-              <div class="field"><label>Marca</label><input id="eMarca"></div>
-              <div class="field"><label>Modelo</label><input id="eModelo"></div>
-              <div class="field"><label>Placas</label><input id="ePlacas"></div>
+              <div class="field"><label class="required">Marca</label><input id="eMarca"></div>
+              <div class="field"><label class="required">Modelo</label><input id="eModelo"></div>
+              <div class="field"><label class="required">Placas</label><input id="ePlacas"></div>
             </div>
           </div>
           <div class="login-error" id="editError"></div>
@@ -967,8 +957,8 @@ function openRegistro(){
 function toggleAutoFields(){
   document.getElementById('autoFields').classList.toggle('show', document.getElementById('fTraeAuto').checked);
 }
-async function cargarAreas(){
-  const select = document.getElementById('fArea');
+async function cargarAreas(selectId = 'fArea'){
+  const select = document.getElementById(selectId);
   try{
     const resp = await fetch(`${API_BASE_URL}/api/areas`);
     if(!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -1430,34 +1420,41 @@ function renderSalidaDone(resultado){
 /* ---------- mis visitas ---------- */
 let editingVisitId = null;
 
-function openMisVisitas(){
-  renderMisVisitas();
+let misVisitasCache = [];
+
+async function openMisVisitas(){
+  const wrap = document.getElementById('misVisitasWrap');
+  wrap.innerHTML = '<div class="empty-note">Cargando…</div>';
   showScreen('screen-mis-visitas');
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/visitas/mias?registradoPor=${encodeURIComponent(session.username)}`);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    misVisitasCache = await resp.json();
+  }catch(e){
+    wrap.innerHTML = '<div class="empty-note">No se pudieron cargar tus visitas (¿está corriendo la API?).</div>';
+    return;
+  }
+  renderMisVisitas();
 }
 
 function renderMisVisitas(){
   const wrap = document.getElementById('misVisitasWrap');
-  const mias = visits.filter(v => v.registradoPor === session.username);
-  if(!mias.length){
+  if(!misVisitasCache.length){
     wrap.innerHTML = '<div class="empty-note">Aún no has registrado ninguna visita.</div>';
     return;
   }
-  mias.sort((a,b) => b.fechaRegistro - a.fechaRegistro);
-  const rows = mias.map(v => {
-    let estadoLabel, estadoClass;
-    if(v.status !== 'accesado'){ estadoLabel = 'Pendiente'; estadoClass = 'pendiente'; }
-    else if(!v.fechaSalida){ estadoLabel = 'Dentro'; estadoClass = 'dentro'; }
-    else { estadoLabel = 'Salida registrada'; estadoClass = 'salida'; }
+  const rows = misVisitasCache.map(v => {
+    const estadoClass = ESTADO_CLASE[v.estado] || 'pendiente';
     return `<tr>
-      <td>${v.foto ? `<img src="${v.foto}" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
-      <td><b>${v.nombre} ${v.apellidoP} ${v.apellidoM}</b><br><span style="color:#8b93a3;font-size:12px;">${v.empresa}</span></td>
+      <td>${v.fotoRuta ? `<img src="${v.fotoRuta}" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
+      <td><b>${v.nombre} ${v.apellidoPaterno} ${v.apellidoMaterno}</b><br><span style="color:#8b93a3;font-size:12px;">${v.empresa}</span></td>
       <td>${v.area}</td>
       <td>${fmtFechaVisita(v.fechaVisita)}</td>
-      <td><span class="status-pill ${estadoClass}">${estadoLabel}</span></td>
-      <td>${fmtFecha(v.fechaRegistro)}</td>
-      <td>${v.status === 'accesado'
+      <td><span class="status-pill ${estadoClass}">${v.estado}</span></td>
+      <td>${fmtFecha(new Date(v.fechaRegistro))}</td>
+      <td>${v.status !== 'Pendiente'
         ? `<button class="btn-editar" disabled title="No se puede editar: la visita ya inició su acceso.">Editar</button>`
-        : `<button class="btn-editar" onclick="abrirEditar('${v.id}')">Editar</button>`}</td>
+        : `<button class="btn-editar" onclick="abrirEditar(${v.id})">Editar</button>`}</td>
     </tr>`;
   }).join('');
   wrap.innerHTML = `
@@ -1469,17 +1466,18 @@ function renderMisVisitas(){
     </div>`;
 }
 
-function abrirEditar(id){
-  const v = visits.find(x => x.id === id);
+async function abrirEditar(id){
+  const v = misVisitasCache.find(x => x.id === id);
   if(!v) return;
   editingVisitId = id;
   document.getElementById('editUserLabel').textContent = session.nombre || session.username || '';
+  await cargarAreas('eArea');
   document.getElementById('eNombre').value  = v.nombre;
-  document.getElementById('eApP').value     = v.apellidoP;
-  document.getElementById('eApM').value     = v.apellidoM;
+  document.getElementById('eApP').value     = v.apellidoPaterno;
+  document.getElementById('eApM').value     = v.apellidoMaterno;
   document.getElementById('eCorreo').value  = v.correo;
   document.getElementById('eEmpresa').value = v.empresa;
-  document.getElementById('eArea').value    = v.area;
+  document.getElementById('eArea').value    = v.idArea;
   document.getElementById('eMotivo').value  = v.motivo;
   document.getElementById('eFechaVisita').value = v.fechaVisita || '';
   document.getElementById('eAnfitrion').value = v.anfitrion;
@@ -1489,12 +1487,6 @@ function abrirEditar(id){
   document.getElementById('ePlacas').value  = v.placas || '';
   document.getElementById('editAutoFields').classList.toggle('show', v.traeAuto);
   document.getElementById('editError').textContent = '';
-  const banner = document.getElementById('editWarnBanner');
-  if(v.status === 'accesado'){
-    banner.innerHTML = `<div class="warn-banner">⚠️ <div><b>Esta visita ya fue utilizada para acceso.</b>Los cambios se guardarán en el registro pero el QR generado no cambia.</div></div>`;
-  } else {
-    banner.innerHTML = '';
-  }
   showScreen('screen-editar-visita');
 }
 
@@ -1502,15 +1494,13 @@ function toggleEditAutoFields(){
   document.getElementById('editAutoFields').classList.toggle('show', document.getElementById('eTraeAuto').checked);
 }
 
-function guardarEdicion(){
-  const v = visits.find(x => x.id === editingVisitId);
-  if(!v) return;
+async function guardarEdicion(){
   const nombre   = document.getElementById('eNombre').value.trim();
   const apP      = document.getElementById('eApP').value.trim();
   const apM      = document.getElementById('eApM').value.trim();
   const correo   = document.getElementById('eCorreo').value.trim();
   const empresa  = document.getElementById('eEmpresa').value.trim();
-  const area     = document.getElementById('eArea').value;
+  const idArea   = Number(document.getElementById('eArea').value);
   const motivo   = document.getElementById('eMotivo').value.trim();
   const fechaVisita = document.getElementById('eFechaVisita').value;
   const anfitrion= document.getElementById('eAnfitrion').value.trim();
@@ -1519,16 +1509,41 @@ function guardarEdicion(){
   const modelo   = document.getElementById('eModelo').value.trim();
   const placas   = document.getElementById('ePlacas').value.trim();
   const err = document.getElementById('editError');
-  if(!nombre || !apP || !apM || !correo || !empresa || !motivo || !fechaVisita || !anfitrion){
+  if(!nombre || !apP || !apM || !correo || !empresa || !idArea || !motivo || !fechaVisita || !anfitrion){
     err.textContent = 'Completa todos los campos obligatorios.'; return;
   }
   if(traeAuto && (!marca || !modelo || !placas)){
     err.textContent = 'Indica marca, modelo y placas del vehículo.'; return;
   }
+
+  let data;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/visitas/${editingVisitId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo,
+        anfitrion, fechaVisita, traeAuto,
+        marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
+      })
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    data = await resp.json();
+  }catch(e){
+    err.textContent = 'No se pudo guardar el cambio (¿está corriendo la API?).';
+    return;
+  }
+
+  if(data.resultado === 'NO_EDITABLE'){
+    err.textContent = 'Esta visita ya inició su acceso y no se puede editar.';
+    return;
+  }
+  if(data.resultado === 'NO_ENCONTRADO'){
+    err.textContent = 'No se encontró la visita.';
+    return;
+  }
   err.textContent = '';
-  Object.assign(v, { nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area, motivo, fechaVisita, anfitrion, traeAuto, marca, modelo, placas });
-  renderMisVisitas();
-  showScreen('screen-mis-visitas');
+  await openMisVisitas();
 }
 
 /* ---------- reportes ---------- */

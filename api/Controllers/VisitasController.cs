@@ -35,4 +35,18 @@ public class VisitasController(IVisitasRepositorio repositorio) : ControllerBase
         var resultado = await repositorio.ConfirmarSalidaAsync(id);
         return resultado is null ? NotFound() : Ok(resultado);
     }
+
+    [HttpGet("mias")]
+    public async Task<IActionResult> Mias([FromQuery] string registradoPor)
+    {
+        var mias = await repositorio.MisVisitasAsync(registradoPor);
+        return Ok(mias);
+    }
+
+    [HttpPut("{id:long}")]
+    public async Task<IActionResult> Actualizar(long id, VisitaActualizarRequest datos)
+    {
+        var resultado = await repositorio.ActualizarAsync(id, datos);
+        return Ok(resultado);
+    }
 }

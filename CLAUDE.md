@@ -37,9 +37,13 @@ recepción/caseta por un flujo digital con QR, foto y código de salida.
   `celexpos.celex.com/prod/WSWish.asmx/mtdActiva11` con `Proceso: System_LOGIN`,
   la IP real del cliente como `Origin`, y un `UUID` nuevo por intento. Probado
   end-to-end contra el servidor real (caso de acceso denegado).
-- ⬜ **Pendiente:** el resto de endpoints de la API contra los demás stored
-  procedures, envío de correo real (Graph API / M365), subir la foto capturada
-  a disco/blob en vez de mantenerla solo en memoria.
+- ✅ **Mis visitas conectado a la API real** — listar (`GET /api/visitas/mias`)
+  y editar (`PUT /api/visitas/{id}`, nuevo SP `sp_CV_Visitas_Actualizar`) ya no
+  dependen del arreglo local en memoria; edición bloqueada server-side una vez
+  que la visita ya fue accesada.
+- ⬜ **Pendiente:** envío de correo real (Graph API / M365), subir la foto
+  capturada a disco/blob en vez de mantenerla solo en memoria, despliegue en
+  IIS + SQL Server productivo.
 
 ## Decisiones de diseño ya tomadas (no las reabras sin razón)
 
@@ -141,6 +145,14 @@ control-visitas-celex/
    - ✅ Reportes (`generarReporte` llama a `GET /api/reportes`; el CSV
      (`exportarCSV`) ahora exporta exactamente lo último generado en pantalla,
      ya no ignora el rango de fechas como antes).
+   - ✅ Mis visitas (`openMisVisitas` llama a `GET /api/visitas/mias`;
+     `abrirEditar`/`guardarEdicion` llaman a `PUT /api/visitas/{id}`, con
+     nuevo SP `sp_CV_Visitas_Actualizar` que solo permite editar mientras
+     `Status = 'Pendiente'` — devuelve `NO_EDITABLE` si ya se accesó, aunque
+     alguien intente saltarse el botón deshabilitado del front. `eArea`
+     también se corrigió para cargar de `GET /api/areas` en vez de opciones
+     fijas sin relación con el `ID_Area` real, igual que se hizo antes en
+     `fArea`).
 6. Subir la foto capturada a disco/blob storage (hoy vive como data URL en
    memoria) y guardar la ruta en `CV_Visitas.FotoRuta`.
 7. Integrar envío de correo real vía Graph API (mismo patrón que Circulares Telcel).

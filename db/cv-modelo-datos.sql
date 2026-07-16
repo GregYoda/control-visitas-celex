@@ -310,3 +310,81 @@ BEGIN
     ORDER BY v.FechaRegistro DESC;
 END
 GO
+
+/* -----------------------------------------------------------------------------
+   sp_CV_Visitas_MisVisitas
+   Pantalla "Mis visitas": lista lo que un usuario de WishPOS registró,
+   para poder editarlo mientras siga "Pendiente".
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Visitas_MisVisitas
+    @RegistradoPor NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT
+        v.ID, v.UUID, v.Nombre, v.ApellidoPaterno, v.ApellidoMaterno, v.Correo, v.Empresa,
+        v.ID_Area, a.Nombre AS Area, v.Motivo, v.Anfitrion, v.FechaVisita,
+        v.TraeAuto, v.Marca, v.Modelo, v.Placas,
+        CASE
+            WHEN v.Status = N'Pendiente' THEN N'Pendiente'
+            WHEN v.FechaSalida IS NULL   THEN N'Dentro'
+            ELSE N'Salida registrada'
+        END AS Estado,
+        v.Status, v.FechaRegistro, v.FechaAcceso, v.FotoRuta
+    FROM dbo.CV_Visitas v
+    JOIN dbo.CV_Areas a ON a.ID = v.ID_Area
+    WHERE v.RegistradoPor = @RegistradoPor
+    ORDER BY v.FechaRegistro DESC;
+END
+GO
+
+/* -----------------------------------------------------------------------------
+   sp_CV_Visitas_Actualizar
+   Edición desde "Mis visitas". Solo permitida mientras la visita sigue
+   "Pendiente" (no se puede editar una vez que ya se usó el QR).
+   Resultado posible: OK | NO_ENCONTRADO | NO_EDITABLE
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Visitas_Actualizar
+    @ID                 BIGINT,
+    @Nombre             NVARCHAR(100),
+    @ApellidoPaterno    NVARCHAR(100),
+    @ApellidoMaterno    NVARCHAR(100),
+    @Correo             NVARCHAR(150),
+    @Empresa            NVARCHAR(150),
+    @ID_Area            INT,
+    @Motivo             NVARCHAR(300),
+    @Anfitrion          NVARCHAR(100),
+    @FechaVisita        DATE,
+    @TraeAuto           BIT             = 0,
+    @Marca              NVARCHAR(50)    = NULL,
+    @Modelo             NVARCHAR(50)    = NULL,
+    @Placas             NVARCHAR(20)    = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Status NVARCHAR(20);
+    SELECT @Status = Status FROM dbo.CV_Visitas WHERE ID = @ID;
+
+    IF @Status IS NULL
+    BEGIN
+        SELECT N'NO_ENCONTRADO' AS Resultado;
+        RETURN;
+    END
+
+    IF @Status <> N'Pendiente'
+    BEGIN
+        SELECT N'NO_EDITABLE' AS Resultado;
+        RETURN;
+    END
+
+    UPDATE dbo.CV_Visitas
+       SET Nombre = @Nombre, ApellidoPaterno = @ApellidoPaterno, ApellidoMaterno = @ApellidoMaterno,
+           Correo = @Correo, Empresa = @Empresa, ID_Area = @ID_Area, Motivo = @Motivo,
+           Anfitrion = @Anfitrion, FechaVisita = @FechaVisita, TraeAuto = @TraeAuto,
+           Marca = @Marca, Modelo = @Modelo, Placas = @Placas,
+           ID_Fecha_Modificacion = GETDATE()
+     WHERE ID = @ID;
+
+    SELECT N'OK' AS Resultado;
+END
+GO

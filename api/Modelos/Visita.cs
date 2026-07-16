@@ -70,3 +70,43 @@ public record ReporteFila(
     DateTime? FechaSalida,
     int? MinutosEstancia,
     string? FotoRuta);
+
+public record MiVisita(
+    long Id,
+    Guid Uuid,
+    string Nombre,
+    string ApellidoPaterno,
+    string ApellidoMaterno,
+    string Correo,
+    string Empresa,
+    int IdArea,
+    string Area,
+    string Motivo,
+    string Anfitrion,
+    DateOnly FechaVisita,
+    bool TraeAuto,
+    string? Marca,
+    string? Modelo,
+    string? Placas,
+    string Estado,
+    string Status,
+    DateTime FechaRegistro,
+    DateTime? FechaAcceso,
+    string? FotoRuta);
+
+public record VisitaActualizarRequest(
+    string Nombre,
+    string ApellidoPaterno,
+    string ApellidoMaterno,
+    string Correo,
+    string Empresa,
+    int IdArea,
+    string Motivo,
+    string Anfitrion,
+    DateOnly FechaVisita,
+    bool TraeAuto,
+    string? Marca,
+    string? Modelo,
+    string? Placas);
+
+public record ActualizarResultado(string Resultado);

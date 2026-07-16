@@ -11,6 +11,8 @@ public interface IVisitasRepositorio
     Task<SalidaInfo?> BuscarPorCodigoSalidaAsync(string codigo);
     Task<ConfirmarSalidaResultado?> ConfirmarSalidaAsync(long id);
     Task<List<ReporteFila>> ReporteAsync(DateOnly fechaInicio, DateOnly fechaFin);
+    Task<List<MiVisita>> MisVisitasAsync(string registradoPor);
+    Task<ActualizarResultado> ActualizarAsync(long id, VisitaActualizarRequest datos);
 }
 
 public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisitasRepositorio
@@ -155,5 +157,69 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
                 lector.IsDBNull(lector.GetOrdinal("FotoRuta")) ? null : lector.GetString(lector.GetOrdinal("FotoRuta"))));
         }
         return filas;
+    }
+
+    public async Task<List<MiVisita>> MisVisitasAsync(string registradoPor)
+    {
+        await using var conexion = conexionFactory.Crear();
+        await using var comando = new SqlCommand("dbo.sp_CV_Visitas_MisVisitas", conexion) { CommandType = CommandType.StoredProcedure };
+        comando.Parameters.AddWithValue("@RegistradoPor", registradoPor);
+
+        await conexion.OpenAsync();
+        await using var lector = await comando.ExecuteReaderAsync();
+
+        var mias = new List<MiVisita>();
+        while (await lector.ReadAsync())
+        {
+            mias.Add(new MiVisita(
+                Convert.ToInt64(lector["ID"]),
+                lector.GetGuid(lector.GetOrdinal("UUID")),
+                lector.GetString(lector.GetOrdinal("Nombre")),
+                lector.GetString(lector.GetOrdinal("ApellidoPaterno")),
+                lector.GetString(lector.GetOrdinal("ApellidoMaterno")),
+                lector.GetString(lector.GetOrdinal("Correo")),
+                lector.GetString(lector.GetOrdinal("Empresa")),
+                Convert.ToInt32(lector["ID_Area"]),
+                lector.GetString(lector.GetOrdinal("Area")),
+                lector.GetString(lector.GetOrdinal("Motivo")),
+                lector.GetString(lector.GetOrdinal("Anfitrion")),
+                DateOnly.FromDateTime(lector.GetDateTime(lector.GetOrdinal("FechaVisita"))),
+                lector.GetBoolean(lector.GetOrdinal("TraeAuto")),
+                lector.IsDBNull(lector.GetOrdinal("Marca")) ? null : lector.GetString(lector.GetOrdinal("Marca")),
+                lector.IsDBNull(lector.GetOrdinal("Modelo")) ? null : lector.GetString(lector.GetOrdinal("Modelo")),
+                lector.IsDBNull(lector.GetOrdinal("Placas")) ? null : lector.GetString(lector.GetOrdinal("Placas")),
+                lector.GetString(lector.GetOrdinal("Estado")),
+                lector.GetString(lector.GetOrdinal("Status")),
+                lector.GetDateTime(lector.GetOrdinal("FechaRegistro")),
+                lector.IsDBNull(lector.GetOrdinal("FechaAcceso")) ? null : lector.GetDateTime(lector.GetOrdinal("FechaAcceso")),
+                lector.IsDBNull(lector.GetOrdinal("FotoRuta")) ? null : lector.GetString(lector.GetOrdinal("FotoRuta"))));
+        }
+        return mias;
+    }
+
+    public async Task<ActualizarResultado> ActualizarAsync(long id, VisitaActualizarRequest datos)
+    {
+        await using var conexion = conexionFactory.Crear();
+        await using var comando = new SqlCommand("dbo.sp_CV_Visitas_Actualizar", conexion) { CommandType = CommandType.StoredProcedure };
+
+        comando.Parameters.AddWithValue("@ID", id);
+        comando.Parameters.AddWithValue("@Nombre", datos.Nombre);
+        comando.Parameters.AddWithValue("@ApellidoPaterno", datos.ApellidoPaterno);
+        comando.Parameters.AddWithValue("@ApellidoMaterno", datos.ApellidoMaterno);
+        comando.Parameters.AddWithValue("@Correo", datos.Correo);
+        comando.Parameters.AddWithValue("@Empresa", datos.Empresa);
+        comando.Parameters.AddWithValue("@ID_Area", datos.IdArea);
+        comando.Parameters.AddWithValue("@Motivo", datos.Motivo);
+        comando.Parameters.AddWithValue("@Anfitrion", datos.Anfitrion);
+        comando.Parameters.Add("@FechaVisita", SqlDbType.Date).Value = datos.FechaVisita.ToDateTime(TimeOnly.MinValue);
+        comando.Parameters.AddWithValue("@TraeAuto", datos.TraeAuto);
+        comando.Parameters.AddWithValue("@Marca", (object?)datos.Marca ?? DBNull.Value);
+        comando.Parameters.AddWithValue("@Modelo", (object?)datos.Modelo ?? DBNull.Value);
+        comando.Parameters.AddWithValue("@Placas", (object?)datos.Placas ?? DBNull.Value);
+
+        await conexion.OpenAsync();
+        await using var lector = await comando.ExecuteReaderAsync();
+        await lector.ReadAsync();
+        return new ActualizarResultado(lector.GetString(lector.GetOrdinal("Resultado")));
     }
 }
