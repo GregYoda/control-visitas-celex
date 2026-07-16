@@ -17,9 +17,9 @@ public record VisitaRegistroRequest(
     string? Modelo,
     string? Placas);
 
-public record VisitaRegistroResponse(long Id, Guid Uuid);
+public record VisitaRegistroResponse(long Id, Guid Uuid, string CodigoAcceso);
 
-public record ValidarAccesoRequest(Guid Uuid, string ApellidoTecleado, string? FotoRuta);
+public record ValidarAccesoRequest(string CodigoAcceso, string ApellidoTecleado, string? FotoRuta);
 
 public record VisitaAccesoInfo(
     long Id,

@@ -50,7 +50,8 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
         await lector.ReadAsync();
         return new VisitaRegistroResponse(
             Convert.ToInt64(lector["ID"]),
-            lector.GetGuid(lector.GetOrdinal("UUID")));
+            lector.GetGuid(lector.GetOrdinal("UUID")),
+            lector.GetString(lector.GetOrdinal("CodigoAcceso")));
     }
 
     public async Task<ValidarAccesoResultado> ValidarAccesoAsync(ValidarAccesoRequest datos)
@@ -58,7 +59,7 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
         await using var conexion = conexionFactory.Crear();
         await using var comando = new SqlCommand("dbo.sp_CV_Visitas_ValidarAcceso", conexion) { CommandType = CommandType.StoredProcedure };
 
-        comando.Parameters.AddWithValue("@UUID", datos.Uuid);
+        comando.Parameters.AddWithValue("@CodigoAcceso", datos.CodigoAcceso);
         comando.Parameters.AddWithValue("@ApellidoTecleado", datos.ApellidoTecleado);
         comando.Parameters.AddWithValue("@FotoRuta", datos.FotoRuta ?? "");
 

@@ -4,7 +4,8 @@
    =============================================================================
    Convenciones seguidas (mismo patrón que Yoda_Cat_Ladas y el resto del stack):
      - Catálogos separados de las tablas transaccionales.
-     - Columna UUID para llaves externas (aquí: el token que se codifica en el QR).
+     - Columna UUID para llaves externas (identificador interno; el acceso
+       real se valida con CodigoAcceso, no con UUID -- ver más abajo).
      - ID_Fecha_Modificacion para auditoría de cambios.
      - SPs con prefijo sp_CV_ (Control de Visitas) para no mezclarse con Yoda_*.
      - Sin columnas NULL: todas las columnas son NOT NULL con un valor
@@ -61,7 +62,8 @@ GO
    ----------------------------------------------------------------------------- */
 CREATE TABLE dbo.CV_Visitas (
     ID                      BIGINT IDENTITY(1,1)    NOT NULL,
-    UUID                    UNIQUEIDENTIFIER        NOT NULL DEFAULT (NEWID()),  -- token codificado en el QR
+    UUID                    UNIQUEIDENTIFIER        NOT NULL DEFAULT (NEWID()),  -- identificador interno; ya no se usa para el acceso (ver CodigoAcceso)
+    CodigoAcceso            CHAR(6)         NOT NULL DEFAULT (''),  -- 6 dígitos que el visitante teclea en la caseta para entrar; único por FechaVisita
 
     Nombre                  NVARCHAR(100)   NOT NULL,
     ApellidoPaterno         NVARCHAR(100)   NOT NULL,
@@ -99,8 +101,12 @@ CREATE TABLE dbo.CV_Visitas (
 );
 GO
 
--- El UUID del QR debe ser único (defensivo; NEWID() ya lo garantiza en la práctica)
+-- El UUID debe ser único (defensivo; NEWID() ya lo garantiza en la práctica)
 CREATE UNIQUE INDEX UX_CV_Visitas_UUID ON dbo.CV_Visitas(UUID);
+GO
+
+-- Acelera la búsqueda del código de acceso al entrar a la caseta
+CREATE INDEX IX_CV_Visitas_CodigoAcceso ON dbo.CV_Visitas(CodigoAcceso, FechaVisita);
 GO
 
 -- Acelera "¿este código de salida corresponde a alguien que sigue dentro?"
@@ -135,8 +141,8 @@ GO
 
 /* -----------------------------------------------------------------------------
    sp_CV_Visitas_Registrar
-   Paso 1 del flujo: el empleado captura la visita. Regresa el UUID que se
-   codifica en el QR (equivalente a visit.id en el mockup).
+   Paso 1 del flujo: el empleado captura la visita. Genera el código de
+   acceso de 6 dígitos que el visitante va a teclear en la caseta.
    ----------------------------------------------------------------------------- */
 CREATE PROCEDURE dbo.sp_CV_Visitas_Registrar
     @Nombre             NVARCHAR(100),
@@ -164,26 +170,39 @@ BEGIN
     SET @Modelo = ISNULL(@Modelo, '');
     SET @Placas = ISNULL(@Placas, '');
 
+    -- Código de acceso de 6 dígitos, único entre visitas registradas para
+    -- la misma FechaVisita (se puede reciclar en otras fechas).
+    DECLARE @CodigoAcceso CHAR(6);
+    WHILE 1 = 1
+    BEGIN
+        SET @CodigoAcceso = RIGHT('000000' + CAST(ABS(CHECKSUM(NEWID())) % 1000000 AS VARCHAR(6)), 6);
+        IF NOT EXISTS (
+            SELECT 1 FROM dbo.CV_Visitas
+            WHERE CodigoAcceso = @CodigoAcceso AND FechaVisita = @FechaVisita
+        ) BREAK;
+    END
+
     INSERT INTO dbo.CV_Visitas
-        (UUID, Nombre, ApellidoPaterno, ApellidoMaterno, Correo, Empresa, ID_Area, Motivo,
+        (UUID, CodigoAcceso, Nombre, ApellidoPaterno, ApellidoMaterno, Correo, Empresa, ID_Area, Motivo,
          Anfitrion, RegistradoPor, ID_Usuario, FechaVisita, TraeAuto, Marca, Modelo, Placas)
     VALUES
-        (@NuevoUUID, @Nombre, @ApellidoPaterno, @ApellidoMaterno, @Correo, @Empresa, @ID_Area, @Motivo,
+        (@NuevoUUID, @CodigoAcceso, @Nombre, @ApellidoPaterno, @ApellidoMaterno, @Correo, @Empresa, @ID_Area, @Motivo,
          @Anfitrion, @RegistradoPor, @ID_Usuario, @FechaVisita, @TraeAuto, @Marca, @Modelo, @Placas);
 
-    SELECT SCOPE_IDENTITY() AS ID, @NuevoUUID AS UUID;  -- @NuevoUUID -> lo que va dentro del QR
+    SELECT SCOPE_IDENTITY() AS ID, @NuevoUUID AS UUID, @CodigoAcceso AS CodigoAcceso;
 END
 GO
 
 /* -----------------------------------------------------------------------------
    sp_CV_Visitas_ValidarAcceso
-   Paso 2: la caseta leyó el QR (UUID) y el visitante tecleó su apellido paterno.
-   Si coincide, marca el acceso, guarda la foto y genera el código de salida.
+   Paso 2: la caseta recibió el código de acceso de 6 dígitos y el visitante
+   tecleó su apellido paterno. Si coincide, marca el acceso, guarda la foto y
+   genera el código de salida.
    Resultado posible: OK | NO_ENCONTRADO | YA_UTILIZADO | FECHA_NO_COINCIDE |
                       APELLIDO_NO_COINCIDE
    ----------------------------------------------------------------------------- */
 CREATE PROCEDURE dbo.sp_CV_Visitas_ValidarAcceso
-    @UUID               UNIQUEIDENTIFIER,
+    @CodigoAcceso       CHAR(6),
     @ApellidoTecleado   NVARCHAR(100),
     @FotoRuta           NVARCHAR(260)   = ''
 AS
@@ -192,8 +211,14 @@ BEGIN
     SET @FotoRuta = ISNULL(@FotoRuta, '');
     DECLARE @ID BIGINT, @ApellidoReal NVARCHAR(100), @Status NVARCHAR(20), @FechaVisita DATE;
 
-    SELECT @ID = ID, @ApellidoReal = ApellidoPaterno, @Status = Status, @FechaVisita = FechaVisita
-    FROM dbo.CV_Visitas WHERE UUID = @UUID;
+    -- CodigoAcceso solo es único por FechaVisita (se recicla en otras
+    -- fechas), así que puede haber más de una fila con el mismo código en
+    -- fechas distintas. Se prefiere la fila de HOY si existe; si no, se usa
+    -- cualquier otra para poder informar "tu visita es para el [fecha]".
+    SELECT TOP (1) @ID = ID, @ApellidoReal = ApellidoPaterno, @Status = Status, @FechaVisita = FechaVisita
+    FROM dbo.CV_Visitas
+    WHERE CodigoAcceso = @CodigoAcceso
+    ORDER BY CASE WHEN FechaVisita = CAST(GETDATE() AS DATE) THEN 0 ELSE 1 END, FechaVisita ASC;
 
     IF @ID IS NULL
     BEGIN
@@ -359,7 +384,7 @@ GO
 /* -----------------------------------------------------------------------------
    sp_CV_Visitas_Actualizar
    Edición desde "Mis visitas". Solo permitida mientras la visita sigue
-   "Pendiente" (no se puede editar una vez que ya se usó el QR).
+   "Pendiente" (no se puede editar una vez que ya se usó el código de acceso).
    Resultado posible: OK | NO_ENCONTRADO | NO_EDITABLE
    ----------------------------------------------------------------------------- */
 CREATE PROCEDURE dbo.sp_CV_Visitas_Actualizar

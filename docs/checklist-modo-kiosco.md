@@ -7,7 +7,7 @@ Control de Visitas · Celex — equipo touch de la caseta, sin teclado/mouse fí
 ## 0. Requisitos previos
 
 - [ ] PC/mini-PC con Windows 10/11, monitor **touch**.
-- [ ] Cámara integrada o USB (idealmente una trasera para QR y una frontal para foto; si solo hay una, se reutiliza para ambas).
+- [ ] Cámara integrada o USB (solo para la foto del visitante; el acceso ya se valida con un código de 6 dígitos por PIN pad, no con QR).
 - [ ] Impresora térmica de etiquetas configurada e instalada en Windows.
 - [ ] El equipo está en la misma LAN que el SQL Server / servidor de la app (no depende de internet).
 - [ ] Se definió el dominio interno, ej. `https://visitas.celex.local`.
@@ -102,10 +102,9 @@ Aunque el touch permite tocar "Permitir", es más limpio pre-autorizarlo por pol
 
 ## 7. Prueba de aceptación antes de salir a producción
 
-- [ ] La cámara detecta un QR real sin pedir permiso manualmente.
-- [ ] La cámara frontal toma la foto de la visita correctamente.
+- [ ] La cámara toma la foto de la visita correctamente sin pedir permiso manualmente.
 - [ ] El teclado en pantalla aparece y funciona en login de caseta y validación de apellido.
-- [ ] El teclado numérico (PIN) de registro de salida funciona con dedos (botones suficientemente grandes).
+- [ ] El PIN pad de código de acceso y el de registro de salida funcionan con dedos (botones suficientemente grandes).
 - [ ] La etiqueta imprime automáticamente sin diálogos.
 - [ ] Apagar y encender el equipo: vuelve solo al kiosko, sin necesidad de iniciar sesión manualmente.
 - [ ] No hay manera de llegar al escritorio de Windows ni cerrar Chrome con gestos táctiles.

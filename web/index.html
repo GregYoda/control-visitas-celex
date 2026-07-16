@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Control de Visitas · Celex</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
 <style>
   :root{
     --navy-top:#0a1024;
@@ -191,9 +189,8 @@
   .form-actions .btn-primary{width:auto;padding:12px 30px;}
   .form-actions .btn-secondary{width:auto;padding:12px 24px;margin-top:0;}
 
-  /* ---------- QR display ---------- */
+  /* ---------- Código de acceso display ---------- */
   .qr-wrap{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:36px 40px;max-width:480px;text-align:center;}
-  #qrcode{display:flex;justify-content:center;margin:20px 0;padding:16px;background:#fff;border:1px solid #eef0f4;border-radius:10px;}
   .qr-summary{text-align:left;background:#f7f8fb;border-radius:10px;padding:16px 18px;font-size:13.5px;color:#444a58;line-height:1.7;margin-bottom:20px;}
   .qr-summary b{color:var(--ink);}
   .qr-actions{display:flex;gap:10px;flex-wrap:wrap;}
@@ -221,7 +218,6 @@
   .kiosk-card-box{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:36px 44px;max-width:560px;width:100%;}
   .kiosk-video-wrap{position:relative;width:340px;height:340px;max-width:80vw;max-height:80vw;border-radius:20px;overflow:hidden;border:3px solid rgba(255,255,255,.3);background:#000;margin:0 auto;}
   .kiosk-video-wrap video{width:100%;height:100%;object-fit:cover;}
-  .scan-frame{position:absolute;inset:14%;border:3px solid var(--teal-badge-2);border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.25);}
   #photoVideo{transform:scaleX(-1);}
   .face-guide{position:absolute;inset:12% 24%;border:3px dashed rgba(255,255,255,.7);border-radius:50% / 40%;pointer-events:none;}
   .photo-preview-wrap{position:relative;width:340px;height:340px;max-width:80vw;max-height:80vw;border-radius:20px;overflow:hidden;border:3px solid rgba(255,255,255,.3);background:#000;margin:0 auto;}
@@ -235,9 +231,6 @@
   .kiosk-msg.err{color:#ff9d9d;}
   .kiosk-msg.ok{color:#8dffb0;}
   .sim-toggle{background:none;border:none;color:#9fdcdc;text-decoration:underline;font-size:13px;margin-top:6px;}
-  .sim-box{background:rgba(255,255,255,.07);border-radius:12px;padding:16px;margin-top:10px;display:none;}
-  .sim-box.show{display:block;}
-  .sim-box select{width:100%;padding:10px;border-radius:8px;border:none;margin-bottom:10px;font-size:13.5px;}
 
   /* ---------- Badge ---------- */
   .badge-card{
@@ -419,7 +412,7 @@
           <div class="module-card">
             <div class="card-icon">📝</div>
             <h3>Registrar visita</h3>
-            <p>Captura los datos de tu visitante y genera su código QR de acceso.</p>
+            <p>Captura los datos de tu visitante y genera su código de acceso.</p>
             <button onclick="openRegistro()">Registrar</button>
           </div>
           <div class="module-card">
@@ -484,7 +477,7 @@
           </div>
           <div class="login-error" id="regError"></div>
           <div class="form-actions">
-            <button class="btn-primary" onclick="generarQR()">Generar QR de acceso</button>
+            <button class="btn-primary" onclick="generarCodigoAcceso()">Generar código de acceso</button>
             <button class="btn-secondary" onclick="showScreen('screen-visitas-home')">Cancelar</button>
           </div>
         </div>
@@ -493,8 +486,8 @@
   </div>
 </section>
 
-<!-- =================== QR GENERADO =================== -->
-<section class="screen" id="screen-qr">
+<!-- =================== CÓDIGO DE ACCESO GENERADO =================== -->
+<section class="screen" id="screen-codigo-acceso">
   <div class="app-shell">
     <div class="topbar">
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
@@ -503,13 +496,16 @@
       <div style="flex:1;padding:34px 40px;display:flex;flex-direction:column;align-items:center;overflow:auto;">
         <button class="breadcrumb-back" style="align-self:flex-start;" onclick="showScreen('screen-visitas-home')">‹ Volver al módulo</button>
         <div class="qr-wrap">
-          <h2 style="margin:0 0 4px;">Código QR generado</h2>
-          <p style="color:#8b93a3;font-size:13px;margin:0 0 6px;">Pide al visitante que tome una foto de este código o envíalo por correo.</p>
-          <div id="qrcode"></div>
+          <h2 style="margin:0 0 4px;">Código de acceso generado</h2>
+          <p style="color:#8b93a3;font-size:13px;margin:0 0 6px;">Comparte este código con el visitante — lo va a necesitar en la caseta para registrar su llegada.</p>
+          <div class="exit-code-box">
+            <div class="exit-code-label">CÓDIGO DE ACCESO</div>
+            <div class="exit-code-value" id="codigoAccesoValor"></div>
+          </div>
           <div class="qr-summary" id="qrSummary"></div>
           <div class="qr-actions">
             <button class="btn-primary" onclick="enviarCorreo()">✉️ Enviar por correo</button>
-            <button class="btn-secondary" onclick="descargarQR()">⬇️ Descargar QR</button>
+            <button class="btn-secondary" onclick="copiarCodigoAcceso()">📋 Copiar código</button>
           </div>
           <div class="login-error" id="qrMsg" style="color:var(--ok);"></div>
         </div>
@@ -548,7 +544,7 @@
       <h1>Bienvenido al control de accesos</h1>
       <p class="sub">Toca el botón para registrar la llegada o salida de un visitante</p>
       <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;">
-        <button class="btn-kiosk-main" onclick="openScan()">📷 REGISTRAR ACCESO</button>
+        <button class="btn-kiosk-main" onclick="openAccesoCodigo()">🔑 REGISTRAR ACCESO</button>
         <button class="btn-kiosk-main salida" onclick="openSalidaCodigo()">🚪 REGISTRAR SALIDA</button>
       </div>
       <button class="btn-kiosk-secondary" onclick="showScreen('screen-visitas-home')">‹ Salir del kiosko</button>
@@ -556,26 +552,35 @@
   </div>
 </section>
 
-<!-- =================== KIOSKO: ESCANEO QR =================== -->
-<section class="screen" id="screen-scan">
+<!-- =================== KIOSKO: CÓDIGO DE ACCESO =================== -->
+<section class="screen" id="screen-acceso-codigo">
   <div class="kiosk-shell">
     <div class="kiosk-top">
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
     </div>
     <div class="kiosk-body">
-      <h1 style="font-size:24px;">Escanea el código QR</h1>
-      <p class="sub">Apunta la cámara al código que recibió el visitante por correo</p>
-      <div class="kiosk-video-wrap">
-        <video id="scanVideo" muted playsinline></video>
-        <div class="scan-frame"></div>
+      <h1 style="font-size:24px;">Ingresa tu código de acceso</h1>
+      <p class="sub">Ingresa el código de 6 dígitos que te compartieron al registrar tu visita</p>
+      <div class="pin-display" id="accesoPinDisplay">
+        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
+        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
       </div>
-      <div class="kiosk-msg err" id="scanMsg"></div>
-      <button class="sim-toggle" onclick="toggleSimBox()">¿Sin cámara disponible? Simular escaneo</button>
-      <div class="sim-box" id="simBox">
-        <select id="simSelect"></select>
-        <button class="btn-kiosk-secondary" style="width:100%;" onclick="simulateScan()">Usar este QR</button>
+      <div class="kiosk-msg err" id="accesoMsg"></div>
+      <div class="pin-pad">
+        <button class="pin-key" onclick="pinPress('1')">1</button>
+        <button class="pin-key" onclick="pinPress('2')">2</button>
+        <button class="pin-key" onclick="pinPress('3')">3</button>
+        <button class="pin-key" onclick="pinPress('4')">4</button>
+        <button class="pin-key" onclick="pinPress('5')">5</button>
+        <button class="pin-key" onclick="pinPress('6')">6</button>
+        <button class="pin-key" onclick="pinPress('7')">7</button>
+        <button class="pin-key" onclick="pinPress('8')">8</button>
+        <button class="pin-key" onclick="pinPress('9')">9</button>
+        <button class="pin-key pin-key-fn" onclick="pinClear()">C</button>
+        <button class="pin-key" onclick="pinPress('0')">0</button>
+        <button class="pin-key pin-key-fn" onclick="pinBackspace()">⌫</button>
       </div>
-      <button class="btn-kiosk-secondary" onclick="closeScanAndGo('screen-kiosk-home')">‹ Cancelar</button>
+      <button class="btn-kiosk-secondary" onclick="showScreen('screen-kiosk-home')">‹ Cancelar</button>
     </div>
   </div>
 </section>
@@ -823,8 +828,6 @@ let session = { username: null, nombre: null, usuarioId: null };
 let kioskSession = { active: false };
 let visits = [];          // bitácora completa
 let pendingVisitId = null;
-let scanStream = null;
-let scanRAFId = null;
 let attemptCount = 0;
 
 const AREAS_MENU = [
@@ -859,9 +862,10 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   // el teclado en pantalla solo aplica a pantallas de caseta con campo de
-  // texto real; "código de salida" ya tiene su propio PIN pad numérico y no
-  // hay ningún input al que el teclado QWERTY pueda escribirle.
-  const kioskScreens = ['screen-kiosk-login','screen-kiosk-home','screen-scan','screen-validate','screen-photo','screen-badge','screen-salida-confirm','screen-salida-done'];
+  // texto real; "código de acceso" y "código de salida" usan su propio PIN
+  // pad numérico y no tienen ningún <input> al que el teclado QWERTY
+  // pueda escribirle.
+  const kioskScreens = ['screen-kiosk-login','screen-kiosk-home','screen-validate','screen-photo','screen-badge','screen-salida-confirm','screen-salida-done'];
   document.getElementById('vkbToggle').style.display = kioskScreens.includes(id) ? 'flex' : 'none';
   if(!kioskScreens.includes(id)){
     document.getElementById('vkbPanel').classList.remove('show');
@@ -970,7 +974,7 @@ async function cargarAreas(selectId = 'fArea'){
     select.innerHTML = '<option value="">No se pudieron cargar las áreas (¿está corriendo la API?)</option>';
   }
 }
-async function generarQR(){
+async function generarCodigoAcceso(){
   const nombre = document.getElementById('fNombre').value.trim();
   const apP = document.getElementById('fApP').value.trim();
   const apM = document.getElementById('fApM').value.trim();
@@ -1015,23 +1019,17 @@ async function generarQR(){
   }
 
   const visit = {
-    id: data.uuid, nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area: areaNombre, motivo,
+    id: data.uuid, codigoAcceso: data.codigoAcceso, nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area: areaNombre, motivo,
     fechaVisita, anfitrion, registradoPor: session.username, traeAuto, marca, modelo, placas,
     status:'pendiente', fechaRegistro:new Date(), fechaAcceso:null, foto:null, codigoSalida:null, fechaSalida:null
   };
   visits.push(visit);
   pendingVisitId = visit.id;
-  renderQR(visit);
-  showScreen('screen-qr');
+  renderCodigoAcceso(visit);
+  showScreen('screen-codigo-acceso');
 }
-function renderQR(visit){
-  const box = document.getElementById('qrcode');
-  box.innerHTML = '';
-  try{
-    new QRCode(box, { text: visit.id, width:220, height:220, colorDark:'#132a63', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.H });
-  }catch(e){
-    box.innerHTML = '<div style="padding:30px;color:#c33;">No se pudo generar el QR (sin conexión a la librería).</div>';
-  }
+function renderCodigoAcceso(visit){
+  document.getElementById('codigoAccesoValor').textContent = visit.codigoAcceso;
   document.getElementById('qrSummary').innerHTML =
     `<b>${visit.nombre} ${visit.apellidoP} ${visit.apellidoM}</b><br>
      Empresa: <b>${visit.empresa}</b><br>
@@ -1041,20 +1039,24 @@ function renderQR(visit){
      ${visit.traeAuto ? `Vehículo: ${visit.marca} ${visit.modelo} — Placas ${visit.placas}` : 'Sin vehículo registrado'}`;
   document.getElementById('qrMsg').textContent='';
 }
-function descargarQR(){
-  const canvas = document.querySelector('#qrcode canvas');
-  if(!canvas){ document.getElementById('qrMsg').style.color='var(--err)'; document.getElementById('qrMsg').textContent='No hay imagen para descargar.'; return; }
-  const a = document.createElement('a');
-  a.href = canvas.toDataURL('image/png');
-  a.download = 'qr-acceso-celex.png';
-  a.click();
+function copiarCodigoAcceso(){
+  const msg = document.getElementById('qrMsg');
+  const codigo = document.getElementById('codigoAccesoValor').textContent;
+  if(!codigo){ msg.style.color='var(--err)'; msg.textContent='No hay código para copiar.'; return; }
+  navigator.clipboard.writeText(codigo).then(()=>{
+    msg.style.color='var(--ok)';
+    msg.textContent='Código copiado al portapapeles.';
+  }).catch(()=>{
+    msg.style.color='var(--err)';
+    msg.textContent='No se pudo copiar el código. Cópialo manualmente.';
+  });
 }
 function enviarCorreo(){
   const v = visits.find(x=>x.id===pendingVisitId);
   if(!v) return;
   const msg = document.getElementById('qrMsg');
   msg.style.color='var(--ok)';
-  msg.textContent = `Correo simulado enviado a ${v.correo} con el código QR adjunto. (En producción se integraría con Outlook / Graph API).`;
+  msg.textContent = `Correo simulado enviado a ${v.correo} con el código de acceso ${v.codigoAcceso}. (En producción se integraría con Outlook / Graph API).`;
 }
 
 /* ---------- kiosko: login ---------- */
@@ -1087,93 +1089,28 @@ async function doKioskLogin(){
 }
 function doKioskLogout(){
   kioskSession.active=false;
-  stopCamera();
   stopPhotoCamera();
   showScreen('screen-kiosk-login');
 }
 
-/* ---------- kiosko: escaneo QR ---------- */
-function openScan(){
+/* ---------- kiosko: código de acceso ---------- */
+function openAccesoCodigo(){
+  pinModo = 'acceso';
+  pinBuffer = '';
+  document.getElementById('accesoMsg').textContent = '';
+  updatePinDisplay();
+  showScreen('screen-acceso-codigo');
+}
+function submitAccesoCodigo(){
+  pendingVisitId = pinBuffer;
   attemptCount = 0;
-  document.getElementById('scanMsg').textContent='';
-  document.getElementById('simBox').classList.remove('show');
-  refreshSimSelect();
-  showScreen('screen-scan');
-  startCamera();
-}
-function refreshSimSelect(){
-  const sel = document.getElementById('simSelect');
-  const pend = visits.filter(v=>v.status==='pendiente');
-  sel.innerHTML = pend.length
-    ? pend.map(v=>`<option value="${v.id}">${v.nombre} ${v.apellidoP} — ${v.empresa}</option>`).join('')
-    : `<option value="">No hay visitas pendientes</option>`;
-}
-function toggleSimBox(){
-  document.getElementById('simBox').classList.toggle('show');
-}
-function startCamera(){
-  const video = document.getElementById('scanVideo');
-  const msg = document.getElementById('scanMsg');
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    msg.textContent = 'Este navegador no soporta acceso a cámara. Usa la simulación.';
-    document.getElementById('simBox').classList.add('show');
-    return;
-  }
-  // Resolución alta explícita: el default del navegador suele ser bajo
-  // (ej. 640x480), insuficiente para que jsQR detecte el código con nitidez.
-  navigator.mediaDevices.getUserMedia({
-    video: { facingMode:'environment', width:{ideal:1920,min:1280}, height:{ideal:1080,min:720} }
-  }).then(stream=>{
-    scanStream = stream;
-    video.srcObject = stream;
-    video.play();
-    scanTick();
-  }).catch(()=>{
-    msg.textContent = 'No se pudo acceder a la cámara. Usa la opción de simulación.';
-    document.getElementById('simBox').classList.add('show');
-  });
-}
-function scanTick(){
-  const video = document.getElementById('scanVideo');
-  if(video.readyState === video.HAVE_ENOUGH_DATA){
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video,0,0,canvas.width,canvas.height);
-    const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
-    let code = null;
-    try{ code = jsQR(imgData.data, imgData.width, imgData.height); }catch(e){}
-    if(code && code.data){ onQRDetected(code.data); return; }
-  }
-  scanRAFId = requestAnimationFrame(scanTick);
-}
-function stopCamera(){
-  if(scanRAFId) cancelAnimationFrame(scanRAFId);
-  scanRAFId = null;
-  if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
-}
-function closeScanAndGo(target){
-  stopCamera();
-  showScreen(target);
-}
-function simulateScan(){
-  const id = document.getElementById('simSelect').value;
-  if(!id){ document.getElementById('scanMsg').textContent='Selecciona una visita para simular.'; return; }
-  onQRDetected(id);
-}
-function onQRDetected(token){
-  stopCamera();
-  // La validación real (existe / ya usado / fecha / apellido) la hace la API
-  // en un solo paso al enviar el apellido, ver submitValidate().
-  pendingVisitId = token;
-  attemptCount = 0;
-  document.getElementById('validateApP').value='';
-  document.getElementById('validateMsg').textContent='';
+  document.getElementById('validateApP').value = '';
+  document.getElementById('validateMsg').textContent = '';
   showScreen('screen-validate');
 }
 async function submitValidate(){
   const msg = document.getElementById('validateMsg');
-  if(!pendingVisitId){ msg.textContent='Sesión de escaneo perdida, vuelve a intentar.'; return; }
+  if(!pendingVisitId){ msg.textContent='Sesión perdida, vuelve a intentar.'; return; }
   const apellidoTecleado = document.getElementById('validateApP').value;
 
   let data;
@@ -1181,7 +1118,7 @@ async function submitValidate(){
     const resp = await fetch(`${API_BASE_URL}/api/visitas/validar-acceso`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uuid: pendingVisitId, apellidoTecleado, fotoRuta: null })
+      body: JSON.stringify({ codigoAcceso: pendingVisitId, apellidoTecleado, fotoRuta: null })
     });
     if(!resp.ok) throw new Error('HTTP ' + resp.status);
     data = await resp.json();
@@ -1216,13 +1153,12 @@ async function submitValidate(){
   }
 
   const mensajes = {
-    NO_ENCONTRADO: 'Código no reconocido. Intenta de nuevo.',
+    NO_ENCONTRADO: 'Código no reconocido. Verifica que esté bien escrito.',
     YA_UTILIZADO: 'Este código ya fue utilizado para un acceso.',
     FECHA_NO_COINCIDE: `Esta visita está registrada para el ${fmtFechaVisita(data.fechaVisita)}, no para hoy. No se puede iniciar el acceso.`
   };
-  showScreen('screen-scan');
-  document.getElementById('scanMsg').textContent = mensajes[data.resultado] || 'No se pudo validar el acceso.';
-  startCamera();
+  openAccesoCodigo();
+  document.getElementById('accesoMsg').textContent = mensajes[data.resultado] || 'No se pudo validar el acceso.';
 }
 function renderBadge(visit){
   const fotoHtml = visit.foto
@@ -1320,41 +1256,46 @@ function fmtDuracionMinutos(mins){
   return h > 0 ? `${h} h ${m} min` : `${m} min`;
 }
 
-let salidaCodigoBuffer = '';
+let pinBuffer = '';
+let pinModo = null; // 'acceso' | 'salida' -- qué pantalla/flujo usa el PIN pad compartido
 let pendingSalidaVisitId = null;
 let pendingSalidaCodigo = null;
 
-function openSalidaCodigo(){
-  salidaCodigoBuffer = '';
-  updateSalidaPinDisplay();
-  document.getElementById('salidaMsg').textContent = '';
-  showScreen('screen-salida-codigo');
-}
-function updateSalidaPinDisplay(){
-  const boxes = document.querySelectorAll('#salidaPinDisplay .pin-box');
+function updatePinDisplay(){
+  const displayId = pinModo === 'acceso' ? 'accesoPinDisplay' : 'salidaPinDisplay';
+  const boxes = document.querySelectorAll(`#${displayId} .pin-box`);
   boxes.forEach((b,i)=>{
-    b.textContent = salidaCodigoBuffer[i] || '';
-    b.classList.toggle('filled', !!salidaCodigoBuffer[i]);
+    b.textContent = pinBuffer[i] || '';
+    b.classList.toggle('filled', !!pinBuffer[i]);
   });
 }
 function pinPress(d){
-  if(salidaCodigoBuffer.length >= 6) return;
-  document.getElementById('salidaMsg').textContent = '';
-  salidaCodigoBuffer += d;
-  updateSalidaPinDisplay();
-  if(salidaCodigoBuffer.length === 6) setTimeout(submitSalidaCodigo, 150);
+  if(pinBuffer.length >= 6) return;
+  document.getElementById(pinModo === 'acceso' ? 'accesoMsg' : 'salidaMsg').textContent = '';
+  pinBuffer += d;
+  updatePinDisplay();
+  if(pinBuffer.length === 6){
+    setTimeout(() => pinModo === 'acceso' ? submitAccesoCodigo() : submitSalidaCodigo(), 150);
+  }
 }
 function pinBackspace(){
-  salidaCodigoBuffer = salidaCodigoBuffer.slice(0,-1);
-  updateSalidaPinDisplay();
+  pinBuffer = pinBuffer.slice(0,-1);
+  updatePinDisplay();
 }
 function pinClear(){
-  salidaCodigoBuffer = '';
-  updateSalidaPinDisplay();
+  pinBuffer = '';
+  updatePinDisplay();
+}
+function openSalidaCodigo(){
+  pinModo = 'salida';
+  pinBuffer = '';
+  updatePinDisplay();
+  document.getElementById('salidaMsg').textContent = '';
+  showScreen('screen-salida-codigo');
 }
 async function submitSalidaCodigo(){
   const msg = document.getElementById('salidaMsg');
-  const codigo = salidaCodigoBuffer;
+  const codigo = pinBuffer;
   let visita;
   try{
     const resp = await fetch(`${API_BASE_URL}/api/visitas/salida/${codigo}`);
@@ -1721,7 +1662,7 @@ wireEnterAvanza(['validateApP'], submitValidate);
 wireEnterAvanza(['repDesde','repHasta'], generarReporte);
 wireEnterAvanza(
   ['fNombre','fApP','fApM','fCorreo','fEmpresa','fArea','fMotivo','fFechaVisita','fAnfitrion','fMarca','fModelo','fPlacas'],
-  generarQR
+  generarCodigoAcceso
 );
 wireEnterAvanza(
   ['eNombre','eApP','eApM','eCorreo','eEmpresa','eArea','eMotivo','eFechaVisita','eAnfitrion','eMarca','eModelo','ePlacas'],

@@ -1,13 +1,14 @@
 # Control de Visitas — Celex
 
-Sistema de control de acceso de visitantes (registro, QR, foto, código de
-salida y reportes) para reemplazar el registro en papel de recepción/caseta.
+Sistema de control de acceso de visitantes (registro, código de acceso, foto,
+código de salida y reportes) para reemplazar el registro en papel de
+recepción/caseta.
 
 ## Contenido
 
 - **`web/`** — Mockup funcional (HTML/CSS/JS, sin dependencias de build).
-  Ábrelo directo en el navegador para probarlo. Incluye lectura/generación
-  real de QR por cámara.
+  Ábrelo directo en el navegador para probarlo. El acceso se valida con un
+  código de acceso de 6 dígitos (PIN pad), no con QR/cámara.
 - **`api/`** — API en ASP.NET Core (net8.0) que expone los stored procedures
   de `db/` como endpoints REST. Corre con `dotnet run` desde `api/`; usa la
   cadena de conexión de `appsettings.Development.json` (SQL Server local).

@@ -2,17 +2,18 @@
 
 Sistema de control de acceso de visitantes para Celex (Distribuidor Autorizado Telcel,
 Región 5: Jalisco / Michoacán / Nayarit / Colima). Reemplaza el registro en papel en
-recepción/caseta por un flujo digital con QR, foto y código de salida.
+recepción/caseta por un flujo digital con código de acceso, foto y código de salida.
 
 ## Estado actual del proyecto
 
 - ✅ **Mockup funcional** (`web/index.html`) — HTML/CSS/JS puro, sin build step.
-  Cubre: login de empleado (WishPOS), registro de visita, generación de QR real
-  (`qrcode.js`), lectura de QR real por cámara (`jsQR`), validación de apellido
-  paterno, captura de foto del visitante, etiqueta de acceso con código de salida
-  de 6 dígitos, registro de salida vía teclado numérico (PIN pad), reportes por
-  rango de fechas con export a CSV, y un teclado en pantalla arrastrable/
-  redimensionable para las pantallas de caseta (sin teclado/mouse físico).
+  Cubre: login de empleado (WishPOS), registro de visita con generación de un
+  **código de acceso de 6 dígitos** (ya no QR, ver "Decisiones de diseño"),
+  validación de apellido paterno, captura de foto del visitante, etiqueta de
+  acceso con código de salida de 6 dígitos, registro de salida vía teclado
+  numérico (PIN pad), reportes por rango de fechas con export a CSV, y un
+  teclado en pantalla arrastrable/redimensionable para las pantallas de
+  caseta que tienen campos de texto (sin teclado/mouse físico).
 - ✅ **Modelo de datos SQL Server** (`db/cv-modelo-datos.sql`) — borrador de tablas
   y stored procedures, pendiente de revisar con el DBA antes de correr en el
   servidor real.
@@ -53,14 +54,30 @@ recepción/caseta por un flujo digital con QR, foto y código de salida.
   `VisitasRepositorio.cs`). Probado end-to-end (registrar → validar acceso →
   salida → reporte) confirmando que el JSON sigue mostrando `null` donde
   corresponde.
+- ✅ **QR reemplazado por código de acceso de 6 dígitos** — la webcam +
+  `jsQR` resultó poco confiable (enfoque/resolución de laptops comunes); se
+  reemplazó por el mismo patrón ya probado del código de salida: un PIN pad
+  dedicado. Se quitaron `qrcode.js`/`jsQR` del mockup. Ver "Decisiones de
+  diseño" abajo para el detalle de unicidad del código.
 - ⬜ **Pendiente:** envío de correo real (Graph API / M365), subir la foto
   capturada a disco/blob en vez de mantenerla solo en memoria, despliegue en
   IIS + SQL Server productivo.
 
 ## Decisiones de diseño ya tomadas (no las reabras sin razón)
 
-- El QR codifica un **UUID real**, generado y leído con librerías reales
-  (`qrcode.js` / `jsQR`), no es un placeholder visual.
+- El acceso se valida con un **código de acceso de 6 dígitos** (`CodigoAcceso`),
+  no con un QR — la webcam de laptops comunes no enfoca bien a corta
+  distancia y `jsQR` fallaba seguido en pruebas reales. El código se genera
+  en `sp_CV_Visitas_Registrar` (no en el acceso, a diferencia del código de
+  salida) y es único solo entre visitas de la **misma `FechaVisita`** (se
+  puede reciclar en otras fechas — mismo criterio que `CodigoSalida`, solo
+  que ahí el ámbito es "mismo día" en vez de "misma FechaVisita"). Como el
+  mismo código puede repetirse en fechas distintas, `sp_CV_Visitas_ValidarAcceso`
+  busca primero la fila de **hoy**; si no existe, toma cualquier otra fila
+  con ese código solo para poder informar "tu visita es para el [fecha]"
+  (`FECHA_NO_COINCIDE`) — nunca otorga acceso con una fila que no sea de hoy.
+  El campo `UUID` de `CV_Visitas` ya no se usa para el acceso, queda solo
+  como identificador interno.
 - El **código de salida** es un número aleatorio de 6 dígitos, único solo entre
   visitas *activas del mismo día* (no globalmente único para siempre) — así se
   puede reciclar al día siguiente. Se genera al momento del acceso (no del
@@ -71,10 +88,9 @@ recepción/caseta por un flujo digital con QR, foto y código de salida.
   con foto + nombre) para evitar cerrar el acceso de la persona equivocada por
   un error de tecleo.
 - Una visita **no puede iniciarse (accesarse) en una fecha distinta a su
-  `fechaVisita` registrada** — si al escanear el QR la fecha de hoy no
-  coincide, se rechaza el acceso con mensaje al usuario en vez de dejarlo
-  pasar a validación. Esta regla debe replicarse en el SP/endpoint real de
-  "registrar acceso" cuando exista la API.
+  `fechaVisita` registrada** — si al ingresar el código de acceso la fecha de
+  hoy no coincide, se rechaza el acceso con mensaje al usuario en vez de
+  dejarlo pasar a validación (`FECHA_NO_COINCIDE`, ver arriba).
 - **Login solo con contraseña, validado contra WishPOS** (`system_LOGIN` de
   `celexpos.celex.com`) — no se pide usuario, en ambas pantallas (empleado y
   caseta). ⚠️ El equipo de negocio describió el hash como "MD5", pero al
@@ -88,11 +104,12 @@ recepción/caseta por un flujo digital con QR, foto y código de salida.
   `MiEspacio`) que regresa WishPOS no se usa aquí, solo `Usuario` y `Nombre`.
 - El teclado en pantalla (QWERTY, arrastrable/redimensionable) solo debe
   aparecer en las pantallas del lado de **caseta/kiosko** que tengan un campo
-  de texto real (login de caseta, home, escaneo, validación, foto, badge,
-  confirmación, salida registrada) — nunca en las pantallas de empleado, que
-  sí tienen teclado/mouse reales, **ni en "código de salida"**, que usa su
-  propio PIN pad numérico y no tiene ningún `<input>` al que el teclado
-  QWERTY pueda escribirle (mostrarlo ahí no hacía nada al presionar teclas).
+  de texto real (login de caseta, home, validación, foto, badge, confirmación,
+  salida registrada) — nunca en las pantallas de empleado, que sí tienen
+  teclado/mouse reales, **ni en "código de acceso" o "código de salida"**,
+  que usan su propio PIN pad numérico compartido (ver `pinModo` en el JS) y
+  no tienen ningún `<input>` al que el teclado QWERTY pueda escribirle
+  (mostrarlo ahí no hacía nada al presionar teclas).
 - Estilo visual: se sigue el look de WishPOS existente (topbar azul con degradado,
   sidebar gris-azulado con íconos, tarjetas con círculo morado, ola teal al
   fondo) — no se debe rediseñar sin que el usuario lo pida explícitamente.
@@ -102,8 +119,9 @@ recepción/caseta por un flujo digital con QR, foto y código de salida.
 - Prefijo de tablas/SPs de este módulo: `CV_` (Control de Visitas), para no
   mezclarse con las tablas `Yoda_*` del bot de sincronización WishPoS↔Telcel.
 - Columna `UUID` (uniqueidentifier, default `NEWID()`) en tablas que necesitan
-  un identificador externo/público (igual que en `Yoda_Cat_Ladas`).
-  En `CV_Visitas`, ese `UUID` es justo el valor que se codifica en el QR.
+  un identificador externo/público (igual que en `Yoda_Cat_Ladas`). En
+  `CV_Visitas` ya no se usa para el acceso (ver `CodigoAcceso`), solo queda
+  como identificador interno.
   el patrón `ID_Fecha_Modificacion` (default `'1900-01-01 00:00:00'`) se usa
   para auditoría de cambios, igual que en el resto de las tablas de Celex.
 - INSERTs de catálogos siguen el patrón `SELECT` sin `FROM` cuando aplica.
@@ -148,13 +166,15 @@ control-visitas-celex/
    arriba). No hizo falta AD/LDAP — WishPOS ya expone el login por contraseña.
 5. Reemplazar el estado en memoria de `web/index.html` por llamadas reales a
    la API:
-   - ✅ Registrar visita (`generarQR`, con áreas cargadas de `GET /api/areas`).
+   - ✅ Registrar visita (`generarCodigoAcceso`, con áreas cargadas de
+     `GET /api/areas`).
    - ✅ Login (`doLogin` / `doKioskLogin` ya llaman a `POST /api/auth/login`;
      ambas pantallas solo piden contraseña).
-   - ✅ Validar acceso / escaneo de QR en kiosko (`onQRDetected` +
-     `submitValidate` ya llaman a `POST /api/visitas/validar-acceso`; los 5
-     resultados posibles —OK, NO_ENCONTRADO, YA_UTILIZADO, FECHA_NO_COINCIDE,
-     APELLIDO_NO_COINCIDE— se probaron end-to-end desde la página real).
+   - ✅ Validar acceso en kiosko vía código de 6 dígitos (`submitAccesoCodigo`
+     + `submitValidate` ya llaman a `POST /api/visitas/validar-acceso` con
+     `codigoAcceso`; los 5 resultados posibles —OK, NO_ENCONTRADO,
+     YA_UTILIZADO, FECHA_NO_COINCIDE, APELLIDO_NO_COINCIDE— se probaron
+     end-to-end desde la página real).
    - ✅ Registro de salida (`submitSalidaCodigo` + `confirmarSalida` ya llaman
      a `GET /api/visitas/salida/{codigo}` y
      `POST /api/visitas/salida/{id}/confirmar`; `pendingSalidaVisitId` ahora
