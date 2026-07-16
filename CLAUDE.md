@@ -41,6 +41,18 @@ recepción/caseta por un flujo digital con QR, foto y código de salida.
   y editar (`PUT /api/visitas/{id}`, nuevo SP `sp_CV_Visitas_Actualizar`) ya no
   dependen del arreglo local en memoria; edición bloqueada server-side una vez
   que la visita ya fue accesada.
+- ✅ **`ID_Usuario` de WishPOS guardado en `CV_Visitas`** — el `Usuario_ID`
+  numérico que regresa el login (`POST /api/auth/login`) viaja en
+  `session.usuarioId` y se manda como `idUsuario` al registrar una visita.
+- ✅ **Esquema sin columnas NULL** — todas las columnas de `CV_Visitas` son
+  `NOT NULL` con un valor "vacío" por tipo (`''` para texto, `0` para
+  numéricos, `'1900-01-01 00:00:00'` para fechas, mismo centinela que ya
+  usaba `ID_Fecha_Modificacion`). Los SPs comparan contra ese centinela en
+  vez de `IS NULL`; la API traduce el centinela de vuelta a `null` en el
+  JSON para no afectar al frontend (ver `NullSiVacia` en
+  `VisitasRepositorio.cs`). Probado end-to-end (registrar → validar acceso →
+  salida → reporte) confirmando que el JSON sigue mostrando `null` donde
+  corresponde.
 - ⬜ **Pendiente:** envío de correo real (Graph API / M365), subir la foto
   capturada a disco/blob en vez de mantenerla solo en memoria, despliegue en
   IIS + SQL Server productivo.
@@ -98,6 +110,11 @@ recepción/caseta por un flujo digital con QR, foto y código de salida.
 - Comparación de apellidos: quitar acentos + mayúsculas antes de comparar
   (mismo criterio que la normalización de direcciones ya existente — si ya
   hay una función para esto, reutilizarla en vez de `fn_CV_QuitarAcentos`).
+- **Ninguna columna acepta NULL.** Todas son `NOT NULL` con un valor "vacío"
+  según su tipo: `''` para texto/`CHAR`, `0` para numéricos,
+  `'1900-01-01 00:00:00'` para fechas (mismo centinela de siempre en
+  `ID_Fecha_Modificacion`). Al agregar una columna nueva, seguir este patrón
+  y comparar contra el centinela en los SPs en vez de `IS NULL`/`IS NOT NULL`.
 - **Ojo al correr el script con `sqlcmd`:** el archivo está en UTF-8 sin BOM;
   si se corre con `sqlcmd -i cv-modelo-datos.sql` a secas, los literales
   `N'...'` con acentos se guardan corruptos (mojibake, ej. `AlmacÃ©n`). Hay que

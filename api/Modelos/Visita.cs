@@ -10,6 +10,7 @@ public record VisitaRegistroRequest(
     string Motivo,
     string Anfitrion,
     string RegistradoPor,
+    int? IdUsuario,
     DateOnly FechaVisita,
     bool TraeAuto,
     string? Marca,

@@ -819,7 +819,7 @@
    ========================================================= */
 const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro puerto
 
-let session = { username: null, nombre: null };
+let session = { username: null, nombre: null, usuarioId: null };
 let kioskSession = { active: false };
 let visits = [];          // bitácora completa
 let pendingVisitId = null;
@@ -926,6 +926,7 @@ async function doLogin(){
   err.textContent='';
   session.username = data.usuario;
   session.nombre = data.nombre;
+  session.usuarioId = data.usuarioId;
   document.getElementById('menuUserLabel').textContent = data.nombre || data.usuario;
   document.getElementById('visitasUserLabel').textContent = data.nombre || data.usuario;
   document.getElementById('regUserLabel').textContent = data.nombre || data.usuario;
@@ -937,6 +938,7 @@ async function doLogin(){
 function doLogout(){
   session.username = null;
   session.nombre = null;
+  session.usuarioId = null;
   document.getElementById('loginPass').value='';
   showScreen('screen-login');
 }
@@ -1001,7 +1003,7 @@ async function generarQR(){
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo,
-        anfitrion, registradoPor: session.username, fechaVisita, traeAuto,
+        anfitrion, registradoPor: session.username, idUsuario: session.usuarioId, fechaVisita, traeAuto,
         marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
       })
     });

@@ -11,7 +11,7 @@ public interface IWishPosAuthService
     Task<LoginResponse> LoginAsync(string password, string originIp);
 }
 
-internal record WishPosLoginResultado(int Error_Codigo, string Error_Mensaje, string? Usuario, string? Nombre);
+internal record WishPosLoginResultado(int Error_Codigo, string Error_Mensaje, int Usuario_ID, string? Usuario, string? Nombre);
 
 public class WishPosAuthService(HttpClient http) : IWishPosAuthService
 {
@@ -42,7 +42,7 @@ public class WishPosAuthService(HttpClient http) : IWishPosAuthService
         }
         catch (Exception)
         {
-            return new LoginResponse(false, "No se pudo contactar el servidor de WishPOS.", null, null);
+            return new LoginResponse(false, "No se pudo contactar el servidor de WishPOS.", null, null, null);
         }
 
         string innerJson;
@@ -52,7 +52,7 @@ public class WishPosAuthService(HttpClient http) : IWishPosAuthService
         }
         catch (Exception)
         {
-            return new LoginResponse(false, "Respuesta inesperada de WishPOS.", null, null);
+            return new LoginResponse(false, "Respuesta inesperada de WishPOS.", null, null, null);
         }
 
         List<WishPosLoginResultado>? resultados;
@@ -62,17 +62,17 @@ public class WishPosAuthService(HttpClient http) : IWishPosAuthService
         }
         catch (Exception)
         {
-            return new LoginResponse(false, "No se pudo interpretar la respuesta de WishPOS.", null, null);
+            return new LoginResponse(false, "No se pudo interpretar la respuesta de WishPOS.", null, null, null);
         }
 
         var resultado = resultados?.FirstOrDefault();
         if (resultado is null)
         {
-            return new LoginResponse(false, "WishPOS no regresó información de acceso.", null, null);
+            return new LoginResponse(false, "WishPOS no regresó información de acceso.", null, null, null);
         }
 
         return resultado.Error_Codigo == 0
-            ? new LoginResponse(true, resultado.Error_Mensaje, resultado.Usuario, resultado.Nombre)
-            : new LoginResponse(false, resultado.Error_Mensaje, null, null);
+            ? new LoginResponse(true, resultado.Error_Mensaje, resultado.Usuario, resultado.Nombre, resultado.Usuario_ID)
+            : new LoginResponse(false, resultado.Error_Mensaje, null, null, null);
     }
 }

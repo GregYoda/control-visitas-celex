@@ -7,6 +7,13 @@
      - Columna UUID para llaves externas (aquí: el token que se codifica en el QR).
      - ID_Fecha_Modificacion para auditoría de cambios.
      - SPs con prefijo sp_CV_ (Control de Visitas) para no mezclarse con Yoda_*.
+     - Sin columnas NULL: todas las columnas son NOT NULL con un valor
+       "vacío" por defecto según su tipo -- NVARCHAR/CHAR usan '', INT usa 0,
+       DATE/DATETIME usa '1900-01-01 00:00:00' (mismo centinela que ya se
+       usaba en ID_Fecha_Modificacion). Los SPs comparan contra ese centinela
+       en vez de usar IS NULL / IS NOT NULL. La capa de API sí traduce ese
+       centinela de vuelta a null en las respuestas JSON, para no romper la
+       semántica de "todavía no aplica" que espera el frontend.
 
    Este script es un primer borrador para revisar juntos antes de correrlo
    contra el servidor real. Ajusta nombres de esquema / collation si no
@@ -65,20 +72,21 @@ CREATE TABLE dbo.CV_Visitas (
     Motivo                  NVARCHAR(300)   NOT NULL,
     Anfitrion               NVARCHAR(100)   NOT NULL,   -- usuario WishPOS de la persona visitada
     RegistradoPor           NVARCHAR(100)   NOT NULL,   -- usuario WishPOS que capturó el registro
+    ID_Usuario              INT             NOT NULL DEFAULT (0),  -- Usuario_ID (WishPOS) de quien capturó el registro
     FechaVisita             DATE            NOT NULL,   -- día para el que se agendó; el acceso solo se permite ese día
 
     TraeAuto                BIT             NOT NULL DEFAULT (0),
-    Marca                   NVARCHAR(50)    NULL,
-    Modelo                  NVARCHAR(50)    NULL,
-    Placas                  NVARCHAR(20)    NULL,
+    Marca                   NVARCHAR(50)    NOT NULL DEFAULT (''),
+    Modelo                  NVARCHAR(50)    NOT NULL DEFAULT (''),
+    Placas                  NVARCHAR(20)    NOT NULL DEFAULT (''),
 
     Status                  NVARCHAR(20)    NOT NULL DEFAULT (N'Pendiente'),  -- Pendiente | Accesado
     FechaRegistro           DATETIME        NOT NULL DEFAULT (GETDATE()),
-    FechaAcceso             DATETIME        NULL,
-    FotoRuta                NVARCHAR(260)   NULL,        -- ruta en disco/blob storage de la foto de la caseta
+    FechaAcceso             DATETIME        NOT NULL DEFAULT ('1900-01-01 00:00:00'),
+    FotoRuta                NVARCHAR(260)   NOT NULL DEFAULT (''),  -- ruta en disco/blob storage de la foto de la caseta
 
-    CodigoSalida            CHAR(6)         NULL,        -- 6 dígitos, único entre visitas "dentro" el mismo día
-    FechaSalida             DATETIME        NULL,
+    CodigoSalida            CHAR(6)         NOT NULL DEFAULT (''),  -- 6 dígitos, único entre visitas "dentro" el mismo día
+    FechaSalida             DATETIME        NOT NULL DEFAULT ('1900-01-01 00:00:00'),
 
     ID_Fecha_Modificacion   DATETIME        NOT NULL DEFAULT ('1900-01-01 00:00:00'),
 
@@ -86,7 +94,7 @@ CREATE TABLE dbo.CV_Visitas (
     CONSTRAINT FK_CV_Visitas_Area FOREIGN KEY (ID_Area) REFERENCES dbo.CV_Areas(ID),
     CONSTRAINT CK_CV_Visitas_Status CHECK (Status IN (N'Pendiente', N'Accesado')),
     CONSTRAINT CK_CV_Visitas_Auto CHECK (
-        (TraeAuto = 0) OR (TraeAuto = 1 AND Marca IS NOT NULL AND Modelo IS NOT NULL AND Placas IS NOT NULL)
+        (TraeAuto = 0) OR (TraeAuto = 1 AND Marca <> '' AND Modelo <> '' AND Placas <> '')
     )
 );
 GO
@@ -96,9 +104,11 @@ CREATE UNIQUE INDEX UX_CV_Visitas_UUID ON dbo.CV_Visitas(UUID);
 GO
 
 -- Acelera "¿este código de salida corresponde a alguien que sigue dentro?"
+-- (sin FechaSalida real: se usa el centinela '1900-01-01' en vez de NULL, ver
+-- convención de "sin nulos" al inicio del archivo)
 CREATE INDEX IX_CV_Visitas_CodigoSalida_Activo
     ON dbo.CV_Visitas(CodigoSalida, FechaAcceso)
-    WHERE FechaSalida IS NULL AND CodigoSalida IS NOT NULL;
+    WHERE FechaSalida = '1900-01-01' AND CodigoSalida <> '';
 GO
 
 -- Acelera los reportes por rango de fechas
@@ -138,22 +148,28 @@ CREATE PROCEDURE dbo.sp_CV_Visitas_Registrar
     @Motivo             NVARCHAR(300),
     @Anfitrion          NVARCHAR(100),
     @RegistradoPor      NVARCHAR(100),
+    @ID_Usuario         INT             = 0,   -- Usuario_ID (WishPOS) de quien registra
     @FechaVisita        DATE,
     @TraeAuto           BIT             = 0,
-    @Marca              NVARCHAR(50)    = NULL,
-    @Modelo             NVARCHAR(50)    = NULL,
-    @Placas             NVARCHAR(20)    = NULL
+    @Marca              NVARCHAR(50)    = '',
+    @Modelo             NVARCHAR(50)    = '',
+    @Placas             NVARCHAR(20)    = ''
 AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @NuevoUUID UNIQUEIDENTIFIER = NEWID();
+    -- Defensivo: nunca guardar NULL aunque el llamador lo mande explícito.
+    SET @ID_Usuario = ISNULL(@ID_Usuario, 0);
+    SET @Marca  = ISNULL(@Marca, '');
+    SET @Modelo = ISNULL(@Modelo, '');
+    SET @Placas = ISNULL(@Placas, '');
 
     INSERT INTO dbo.CV_Visitas
         (UUID, Nombre, ApellidoPaterno, ApellidoMaterno, Correo, Empresa, ID_Area, Motivo,
-         Anfitrion, RegistradoPor, FechaVisita, TraeAuto, Marca, Modelo, Placas)
+         Anfitrion, RegistradoPor, ID_Usuario, FechaVisita, TraeAuto, Marca, Modelo, Placas)
     VALUES
         (@NuevoUUID, @Nombre, @ApellidoPaterno, @ApellidoMaterno, @Correo, @Empresa, @ID_Area, @Motivo,
-         @Anfitrion, @RegistradoPor, @FechaVisita, @TraeAuto, @Marca, @Modelo, @Placas);
+         @Anfitrion, @RegistradoPor, @ID_Usuario, @FechaVisita, @TraeAuto, @Marca, @Modelo, @Placas);
 
     SELECT SCOPE_IDENTITY() AS ID, @NuevoUUID AS UUID;  -- @NuevoUUID -> lo que va dentro del QR
 END
@@ -169,10 +185,11 @@ GO
 CREATE PROCEDURE dbo.sp_CV_Visitas_ValidarAcceso
     @UUID               UNIQUEIDENTIFIER,
     @ApellidoTecleado   NVARCHAR(100),
-    @FotoRuta           NVARCHAR(260)   = NULL
+    @FotoRuta           NVARCHAR(260)   = ''
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET @FotoRuta = ISNULL(@FotoRuta, '');
     DECLARE @ID BIGINT, @ApellidoReal NVARCHAR(100), @Status NVARCHAR(20), @FechaVisita DATE;
 
     SELECT @ID = ID, @ApellidoReal = ApellidoPaterno, @Status = Status, @FechaVisita = FechaVisita
@@ -210,7 +227,7 @@ BEGIN
             SET @Codigo = RIGHT('000000' + CAST(ABS(CHECKSUM(NEWID())) % 1000000 AS VARCHAR(6)), 6);
             IF NOT EXISTS (
                 SELECT 1 FROM dbo.CV_Visitas
-                WHERE CodigoSalida = @Codigo AND FechaSalida IS NULL
+                WHERE CodigoSalida = @Codigo AND FechaSalida = '1900-01-01'
                   AND CAST(FechaAcceso AS DATE) = CAST(GETDATE() AS DATE)
             ) BREAK;
         END
@@ -257,7 +274,7 @@ BEGIN
     FROM dbo.CV_Visitas
     WHERE CodigoSalida = @Codigo
       AND Status = N'Accesado'
-      AND FechaSalida IS NULL
+      AND FechaSalida = '1900-01-01'
       AND CAST(FechaAcceso AS DATE) = CAST(GETDATE() AS DATE);
 END
 GO
@@ -274,7 +291,7 @@ BEGIN
     UPDATE dbo.CV_Visitas
        SET FechaSalida = GETDATE(),
            ID_Fecha_Modificacion = GETDATE()
-     WHERE ID = @ID AND FechaSalida IS NULL;
+     WHERE ID = @ID AND FechaSalida = '1900-01-01';
 
     SELECT Nombre, ApellidoPaterno, ApellidoMaterno, FechaAcceso, FechaSalida,
            DATEDIFF(MINUTE, FechaAcceso, FechaSalida) AS MinutosEstancia
@@ -296,12 +313,13 @@ BEGIN
         v.ID, v.Nombre, v.ApellidoPaterno, v.ApellidoMaterno, v.Empresa,
         a.Nombre AS Area, v.Anfitrion, v.Motivo,
         CASE
-            WHEN v.Status = N'Pendiente' THEN N'Pendiente'
-            WHEN v.FechaSalida IS NULL   THEN N'Dentro'
+            WHEN v.Status = N'Pendiente'       THEN N'Pendiente'
+            WHEN v.FechaSalida = '1900-01-01'  THEN N'Dentro'
             ELSE N'Salida registrada'
         END AS Estado,
         v.FechaVisita, v.FechaRegistro, v.FechaAcceso, v.CodigoSalida, v.FechaSalida,
-        DATEDIFF(MINUTE, v.FechaAcceso, v.FechaSalida) AS MinutosEstancia,
+        CASE WHEN v.FechaSalida = '1900-01-01' THEN NULL
+             ELSE DATEDIFF(MINUTE, v.FechaAcceso, v.FechaSalida) END AS MinutosEstancia,
         v.FotoRuta
     FROM dbo.CV_Visitas v
     JOIN dbo.CV_Areas a ON a.ID = v.ID_Area
@@ -326,8 +344,8 @@ BEGIN
         v.ID_Area, a.Nombre AS Area, v.Motivo, v.Anfitrion, v.FechaVisita,
         v.TraeAuto, v.Marca, v.Modelo, v.Placas,
         CASE
-            WHEN v.Status = N'Pendiente' THEN N'Pendiente'
-            WHEN v.FechaSalida IS NULL   THEN N'Dentro'
+            WHEN v.Status = N'Pendiente'       THEN N'Pendiente'
+            WHEN v.FechaSalida = '1900-01-01'  THEN N'Dentro'
             ELSE N'Salida registrada'
         END AS Estado,
         v.Status, v.FechaRegistro, v.FechaAcceso, v.FotoRuta
@@ -356,12 +374,15 @@ CREATE PROCEDURE dbo.sp_CV_Visitas_Actualizar
     @Anfitrion          NVARCHAR(100),
     @FechaVisita        DATE,
     @TraeAuto           BIT             = 0,
-    @Marca              NVARCHAR(50)    = NULL,
-    @Modelo             NVARCHAR(50)    = NULL,
-    @Placas             NVARCHAR(20)    = NULL
+    @Marca              NVARCHAR(50)    = '',
+    @Modelo             NVARCHAR(50)    = '',
+    @Placas             NVARCHAR(20)    = ''
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET @Marca  = ISNULL(@Marca, '');
+    SET @Modelo = ISNULL(@Modelo, '');
+    SET @Placas = ISNULL(@Placas, '');
     DECLARE @Status NVARCHAR(20);
     SELECT @Status = Status FROM dbo.CV_Visitas WHERE ID = @ID;
 
