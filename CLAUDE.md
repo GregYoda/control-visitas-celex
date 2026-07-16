@@ -71,10 +71,12 @@ recepción/caseta por un flujo digital con QR, foto y código de salida.
   `Error_Mensaje` como texto a mostrar. El menú/permisos (`Accesos`,
   `MiEspacio`) que regresa WishPOS no se usa aquí, solo `Usuario` y `Nombre`.
 - El teclado en pantalla (QWERTY, arrastrable/redimensionable) solo debe
-  aparecer en las pantallas del lado de **caseta/kiosko** (login de caseta,
-  home, escaneo, validación, foto, badge, código de salida, confirmación,
-  salida registrada) — nunca en las pantallas de empleado, que sí tienen
-  teclado/mouse reales.
+  aparecer en las pantallas del lado de **caseta/kiosko** que tengan un campo
+  de texto real (login de caseta, home, escaneo, validación, foto, badge,
+  confirmación, salida registrada) — nunca en las pantallas de empleado, que
+  sí tienen teclado/mouse reales, **ni en "código de salida"**, que usa su
+  propio PIN pad numérico y no tiene ningún `<input>` al que el teclado
+  QWERTY pueda escribirle (mostrarlo ahí no hacía nada al presionar teclas).
 - Estilo visual: se sigue el look de WishPOS existente (topbar azul con degradado,
   sidebar gris-azulado con íconos, tarjetas con círculo morado, ola teal al
   fondo) — no se debe rediseñar sin que el usuario lo pida explícitamente.

@@ -136,6 +136,7 @@
   .login-card p.hint{margin:0 0 24px;color:#8b93a3;font-size:13px;}
   .field{margin-bottom:18px;}
   .field label{display:block;font-size:12.5px;color:#5a6070;margin-bottom:6px;font-weight:600;letter-spacing:.3px;}
+  .field label.required::after{content:' *';color:var(--err);}
   .field input,.field select,.field textarea{
     width:100%;padding:11px 13px;border:1.5px solid #dfe3ea;border-radius:9px;font-size:14.5px;
     background:#fbfcfe;
@@ -225,7 +226,7 @@
   .face-guide{position:absolute;inset:12% 24%;border:3px dashed rgba(255,255,255,.7);border-radius:50% / 40%;pointer-events:none;}
   .photo-preview-wrap{position:relative;width:340px;height:340px;max-width:80vw;max-height:80vw;border-radius:20px;overflow:hidden;border:3px solid rgba(255,255,255,.3);background:#000;margin:0 auto;}
   .photo-preview-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
-  .kiosk-field{width:100%;max-width:340px;}
+  .kiosk-field{width:100%;}
   .kiosk-field input{
     width:100%;padding:18px 16px;border-radius:14px;border:none;font-size:22px;text-align:center;
     background:#fff;color:var(--ink);
@@ -337,6 +338,7 @@
   table.mv-table tr:hover td{background:#f9fafb;}
   .btn-editar{border:none;background:var(--purple-1);color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;}
   .btn-editar:hover{background:var(--purple-2);}
+  .btn-editar:disabled{background:#d5d8de;color:#9099a8;cursor:not-allowed;}
   .warn-banner{background:#fff7e6;border:1.5px solid #e8b84b;border-radius:10px;padding:12px 16px;font-size:13px;color:#7a5200;margin-bottom:20px;display:flex;gap:10px;align-items:flex-start;}
   .warn-banner b{display:block;margin-bottom:2px;}
 </style>
@@ -458,26 +460,26 @@
         <div class="content-title" style="max-width:640px;">Registrar visita</div>
         <div class="form-card">
           <div class="form-grid">
-            <div class="field"><label>Nombre</label><input id="fNombre"></div>
-            <div class="field"><label>Apellido paterno</label><input id="fApP"></div>
-            <div class="field"><label>Apellido materno</label><input id="fApM"></div>
-            <div class="field"><label>Correo electrónico</label><input id="fCorreo" type="email"></div>
-            <div class="field"><label>Empresa</label><input id="fEmpresa"></div>
-            <div class="field"><label>Área a visitar</label>
+            <div class="field"><label class="required">Nombre</label><input id="fNombre"></div>
+            <div class="field"><label class="required">Apellido paterno</label><input id="fApP"></div>
+            <div class="field"><label class="required">Apellido materno</label><input id="fApM"></div>
+            <div class="field"><label class="required">Correo electrónico</label><input id="fCorreo" type="email"></div>
+            <div class="field"><label class="required">Empresa</label><input id="fEmpresa"></div>
+            <div class="field"><label class="required">Área a visitar</label>
               <select id="fArea"><option value="">Cargando áreas…</option></select>
             </div>
-            <div class="field full"><label>Motivo de la visita</label><input id="fMotivo" placeholder="ej. Reunión de proveedores"></div>
-            <div class="field"><label>Fecha de visita</label><input id="fFechaVisita" type="date"></div>
-            <div class="field"><label>Persona que visita (anfitrión)</label><input id="fAnfitrion"></div>
+            <div class="field full"><label class="required">Motivo de la visita</label><input id="fMotivo" placeholder="ej. Reunión de proveedores"></div>
+            <div class="field"><label class="required">Fecha de visita</label><input id="fFechaVisita" type="date"></div>
+            <div class="field"><label class="required">Persona que visita (anfitrión)</label><input id="fAnfitrion"></div>
 
             <div class="toggle-row">
               <label class="switch"><input type="checkbox" id="fTraeAuto" onchange="toggleAutoFields()"><span class="slider"></span></label>
               <label>¿El visitante trae vehículo?</label>
             </div>
             <div class="auto-fields" id="autoFields">
-              <div class="field"><label>Marca</label><input id="fMarca"></div>
-              <div class="field"><label>Modelo</label><input id="fModelo"></div>
-              <div class="field"><label>Placas</label><input id="fPlacas"></div>
+              <div class="field"><label class="required">Marca</label><input id="fMarca"></div>
+              <div class="field"><label class="required">Modelo</label><input id="fModelo"></div>
+              <div class="field"><label class="required">Placas</label><input id="fPlacas"></div>
             </div>
           </div>
           <div class="login-error" id="regError"></div>
@@ -866,12 +868,35 @@ function hoyISO(){
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  // el teclado en pantalla solo aplica a las pantallas de caseta (kiosko)
-  const kioskScreens = ['screen-kiosk-login','screen-kiosk-home','screen-scan','screen-validate','screen-photo','screen-badge','screen-salida-codigo','screen-salida-confirm','screen-salida-done'];
+  // el teclado en pantalla solo aplica a pantallas de caseta con campo de
+  // texto real; "código de salida" ya tiene su propio PIN pad numérico y no
+  // hay ningún input al que el teclado QWERTY pueda escribirle.
+  const kioskScreens = ['screen-kiosk-login','screen-kiosk-home','screen-scan','screen-validate','screen-photo','screen-badge','screen-salida-confirm','screen-salida-done'];
   document.getElementById('vkbToggle').style.display = kioskScreens.includes(id) ? 'flex' : 'none';
   if(!kioskScreens.includes(id)){
     document.getElementById('vkbPanel').classList.remove('show');
   }
+}
+
+/* ---------- Enter/Intro avanza al siguiente campo; en el último, dispara el botón ---------- */
+function wireEnterAvanza(fieldIds, accionFinal){
+  fieldIds.forEach((id, idx) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('keydown', e => {
+      if(e.key !== 'Enter') return;
+      e.preventDefault();
+      const siguiente = fieldIds.slice(idx + 1)
+        .map(sid => document.getElementById(sid))
+        .find(sel => sel && !sel.disabled && sel.offsetParent !== null);
+      if(siguiente){
+        siguiente.focus();
+        if(siguiente.select) siguiente.select();
+      }else if(accionFinal){
+        accionFinal();
+      }
+    });
+  });
 }
 
 function buildSidebar(targetId, activeLabel){
@@ -1301,6 +1326,7 @@ function fmtDuracionMinutos(mins){
 
 let salidaCodigoBuffer = '';
 let pendingSalidaVisitId = null;
+let pendingSalidaCodigo = null;
 
 function openSalidaCodigo(){
   salidaCodigoBuffer = '';
@@ -1351,6 +1377,7 @@ async function submitSalidaCodigo(){
     return;
   }
   pendingSalidaVisitId = visita.id;
+  pendingSalidaCodigo = codigo;
   renderSalidaConfirm(visita);
   showScreen('screen-salida-confirm');
 }
@@ -1368,6 +1395,7 @@ function renderSalidaConfirm(visita){
 }
 function rechazarSalidaConfirm(){
   pendingSalidaVisitId = null;
+  pendingSalidaCodigo = null;
   openSalidaCodigo();
 }
 async function confirmarSalida(){
@@ -1382,6 +1410,10 @@ async function confirmarSalida(){
     showScreen('screen-salida-codigo');
     return;
   }
+  // Sincroniza el arreglo local (usado por "Mis visitas") con la salida ya
+  // confirmada en el servidor, si la visita fue registrada en esta sesión.
+  const local = visits.find(v => v.codigoSalida === pendingSalidaCodigo && v.status === 'accesado' && !v.fechaSalida);
+  if(local) local.fechaSalida = new Date(resultado.fechaSalida);
   renderSalidaDone(resultado);
   showScreen('screen-salida-done');
 }
@@ -1423,7 +1455,9 @@ function renderMisVisitas(){
       <td>${fmtFechaVisita(v.fechaVisita)}</td>
       <td><span class="status-pill ${estadoClass}">${estadoLabel}</span></td>
       <td>${fmtFecha(v.fechaRegistro)}</td>
-      <td><button class="btn-editar" onclick="abrirEditar('${v.id}')">Editar</button></td>
+      <td>${v.status === 'accesado'
+        ? `<button class="btn-editar" disabled title="No se puede editar: la visita ya inició su acceso.">Editar</button>`
+        : `<button class="btn-editar" onclick="abrirEditar('${v.id}')">Editar</button>`}</td>
     </tr>`;
   }).join('');
   wrap.innerHTML = `
@@ -1659,6 +1693,19 @@ function toggleKeyboard(){
   window.addEventListener('touchmove', e=>{const t=e.touches[0]; move(t.clientX,t.clientY);}, {passive:true});
   window.addEventListener('touchend', ()=>resizing=false);
 })();
+
+wireEnterAvanza(['loginPass'], doLogin);
+wireEnterAvanza(['kioskPass'], doKioskLogin);
+wireEnterAvanza(['validateApP'], submitValidate);
+wireEnterAvanza(['repDesde','repHasta'], generarReporte);
+wireEnterAvanza(
+  ['fNombre','fApP','fApM','fCorreo','fEmpresa','fArea','fMotivo','fFechaVisita','fAnfitrion','fMarca','fModelo','fPlacas'],
+  generarQR
+);
+wireEnterAvanza(
+  ['eNombre','eApP','eApM','eCorreo','eEmpresa','eArea','eMotivo','eFechaVisita','eAnfitrion','eMarca','eModelo','ePlacas'],
+  guardarEdicion
+);
 
 /* =========================================================
    DATOS DE EJEMPLO (para poder ver el reporte sin capturar
