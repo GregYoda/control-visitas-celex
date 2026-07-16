@@ -31,10 +31,15 @@ recepción/caseta por un flujo digital con QR, foto y código de salida.
   `FECHA_NO_COINCIDE` si se escanea en un día distinto al registrado) y
   `sp_CV_Visitas_Reporte`. Probado con `sqlcmd` contra la base local: rechaza
   el acceso en fecha distinta y deja pasar en la fecha correcta.
+- ✅ **Autenticación real contra WishPOS** (`POST /api/auth/login`) — el login
+  de empleado y el de caseta/kiosko ya solo piden contraseña (sin usuario). La
+  API la convierte a **SHA-512** (no MD5, ver nota abajo) y llama a
+  `celexpos.celex.com/prod/WSWish.asmx/mtdActiva11` con `Proceso: System_LOGIN`,
+  la IP real del cliente como `Origin`, y un `UUID` nuevo por intento. Probado
+  end-to-end contra el servidor real (caso de acceso denegado).
 - ⬜ **Pendiente:** el resto de endpoints de la API contra los demás stored
-  procedures, autenticación real contra WishPOS, envío de correo real
-  (Graph API / M365), subir la foto capturada a disco/blob en vez de
-  mantenerla solo en memoria.
+  procedures, envío de correo real (Graph API / M365), subir la foto capturada
+  a disco/blob en vez de mantenerla solo en memoria.
 
 ## Decisiones de diseño ya tomadas (no las reabras sin razón)
 
@@ -54,6 +59,17 @@ recepción/caseta por un flujo digital con QR, foto y código de salida.
   coincide, se rechaza el acceso con mensaje al usuario en vez de dejarlo
   pasar a validación. Esta regla debe replicarse en el SP/endpoint real de
   "registrar acceso" cuando exista la API.
+- **Login solo con contraseña, validado contra WishPOS** (`system_LOGIN` de
+  `celexpos.celex.com`) — no se pide usuario, en ambas pantallas (empleado y
+  caseta). ⚠️ El equipo de negocio describió el hash como "MD5", pero al
+  verificarlo contra el ejemplo real que dieron (`203` → hash de 128
+  caracteres), es **SHA-512**, no MD5 (que da 32 caracteres). Ver
+  `api/Servicios/WishPosAuthService.cs`. Esa llamada la hace la API, nunca el
+  navegador (evita CORS contra un dominio externo y evita que el cliente
+  construya la URL con el hash de la contraseña). `Error_Codigo: 0` en la
+  respuesta = éxito; cualquier otro valor = acceso denegado, con
+  `Error_Mensaje` como texto a mostrar. El menú/permisos (`Accesos`,
+  `MiEspacio`) que regresa WishPOS no se usa aquí, solo `Usuario` y `Nombre`.
 - El teclado en pantalla (QWERTY, arrastrable/redimensionable) solo debe
   aparecer en las pantallas del lado de **caseta/kiosko** (login de caseta,
   home, escaneo, validación, foto, badge, código de salida, confirmación,
@@ -104,14 +120,14 @@ control-visitas-celex/
 3. ✅ Endpoints reales de la API sobre todos los stored procedures: registrar
    visita, validar acceso, buscar/confirmar salida, reporte, listar áreas.
    Probados end-to-end contra SQL Server real.
-4. Resolver autenticación contra WishPOS (¿hay tabla/API de usuarios expuesta,
-   o hay que integrar AD/LDAP?) — este es el punto que más puede mover el
-   calendario, ver conversación previa.
+4. ✅ Autenticación contra WishPOS resuelta: `system_LOGIN` vía
+   `POST /api/auth/login` (ver "Estado actual" y "Decisiones de diseño"
+   arriba). No hizo falta AD/LDAP — WishPOS ya expone el login por contraseña.
 5. Reemplazar el estado en memoria de `web/index.html` por llamadas reales a
    la API:
    - ✅ Registrar visita (`generarQR`, con áreas cargadas de `GET /api/areas`).
-   - ⬜ Login (sigue siendo "cualquier usuario/contraseña", sin validar contra
-     WishPOS — depende del punto 4).
+   - ✅ Login (`doLogin` / `doKioskLogin` ya llaman a `POST /api/auth/login`;
+     ambas pantallas solo piden contraseña).
    - ✅ Validar acceso / escaneo de QR en kiosko (`onQRDetected` +
      `submitValidate` ya llaman a `POST /api/visitas/validar-acceso`; los 5
      resultados posibles —OK, NO_ENCONTRADO, YA_UTILIZADO, FECHA_NO_COINCIDE,

@@ -1,0 +1,78 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Xml.Linq;
+using ControlVisitas.Api.Modelos;
+
+namespace ControlVisitas.Api.Servicios;
+
+public interface IWishPosAuthService
+{
+    Task<LoginResponse> LoginAsync(string password, string originIp);
+}
+
+internal record WishPosLoginResultado(int Error_Codigo, string Error_Mensaje, string? Usuario, string? Nombre);
+
+public class WishPosAuthService(HttpClient http) : IWishPosAuthService
+{
+    private const string EndpointBase = "https://celexpos.celex.com/prod/WSWish.asmx/mtdActiva11";
+
+    public async Task<LoginResponse> LoginAsync(string password, string originIp)
+    {
+        var clave = Convert.ToHexString(SHA512.HashData(Encoding.UTF8.GetBytes(password))).ToLowerInvariant();
+        var payload = new object[]
+        {
+            new
+            {
+                Proceso = "System_LOGIN",
+                Clave = clave,
+                Origin = originIp,
+                Usuario_ID = 0,
+                UUID = Guid.NewGuid().ToString(),
+                Aplicacion = "WEB",
+                Version = "1.00"
+            }
+        };
+        var url = $"{EndpointBase}?JsonRequest={Uri.EscapeDataString(JsonSerializer.Serialize(payload))}";
+
+        string xml;
+        try
+        {
+            xml = await http.GetStringAsync(url);
+        }
+        catch (Exception)
+        {
+            return new LoginResponse(false, "No se pudo contactar el servidor de WishPOS.", null, null);
+        }
+
+        string innerJson;
+        try
+        {
+            innerJson = XDocument.Parse(xml).Root!.Value;
+        }
+        catch (Exception)
+        {
+            return new LoginResponse(false, "Respuesta inesperada de WishPOS.", null, null);
+        }
+
+        List<WishPosLoginResultado>? resultados;
+        try
+        {
+            resultados = JsonSerializer.Deserialize<List<WishPosLoginResultado>>(innerJson);
+        }
+        catch (Exception)
+        {
+            return new LoginResponse(false, "No se pudo interpretar la respuesta de WishPOS.", null, null);
+        }
+
+        var resultado = resultados?.FirstOrDefault();
+        if (resultado is null)
+        {
+            return new LoginResponse(false, "WishPOS no regresó información de acceso.", null, null);
+        }
+
+        return resultado.Error_Codigo == 0
+            ? new LoginResponse(true, resultado.Error_Mensaje, resultado.Usuario, resultado.Nombre)
+            : new LoginResponse(false, resultado.Error_Mensaje, null, null);
+    }
+}

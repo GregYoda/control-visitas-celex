@@ -1,4 +1,5 @@
 using ControlVisitas.Api.Datos;
+using ControlVisitas.Api.Servicios;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ISqlConnectionFactory, SqlConnectionFactory>();
 builder.Services.AddScoped<IAreasRepositorio, AreasRepositorio>();
 builder.Services.AddScoped<IVisitasRepositorio, VisitasRepositorio>();
+builder.Services.AddHttpClient<IWishPosAuthService, WishPosAuthService>();
 
 // El mockup (web/index.html) se sirve desde otro origen que la API; en beta
 // local esto basta con permitir cualquier origen. Cuando haya un dominio real
