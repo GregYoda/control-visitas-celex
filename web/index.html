@@ -1263,16 +1263,8 @@ function confirmPhotoAndContinue(skip){
 }
 
 /* ---------- kiosko: registro de salida (código de 6 dígitos) ---------- */
-function buscarVisitaPorCodigoSalida(code){
-  const hoy = new Date().toDateString();
-  return visits.find(v =>
-    v.codigoSalida === code && v.status === 'accesado' && !v.fechaSalida &&
-    v.fechaAcceso && v.fechaAcceso.toDateString() === hoy
-  );
-}
-function calcDuracion(entrada, salida){
-  if(!entrada || !salida) return '—';
-  const mins = Math.round((salida - entrada) / 60000);
+function fmtDuracionMinutos(mins){
+  if(mins === null || mins === undefined) return '—';
   const h = Math.floor(mins/60), m = mins%60;
   return h > 0 ? `${h} h ${m} min` : `${m} min`;
 }
@@ -1308,49 +1300,68 @@ function pinClear(){
   salidaCodigoBuffer = '';
   updateSalidaPinDisplay();
 }
-function submitSalidaCodigo(){
+async function submitSalidaCodigo(){
   const msg = document.getElementById('salidaMsg');
-  const visit = buscarVisitaPorCodigoSalida(salidaCodigoBuffer);
-  if(!visit){
-    msg.textContent = 'Código no válido o ya utilizado. Verifica con recepción.';
+  const codigo = salidaCodigoBuffer;
+  let visita;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/visitas/salida/${codigo}`);
+    if(resp.status === 404){
+      msg.textContent = 'Código no válido o ya utilizado. Verifica con recepción.';
+      salidaCodigoBuffer = '';
+      updateSalidaPinDisplay();
+      return;
+    }
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    visita = await resp.json();
+  }catch(e){
+    msg.textContent = 'No se pudo consultar el código (¿está corriendo la API?).';
     salidaCodigoBuffer = '';
     updateSalidaPinDisplay();
     return;
   }
-  pendingSalidaVisitId = visit.id;
-  renderSalidaConfirm(visit);
+  pendingSalidaVisitId = visita.id;
+  renderSalidaConfirm(visita);
   showScreen('screen-salida-confirm');
 }
-function renderSalidaConfirm(visit){
-  const fotoHtml = visit.foto
-    ? `<img src="${visit.foto}" class="badge-photo" alt="Foto del visitante">`
+function renderSalidaConfirm(visita){
+  const fotoHtml = visita.fotoRuta
+    ? `<img src="${visita.fotoRuta}" class="badge-photo" alt="Foto del visitante">`
     : `<div class="badge-photo badge-photo-placeholder">👤</div>`;
   document.getElementById('salidaConfirmCard').innerHTML = `
     <div class="badge-photo-wrap">${fotoHtml}</div>
-    <div class="badge-name">${visit.nombre} ${visit.apellidoP} ${visit.apellidoM}</div>
-    <div style="color:#8b93a3;font-size:13px;margin-bottom:14px;">${visit.empresa}</div>
-    <div class="badge-row"><span>Entrada registrada</span><span>${fmtFecha(visit.fechaAcceso)}</span></div>
-    <div class="badge-row"><span>Anfitrión</span><span>${visit.anfitrion}</span></div>
+    <div class="badge-name">${visita.nombre} ${visita.apellidoPaterno} ${visita.apellidoMaterno}</div>
+    <div style="color:#8b93a3;font-size:13px;margin-bottom:14px;">${visita.empresa}</div>
+    <div class="badge-row"><span>Entrada registrada</span><span>${fmtFecha(new Date(visita.fechaAcceso))}</span></div>
+    <div class="badge-row"><span>Anfitrión</span><span>${visita.anfitrion}</span></div>
   `;
 }
 function rechazarSalidaConfirm(){
   pendingSalidaVisitId = null;
   openSalidaCodigo();
 }
-function confirmarSalida(){
-  const visit = visits.find(v=>v.id===pendingSalidaVisitId);
-  if(!visit){ showScreen('screen-kiosk-home'); return; }
-  visit.fechaSalida = new Date();
-  renderSalidaDone(visit);
+async function confirmarSalida(){
+  if(!pendingSalidaVisitId){ showScreen('screen-kiosk-home'); return; }
+  let resultado;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/visitas/salida/${pendingSalidaVisitId}/confirmar`, { method: 'POST' });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    resultado = await resp.json();
+  }catch(e){
+    document.getElementById('salidaMsg').textContent = 'No se pudo confirmar la salida (¿está corriendo la API?).';
+    showScreen('screen-salida-codigo');
+    return;
+  }
+  renderSalidaDone(resultado);
   showScreen('screen-salida-done');
 }
-function renderSalidaDone(visit){
+function renderSalidaDone(resultado){
   document.getElementById('salidaDoneCard').innerHTML = `
     <div class="badge-check">✓</div>
     <div class="badge-title">SALIDA REGISTRADA</div>
-    <div class="badge-name">${visit.nombre} ${visit.apellidoP} ${visit.apellidoM}</div>
-    <div class="badge-row"><span>Hora de salida</span><span>${fmtFecha(visit.fechaSalida)}</span></div>
-    <div class="badge-row"><span>Tiempo de estancia</span><span>${calcDuracion(visit.fechaAcceso, visit.fechaSalida)}</span></div>
+    <div class="badge-name">${resultado.nombre} ${resultado.apellidoPaterno} ${resultado.apellidoMaterno}</div>
+    <div class="badge-row"><span>Hora de salida</span><span>${fmtFecha(new Date(resultado.fechaSalida))}</span></div>
+    <div class="badge-row"><span>Tiempo de estancia</span><span>${fmtDuracionMinutos(resultado.minutosEstancia)}</span></div>
   `;
 }
 
@@ -1463,35 +1474,43 @@ function openReportes(){
   document.getElementById('reportTableWrap').innerHTML = '<div class="empty-note">Selecciona un rango de fechas y genera el reporte.</div>';
   showScreen('screen-reportes');
 }
-function generarReporte(){
+let ultimoReporte = [];
+const ESTADO_CLASE = { 'Pendiente':'pendiente', 'Dentro':'dentro', 'Salida registrada':'salida' };
+
+async function generarReporte(){
   const desde = document.getElementById('repDesde').value;
   const hasta = document.getElementById('repHasta').value;
   const wrap = document.getElementById('reportTableWrap');
-  let list = visits.slice();
-  if(desde){ const d = new Date(desde+'T00:00:00'); list = list.filter(v=>v.fechaRegistro >= d); }
-  if(hasta){ const h = new Date(hasta+'T23:59:59'); list = list.filter(v=>v.fechaRegistro <= h); }
-  if(!list.length){ wrap.innerHTML = '<div class="empty-note">No hay registros en el rango seleccionado.</div>'; return; }
-  list.sort((a,b)=>b.fechaRegistro-a.fechaRegistro);
-  let rows = list.map(v=>{
-    let estadoLabel, estadoClass;
-    if(v.status !== 'accesado'){ estadoLabel='Pendiente'; estadoClass='pendiente'; }
-    else if(!v.fechaSalida){ estadoLabel='Dentro'; estadoClass='dentro'; }
-    else { estadoLabel='Salida registrada'; estadoClass='salida'; }
-    return `
+  if(!desde || !hasta){ wrap.innerHTML = '<div class="empty-note">Selecciona un rango de fechas y genera el reporte.</div>'; return; }
+
+  let filas;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/reportes?fechaInicio=${desde}&fechaFin=${hasta}`);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    filas = await resp.json();
+  }catch(e){
+    wrap.innerHTML = '<div class="empty-note">No se pudo generar el reporte (¿está corriendo la API?).</div>';
+    return;
+  }
+
+  ultimoReporte = filas;
+  if(!filas.length){ wrap.innerHTML = '<div class="empty-note">No hay registros en el rango seleccionado.</div>'; return; }
+
+  let rows = filas.map(v => `
     <tr>
-      <td>${v.foto ? `<img src="${v.foto}" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
-      <td>${v.nombre} ${v.apellidoP} ${v.apellidoM}</td>
+      <td>${v.fotoRuta ? `<img src="${v.fotoRuta}" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
+      <td>${v.nombre} ${v.apellidoPaterno} ${v.apellidoMaterno}</td>
       <td>${v.empresa}</td>
       <td>${v.area}</td>
       <td>${v.anfitrion}</td>
       <td>${fmtFechaVisita(v.fechaVisita)}</td>
-      <td><span class="status-pill ${estadoClass}">${estadoLabel}</span></td>
-      <td>${fmtFecha(v.fechaRegistro)}</td>
-      <td>${v.fechaAcceso ? fmtFecha(v.fechaAcceso) : '—'}</td>
+      <td><span class="status-pill ${ESTADO_CLASE[v.estado] || 'pendiente'}">${v.estado}</span></td>
+      <td>${fmtFecha(new Date(v.fechaRegistro))}</td>
+      <td>${v.fechaAcceso ? fmtFecha(new Date(v.fechaAcceso)) : '—'}</td>
       <td>${v.codigoSalida || '—'}</td>
-      <td>${v.fechaSalida ? fmtFecha(v.fechaSalida) : '—'}</td>
-      <td>${calcDuracion(v.fechaAcceso, v.fechaSalida)}</td>
-    </tr>`;}).join('');
+      <td>${v.fechaSalida ? fmtFecha(new Date(v.fechaSalida)) : '—'}</td>
+      <td>${fmtDuracionMinutos(v.minutosEstancia)}</td>
+    </tr>`).join('');
   wrap.innerHTML = `
     <table class="report-table">
       <thead><tr><th></th><th>Visitante</th><th>Empresa</th><th>Área</th><th>Anfitrión</th><th>Fecha visita</th><th>Estado</th><th>Registro</th><th>Acceso</th><th>Cód. salida</th><th>Salida</th><th>Duración</th></tr></thead>
@@ -1499,12 +1518,11 @@ function generarReporte(){
     </table>`;
 }
 function exportarCSV(){
-  if(!visits.length){ alert('No hay datos para exportar.'); return; }
+  if(!ultimoReporte.length){ alert('No hay datos para exportar. Genera el reporte primero.'); return; }
   const header = ['Nombre','ApellidoPaterno','ApellidoMaterno','Empresa','Area','Anfitrion','Motivo','FechaVisita','Estado','FechaRegistro','FechaAcceso','CodigoSalida','FechaSalida'];
-  const rows = visits.map(v=>[
-    v.nombre,v.apellidoP,v.apellidoM,v.empresa,v.area,v.anfitrion,v.motivo,v.fechaVisita||'',v.status,
-    v.fechaRegistro.toISOString(), v.fechaAcceso? v.fechaAcceso.toISOString(): '',
-    v.codigoSalida || '', v.fechaSalida? v.fechaSalida.toISOString(): ''
+  const rows = ultimoReporte.map(v=>[
+    v.nombre,v.apellidoPaterno,v.apellidoMaterno,v.empresa,v.area,v.anfitrion,v.motivo,v.fechaVisita||'',v.estado,
+    v.fechaRegistro||'', v.fechaAcceso||'', v.codigoSalida||'', v.fechaSalida||''
   ].map(x=>`"${String(x).replace(/"/g,'""')}"`).join(','));
   const csv = [header.join(','), ...rows].join('\n');
   const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});

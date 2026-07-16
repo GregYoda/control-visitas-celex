@@ -116,11 +116,13 @@ control-visitas-celex/
      `submitValidate` ya llaman a `POST /api/visitas/validar-acceso`; los 5
      resultados posibles —OK, NO_ENCONTRADO, YA_UTILIZADO, FECHA_NO_COINCIDE,
      APELLIDO_NO_COINCIDE— se probaron end-to-end desde la página real).
-   - ⬜ Registro de salida (`buscarVisitaPorCodigoSalida`, `confirmarSalida`)
-     — falta conectarlos a `GET /api/visitas/salida/{codigo}` y
-     `POST /api/visitas/salida/{id}/confirmar`.
-   - ⬜ Reportes (`generarReporte` filtra el arreglo local `visits`, falta
-     conectarlo a `GET /api/reportes`).
+   - ✅ Registro de salida (`submitSalidaCodigo` + `confirmarSalida` ya llaman
+     a `GET /api/visitas/salida/{codigo}` y
+     `POST /api/visitas/salida/{id}/confirmar`; `pendingSalidaVisitId` ahora
+     es el ID numérico de `CV_Visitas`, no el UUID del QR).
+   - ✅ Reportes (`generarReporte` llama a `GET /api/reportes`; el CSV
+     (`exportarCSV`) ahora exporta exactamente lo último generado en pantalla,
+     ya no ignora el rango de fechas como antes).
 6. Subir la foto capturada a disco/blob storage (hoy vive como data URL en
    memoria) y guardar la ruta en `CV_Visitas.FotoRuta`.
 7. Integrar envío de correo real vía Graph API (mismo patrón que Circulares Telcel).
