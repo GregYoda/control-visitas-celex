@@ -1119,7 +1119,11 @@ function startCamera(){
     document.getElementById('simBox').classList.add('show');
     return;
   }
-  navigator.mediaDevices.getUserMedia({ video: { facingMode:'environment' } }).then(stream=>{
+  // Resolución alta explícita: el default del navegador suele ser bajo
+  // (ej. 640x480), insuficiente para que jsQR detecte el código con nitidez.
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode:'environment', width:{ideal:1920,min:1280}, height:{ideal:1080,min:720} }
+  }).then(stream=>{
     scanStream = stream;
     video.srcObject = stream;
     video.play();
