@@ -92,23 +92,34 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   hoy no coincide, se rechaza el acceso con mensaje al usuario en vez de
   dejarlo pasar a validación (`FECHA_NO_COINCIDE`, ver arriba).
 - **Login solo con contraseña, validado contra WishPOS** (`system_LOGIN` de
-  `celexpos.celex.com`) — no se pide usuario, en ambas pantallas (empleado y
-  caseta). ⚠️ El equipo de negocio describió el hash como "MD5", pero al
-  verificarlo contra el ejemplo real que dieron (`203` → hash de 128
-  caracteres), es **SHA-512**, no MD5 (que da 32 caracteres). Ver
-  `api/Servicios/WishPosAuthService.cs`. Esa llamada la hace la API, nunca el
-  navegador (evita CORS contra un dominio externo y evita que el cliente
-  construya la URL con el hash de la contraseña). `Error_Codigo: 0` en la
-  respuesta = éxito; cualquier otro valor = acceso denegado, con
-  `Error_Mensaje` como texto a mostrar. El menú/permisos (`Accesos`,
-  `MiEspacio`) que regresa WishPOS no se usa aquí, solo `Usuario` y `Nombre`.
+  `celexpos.celex.com`) — no se pide usuario. ⚠️ El equipo de negocio
+  describió el hash como "MD5", pero al verificarlo contra el ejemplo real
+  que dieron (`203` → hash de 128 caracteres), es **SHA-512**, no MD5 (que da
+  32 caracteres). Ver `api/Servicios/WishPosAuthService.cs`. Esa llamada la
+  hace la API, nunca el navegador (evita CORS contra un dominio externo y
+  evita que el cliente construya la URL con el hash de la contraseña).
+  `Error_Codigo: 0` en la respuesta = éxito; cualquier otro valor = acceso
+  denegado, con `Error_Mensaje` como texto a mostrar. El menú/permisos
+  (`Accesos`, `MiEspacio`) que regresa WishPOS no se usa aquí, solo `Usuario`
+  y `Nombre`.
+- **El kiosko/caseta ya NO tiene su propio login** — "Entrar al kiosko" va
+  directo a `screen-kiosk-home` reutilizando la sesión del empleado que ya
+  inició sesión en el módulo. Se quitó `screen-kiosk-login` y
+  `doKioskLogin()`/`doKioskLogout()` por completo (existieron brevemente
+  cuando el login de caseta era independiente). Como contraparte, el botón
+  **"‹ Salir del kiosko" ahora hace `doLogout()`** (cierra sesión del sistema
+  por completo, no solo regresa al menú) — al no haber un login propio del
+  kiosko que separe "sesión de caseta" de "sesión de empleado", salir del
+  kiosko debe cerrar la sesión para no dejar la cuenta del empleado abierta
+  en el equipo de la caseta.
 - El teclado en pantalla (QWERTY, arrastrable/redimensionable) solo debe
   aparecer en las pantallas del lado de **caseta/kiosko** que tengan un campo
-  de texto real (login de caseta, home, validación, foto, badge, confirmación,
-  salida registrada) — nunca en las pantallas de empleado, que sí tienen
-  teclado/mouse reales, **ni en "código de acceso" o "código de salida"**,
-  que usan su propio PIN pad numérico compartido (ver `pinModo` en el JS) y
-  no tienen ningún `<input>` al que el teclado QWERTY pueda escribirle
+  de texto real (validación, foto, badge, confirmación, salida registrada) —
+  nunca en las pantallas de empleado, que sí tienen teclado/mouse reales,
+  **ni en "home" (solo botones), "código de acceso" o "código de salida"**,
+  que usan su propio PIN pad numérico compartido (ver `pinModo` en el JS) o
+  ningún input, y no tienen ningún `<input>` de texto al que el teclado
+  QWERTY pueda escribirle
   (mostrarlo ahí no hacía nada al presionar teclas).
 - Estilo visual: se sigue el look de WishPOS existente (topbar azul con degradado,
   sidebar gris-azulado con íconos, tarjetas con círculo morado, ola teal al

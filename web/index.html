@@ -425,7 +425,7 @@
             <div class="card-icon">🛡️</div>
             <h3>Área de Acceso</h3>
             <p>Modo caseta / kiosko para registrar la llegada de visitantes.</p>
-            <button onclick="showScreen('screen-kiosk-login')">Entrar al kiosko</button>
+            <button onclick="showScreen('screen-kiosk-home')">Entrar al kiosko</button>
           </div>
           <div class="module-card">
             <div class="card-icon" style="background:radial-gradient(circle at 35% 30%,#4f8ef7,#1a5fd4);">📋</div>
@@ -514,31 +514,11 @@
   </div>
 </section>
 
-<!-- =================== KIOSKO: LOGIN =================== -->
-<section class="screen" id="screen-kiosk-login">
-  <div class="kiosk-shell">
-    <div class="kiosk-top">
-      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
-    </div>
-    <div class="kiosk-body">
-      <div class="kiosk-card-box">
-        <h1 style="font-size:22px;">Acceso al módulo de caseta</h1>
-        <p class="sub">Ingresa la contraseña de WishPOS de la caseta de vigilancia</p>
-        <div class="kiosk-field" style="margin-bottom:14px;"><input id="kioskPass" type="password" placeholder="Contraseña"></div>
-        <button class="btn-kiosk-main" style="width:100%;padding:20px;font-size:17px;" onclick="doKioskLogin()">Entrar</button>
-        <div class="kiosk-msg err" id="kioskLoginError"></div>
-        <button class="btn-kiosk-secondary" style="margin-top:16px;width:100%;" onclick="showScreen('screen-visitas-home')">‹ Volver</button>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- =================== KIOSKO: HOME =================== -->
 <section class="screen" id="screen-kiosk-home">
   <div class="kiosk-shell">
     <div class="kiosk-top">
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
-      <button class="btn-kiosk-secondary" onclick="doKioskLogout()">Cerrar sesión</button>
     </div>
     <div class="kiosk-body">
       <h1>Bienvenido al control de accesos</h1>
@@ -547,7 +527,7 @@
         <button class="btn-kiosk-main" onclick="openAccesoCodigo()">🔑 REGISTRAR ACCESO</button>
         <button class="btn-kiosk-main salida" onclick="openSalidaCodigo()">🚪 REGISTRAR SALIDA</button>
       </div>
-      <button class="btn-kiosk-secondary" onclick="showScreen('screen-visitas-home')">‹ Salir del kiosko</button>
+      <button class="btn-kiosk-secondary" onclick="doLogout()">‹ Salir del kiosko</button>
     </div>
   </div>
 </section>
@@ -825,7 +805,6 @@
 const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro puerto
 
 let session = { username: null, nombre: null, usuarioId: null };
-let kioskSession = { active: false };
 let visits = [];          // bitácora completa
 let pendingVisitId = null;
 let attemptCount = 0;
@@ -862,10 +841,10 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   // el teclado en pantalla solo aplica a pantallas de caseta con campo de
-  // texto real; "código de acceso" y "código de salida" usan su propio PIN
-  // pad numérico y no tienen ningún <input> al que el teclado QWERTY
-  // pueda escribirle.
-  const kioskScreens = ['screen-kiosk-login','screen-kiosk-home','screen-validate','screen-photo','screen-badge','screen-salida-confirm','screen-salida-done'];
+  // texto real; "home" (solo botones), "código de acceso" y "código de
+  // salida" usan su propio PIN pad numérico (o ningún input) y no tienen
+  // ningún <input> de texto al que el teclado QWERTY pueda escribirle.
+  const kioskScreens = ['screen-validate','screen-photo','screen-badge','screen-salida-confirm','screen-salida-done'];
   document.getElementById('vkbToggle').style.display = kioskScreens.includes(id) ? 'flex' : 'none';
   if(!kioskScreens.includes(id)){
     document.getElementById('vkbPanel').classList.remove('show');
@@ -951,12 +930,22 @@ function doLogout(){
 function openRegistro(){
   document.getElementById('regUserLabel').textContent = session.nombre || session.username || '';
   cargarAreas();
-  if(!document.getElementById('fAnfitrion').value){
-    document.getElementById('fAnfitrion').value = session.nombre || session.username || '';
-  }
-  if(!document.getElementById('fFechaVisita').value){
-    document.getElementById('fFechaVisita').value = hoyISO();
-  }
+  // Limpia el formulario por completo para empezar un registro nuevo --
+  // antes solo se limpiaba condicionalmente y quedaban datos de la visita
+  // anterior (nombre, apellidos, correo, empresa, motivo, auto...).
+  document.getElementById('fNombre').value = '';
+  document.getElementById('fApP').value = '';
+  document.getElementById('fApM').value = '';
+  document.getElementById('fCorreo').value = '';
+  document.getElementById('fEmpresa').value = '';
+  document.getElementById('fMotivo').value = '';
+  document.getElementById('fAnfitrion').value = session.nombre || session.username || '';
+  document.getElementById('fFechaVisita').value = hoyISO();
+  document.getElementById('fTraeAuto').checked = false;
+  document.getElementById('fMarca').value = '';
+  document.getElementById('fModelo').value = '';
+  document.getElementById('fPlacas').value = '';
+  document.getElementById('autoFields').classList.remove('show');
   document.getElementById('regError').textContent='';
   showScreen('screen-registro');
 }
@@ -1059,39 +1048,6 @@ function enviarCorreo(){
   msg.textContent = `Correo simulado enviado a ${v.correo} con el código de acceso ${v.codigoAcceso}. (En producción se integraría con Outlook / Graph API).`;
 }
 
-/* ---------- kiosko: login ---------- */
-async function doKioskLogin(){
-  const p = document.getElementById('kioskPass').value.trim();
-  const err = document.getElementById('kioskLoginError');
-  if(!p){ err.textContent='Ingresa la contraseña de caseta.'; return; }
-
-  let data;
-  try{
-    const resp = await fetch(`${API_BASE_URL}/api/auth/login`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: p })
-    });
-    if(!resp.ok) throw new Error('HTTP ' + resp.status);
-    data = await resp.json();
-  }catch(e){
-    err.textContent = 'No se pudo validar el acceso (¿está corriendo la API?).';
-    return;
-  }
-
-  if(!data.autorizado){
-    err.textContent = data.mensaje || 'Acceso denegado.';
-    return;
-  }
-  err.textContent='';
-  kioskSession.active = true;
-  document.getElementById('kioskPass').value='';
-  showScreen('screen-kiosk-home');
-}
-function doKioskLogout(){
-  kioskSession.active=false;
-  stopPhotoCamera();
-  showScreen('screen-kiosk-login');
-}
 
 /* ---------- kiosko: código de acceso ---------- */
 function openAccesoCodigo(){
@@ -1657,7 +1613,6 @@ function toggleKeyboard(){
 })();
 
 wireEnterAvanza(['loginPass'], doLogin);
-wireEnterAvanza(['kioskPass'], doKioskLogin);
 wireEnterAvanza(['validateApP'], submitValidate);
 wireEnterAvanza(['repDesde','repHasta'], generarReporte);
 wireEnterAvanza(
