@@ -101,13 +101,26 @@ control-visitas-celex/
    scaffold en `api/` con un endpoint de prueba funcionando end-to-end.
 2. ✅ `FechaVisita` agregada a `CV_Visitas` y a los SPs de registrar/validar
    acceso/reporte (ver "Estado actual" arriba).
-3. Construir los endpoints reales de la API sobre los stored procedures que
-   faltan: registrar visita, validar acceso, buscar/confirmar salida, reporte.
+3. ✅ Endpoints reales de la API sobre todos los stored procedures: registrar
+   visita, validar acceso, buscar/confirmar salida, reporte, listar áreas.
+   Probados end-to-end contra SQL Server real.
 4. Resolver autenticación contra WishPOS (¿hay tabla/API de usuarios expuesta,
    o hay que integrar AD/LDAP?) — este es el punto que más puede mover el
    calendario, ver conversación previa.
 5. Reemplazar el estado en memoria de `web/index.html` por llamadas reales a
-   la API (login, registrar visita, validar acceso, registrar salida, reporte).
+   la API:
+   - ✅ Registrar visita (`generarQR`, con áreas cargadas de `GET /api/areas`).
+   - ⬜ Login (sigue siendo "cualquier usuario/contraseña", sin validar contra
+     WishPOS — depende del punto 4).
+   - ✅ Validar acceso / escaneo de QR en kiosko (`onQRDetected` +
+     `submitValidate` ya llaman a `POST /api/visitas/validar-acceso`; los 5
+     resultados posibles —OK, NO_ENCONTRADO, YA_UTILIZADO, FECHA_NO_COINCIDE,
+     APELLIDO_NO_COINCIDE— se probaron end-to-end desde la página real).
+   - ⬜ Registro de salida (`buscarVisitaPorCodigoSalida`, `confirmarSalida`)
+     — falta conectarlos a `GET /api/visitas/salida/{codigo}` y
+     `POST /api/visitas/salida/{id}/confirmar`.
+   - ⬜ Reportes (`generarReporte` filtra el arreglo local `visits`, falta
+     conectarlo a `GET /api/reportes`).
 6. Subir la foto capturada a disco/blob storage (hoy vive como data URL en
    memoria) y guardar la ruta en `CV_Visitas.FotoRuta`.
 7. Integrar envío de correo real vía Graph API (mismo patrón que Circulares Telcel).

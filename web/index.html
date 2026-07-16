@@ -1112,52 +1112,66 @@ function simulateScan(){
 }
 function onQRDetected(token){
   stopCamera();
-  const visit = visits.find(v=>v.id===token);
-  if(!visit){
-    showScreen('screen-scan');
-    document.getElementById('scanMsg').textContent = 'Código no reconocido. Intenta de nuevo.';
-    startCamera();
-    return;
-  }
-  if(visit.status === 'accesado'){
-    showScreen('screen-scan');
-    document.getElementById('scanMsg').textContent = 'Este código ya fue utilizado para un acceso.';
-    startCamera();
-    return;
-  }
-  if(visit.fechaVisita && visit.fechaVisita !== hoyISO()){
-    showScreen('screen-scan');
-    document.getElementById('scanMsg').textContent = `Esta visita está registrada para el ${fmtFechaVisita(visit.fechaVisita)}, no para hoy. No se puede iniciar el acceso.`;
-    startCamera();
-    return;
-  }
-  pendingVisitId = visit.id;
+  // La validación real (existe / ya usado / fecha / apellido) la hace la API
+  // en un solo paso al enviar el apellido, ver submitValidate().
+  pendingVisitId = token;
   attemptCount = 0;
   document.getElementById('validateApP').value='';
   document.getElementById('validateMsg').textContent='';
   showScreen('screen-validate');
 }
-function submitValidate(){
-  const visit = visits.find(v=>v.id===pendingVisitId);
+async function submitValidate(){
   const msg = document.getElementById('validateMsg');
-  if(!visit){ msg.textContent='Sesión de escaneo perdida, vuelve a intentar.'; return; }
-  const entered = normaliza(document.getElementById('validateApP').value);
-  const expected = normaliza(visit.apellidoP);
-  if(entered && entered === expected){
+  if(!pendingVisitId){ msg.textContent='Sesión de escaneo perdida, vuelve a intentar.'; return; }
+  const apellidoTecleado = document.getElementById('validateApP').value;
+
+  let data;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/visitas/validar-acceso`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uuid: pendingVisitId, apellidoTecleado, fotoRuta: null })
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    data = await resp.json();
+  }catch(e){
+    msg.style.color='#ff9d9d';
+    msg.textContent = 'No se pudo validar el acceso (¿está corriendo la API?).';
+    return;
+  }
+
+  if(data.resultado === 'OK'){
+    const v = data.visita;
+    const idx = visits.findIndex(x=>x.id===pendingVisitId);
+    const visitaAcceso = {
+      id: pendingVisitId, nombre: v.nombre, apellidoP: v.apellidoPaterno, apellidoM: v.apellidoMaterno,
+      empresa: v.empresa, area: v.area, anfitrion: v.anfitrion, motivo: v.motivo,
+      fechaVisita: v.fechaVisita, status: 'accesado', fechaAcceso: new Date(v.fechaAcceso),
+      codigoSalida: v.codigoSalida, foto: null, fechaSalida: null
+    };
+    if(idx >= 0) visits[idx] = { ...visits[idx], ...visitaAcceso }; else visits.push(visitaAcceso);
     msg.style.color='#8dffb0';
-    visit.status='accesado';
-    visit.fechaAcceso = new Date();
-    visit.codigoSalida = generarCodigoSalidaUnico();
     openPhotoCapture();
     return;
   }
-  attemptCount++;
-  msg.style.color='#ff9d9d';
-  if(attemptCount>=3){
-    msg.textContent = 'Apellido no coincide (3 intentos). Solicita apoyo a seguridad / recepción.';
-  }else{
-    msg.textContent = `Apellido no coincide. Intento ${attemptCount} de 3.`;
+
+  if(data.resultado === 'APELLIDO_NO_COINCIDE'){
+    attemptCount++;
+    msg.style.color='#ff9d9d';
+    msg.textContent = attemptCount>=3
+      ? 'Apellido no coincide (3 intentos). Solicita apoyo a seguridad / recepción.'
+      : `Apellido no coincide. Intento ${attemptCount} de 3.`;
+    return;
   }
+
+  const mensajes = {
+    NO_ENCONTRADO: 'Código no reconocido. Intenta de nuevo.',
+    YA_UTILIZADO: 'Este código ya fue utilizado para un acceso.',
+    FECHA_NO_COINCIDE: `Esta visita está registrada para el ${fmtFechaVisita(data.fechaVisita)}, no para hoy. No se puede iniciar el acceso.`
+  };
+  showScreen('screen-scan');
+  document.getElementById('scanMsg').textContent = mensajes[data.resultado] || 'No se pudo validar el acceso.';
+  startCamera();
 }
 function renderBadge(visit){
   const fotoHtml = visit.foto
@@ -1249,18 +1263,6 @@ function confirmPhotoAndContinue(skip){
 }
 
 /* ---------- kiosko: registro de salida (código de 6 dígitos) ---------- */
-function generarCodigoSalidaUnico(){
-  const hoy = new Date().toDateString();
-  let code, intentos = 0;
-  do{
-    code = String(Math.floor(100000 + Math.random()*900000)); // 6 dígitos
-    intentos++;
-  }while(
-    intentos < 50 &&
-    visits.some(v => v.codigoSalida === code && v.fechaAcceso && v.fechaAcceso.toDateString() === hoy && !v.fechaSalida)
-  );
-  return code;
-}
 function buscarVisitaPorCodigoSalida(code){
   const hoy = new Date().toDateString();
   return visits.find(v =>
