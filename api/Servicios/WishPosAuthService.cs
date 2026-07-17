@@ -11,7 +11,16 @@ public interface IWishPosAuthService
     Task<LoginResponse> LoginAsync(string password, string originIp);
 }
 
-internal record WishPosLoginResultado(int Error_Codigo, string Error_Mensaje, int Usuario_ID, string? Usuario, string? Nombre);
+internal record WishPosAccesoNodo(string? Pantalla_Identidad, List<WishPosAccesoNodo>? SubModule);
+
+internal record WishPosLoginResultado(
+    int Error_Codigo,
+    string Error_Mensaje,
+    int Usuario_ID,
+    string? Usuario,
+    string? Nombre,
+    List<WishPosAccesoNodo>? Accesos,
+    List<WishPosAccesoNodo>? MiEspacio);
 
 public class WishPosAuthService(HttpClient http) : IWishPosAuthService
 {
@@ -71,8 +80,29 @@ public class WishPosAuthService(HttpClient http) : IWishPosAuthService
             return new LoginResponse(false, "WishPOS no regresó información de acceso.", null, null, null);
         }
 
-        return resultado.Error_Codigo == 0
-            ? new LoginResponse(true, resultado.Error_Mensaje, resultado.Usuario, resultado.Nombre, resultado.Usuario_ID)
-            : new LoginResponse(false, resultado.Error_Mensaje, null, null, null);
+        if (resultado.Error_Codigo != 0)
+        {
+            return new LoginResponse(false, resultado.Error_Mensaje, null, null, null);
+        }
+
+        // La pantalla de Configuración solo se muestra si WishPOS le dio al
+        // usuario acceso a la pantalla CV.230.01 (buscar en Accesos y
+        // MiEspacio, incluyendo SubModule anidados).
+        const string PantallaConfiguracion = "CV.230.01";
+        var puedeConfigurar = TieneAcceso(resultado.Accesos, PantallaConfiguracion)
+            || TieneAcceso(resultado.MiEspacio, PantallaConfiguracion);
+
+        return new LoginResponse(true, resultado.Error_Mensaje, resultado.Usuario, resultado.Nombre, resultado.Usuario_ID, puedeConfigurar);
+    }
+
+    private static bool TieneAcceso(List<WishPosAccesoNodo>? nodos, string identidad)
+    {
+        if (nodos is null) return false;
+        foreach (var nodo in nodos)
+        {
+            if (nodo.Pantalla_Identidad == identidad) return true;
+            if (TieneAcceso(nodo.SubModule, identidad)) return true;
+        }
+        return false;
     }
 }

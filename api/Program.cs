@@ -13,6 +13,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ISqlConnectionFactory, SqlConnectionFactory>();
 builder.Services.AddScoped<IAreasRepositorio, AreasRepositorio>();
 builder.Services.AddScoped<IVisitasRepositorio, VisitasRepositorio>();
+builder.Services.AddScoped<IConfiguracionRepositorio, ConfiguracionRepositorio>();
+builder.Services.AddScoped<IFotoService, FotoService>();
 builder.Services.AddHttpClient<IWishPosAuthService, WishPosAuthService>();
 
 // El mockup (web/index.html) se sirve desde otro origen que la API; en beta

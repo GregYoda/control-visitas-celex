@@ -13,6 +13,7 @@ public interface IVisitasRepositorio
     Task<List<ReporteFila>> ReporteAsync(DateOnly fechaInicio, DateOnly fechaFin);
     Task<List<MiVisita>> MisVisitasAsync(string registradoPor);
     Task<ActualizarResultado> ActualizarAsync(long id, VisitaActualizarRequest datos);
+    Task ActualizarFotoRutaAsync(long id, string fotoRuta);
 }
 
 public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisitasRepositorio
@@ -230,5 +231,16 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
         await using var lector = await comando.ExecuteReaderAsync();
         await lector.ReadAsync();
         return new ActualizarResultado(lector.GetString(lector.GetOrdinal("Resultado")));
+    }
+
+    public async Task ActualizarFotoRutaAsync(long id, string fotoRuta)
+    {
+        await using var conexion = conexionFactory.Crear();
+        await using var comando = new SqlCommand("dbo.sp_CV_Visitas_ActualizarFoto", conexion) { CommandType = CommandType.StoredProcedure };
+        comando.Parameters.AddWithValue("@ID", id);
+        comando.Parameters.AddWithValue("@FotoRuta", fotoRuta);
+
+        await conexion.OpenAsync();
+        await comando.ExecuteNonQueryAsync();
     }
 }

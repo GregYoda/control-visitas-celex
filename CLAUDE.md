@@ -59,8 +59,23 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   reemplazó por el mismo patrón ya probado del código de salida: un PIN pad
   dedicado. Se quitaron `qrcode.js`/`jsQR` del mockup. Ver "Decisiones de
   diseño" abajo para el detalle de unicidad del código.
-- ⬜ **Pendiente:** envío de correo real (Graph API / M365), subir la foto
-  capturada a disco/blob en vez de mantenerla solo en memoria, despliegue en
+- ✅ **Foto guardada en disco** (`POST /api/visitas/{id}/foto`) — ya no vive
+  solo como `data:` URL en memoria. `FotoService.cs` la escribe en la ruta
+  configurable (`CV_Configuracion.RutaFotos`, default
+  `C:\Control de Visitas\Fotos`) con el nombre `<PrefijoFoto>` + ID de
+  `CV_Visitas` con ceros a la izquierda a `<DigitosFoto>` dígitos (ej.
+  `CV0000000001.jpg` con los defaults `CV`/`10`) y actualiza
+  `CV_Visitas.FotoRuta`. No bloquea el flujo del kiosko si falla (la etiqueta
+  en pantalla ya tiene la foto de todas formas).
+- ✅ **Pantalla de Configuración** — nueva tabla `CV_Configuracion`
+  (clave/valor) editable desde `screen-configuracion`: `RutaFotos`,
+  `PrefijoFoto` y `DigitosFoto` (los 3 parámetros del nombrado de fotos, todos
+  editables — ninguno quedó fijo en el código). Solo se muestra si el login
+  de WishPOS incluye el permiso `Pantalla_Identidad = "CV.230.01"` (se busca
+  recursivo en `Accesos`/`SubModule` y en `MiEspacio` — ver
+  `WishPosAuthService.TieneAcceso`). Pensada para agregar más parámetros ahí
+  mismo a futuro.
+- ⬜ **Pendiente:** envío de correo real (Graph API / M365), despliegue en
   IIS + SQL Server productivo.
 
 ## Decisiones de diseño ya tomadas (no las reabras sin razón)
@@ -201,8 +216,9 @@ control-visitas-celex/
      también se corrigió para cargar de `GET /api/areas` en vez de opciones
      fijas sin relación con el `ID_Area` real, igual que se hizo antes en
      `fArea`).
-6. Subir la foto capturada a disco/blob storage (hoy vive como data URL en
-   memoria) y guardar la ruta en `CV_Visitas.FotoRuta`.
+6. ✅ Foto guardada en disco (`POST /api/visitas/{id}/foto`, `FotoService.cs`)
+   con ruta configurable desde la nueva pantalla de Configuración (ver
+   "Estado actual" arriba).
 7. Integrar envío de correo real vía Graph API (mismo patrón que Circulares Telcel).
 8. Seguir `docs/checklist-modo-kiosco.md` para el despliegue en la caseta.
 

@@ -111,3 +111,7 @@ public record VisitaActualizarRequest(
     string? Placas);
 
 public record ActualizarResultado(string Resultado);
+
+public record GuardarFotoRequest(string FotoBase64);
+
+public record GuardarFotoResultado(string FotoRuta);

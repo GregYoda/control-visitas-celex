@@ -1,12 +1,13 @@
 using ControlVisitas.Api.Datos;
 using ControlVisitas.Api.Modelos;
+using ControlVisitas.Api.Servicios;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ControlVisitas.Api.Controllers;
 
 [ApiController]
 [Route("api/visitas")]
-public class VisitasController(IVisitasRepositorio repositorio) : ControllerBase
+public class VisitasController(IVisitasRepositorio repositorio, IFotoService fotoService) : ControllerBase
 {
     [HttpPost]
     public async Task<IActionResult> Registrar(VisitaRegistroRequest datos)
@@ -48,5 +49,22 @@ public class VisitasController(IVisitasRepositorio repositorio) : ControllerBase
     {
         var resultado = await repositorio.ActualizarAsync(id, datos);
         return Ok(resultado);
+    }
+
+    [HttpPost("{id:long}/foto")]
+    public async Task<IActionResult> GuardarFoto(long id, GuardarFotoRequest datos)
+    {
+        string rutaCompleta;
+        try
+        {
+            rutaCompleta = await fotoService.GuardarAsync(id, datos.FotoBase64);
+        }
+        catch (Exception ex)
+        {
+            return Problem(detail: ex.Message, statusCode: 500, title: "No se pudo guardar la foto en disco");
+        }
+
+        await repositorio.ActualizarFotoRutaAsync(id, rutaCompleta);
+        return Ok(new GuardarFotoResultado(rutaCompleta));
     }
 }

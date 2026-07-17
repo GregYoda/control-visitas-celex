@@ -135,6 +135,29 @@ CREATE TABLE dbo.CV_Intentos_Acceso (
 );
 GO
 
+/* -----------------------------------------------------------------------------
+   4) CONFIGURACIÓN: parámetros del sistema (clave/valor), editable desde la
+      pantalla de Configuración (solo visible con el permiso CV.230.01 de
+      WishPOS -- ver WishPosAuthService.cs).
+   ----------------------------------------------------------------------------- */
+CREATE TABLE dbo.CV_Configuracion (
+    Clave                   NVARCHAR(100)   NOT NULL,
+    Valor                   NVARCHAR(500)   NOT NULL DEFAULT (''),
+    ID_Fecha_Modificacion   DATETIME        NOT NULL DEFAULT ('1900-01-01 00:00:00'),
+    CONSTRAINT PK_CV_Configuracion PRIMARY KEY CLUSTERED (Clave)
+);
+GO
+
+-- RutaFotos: carpeta donde se guardan las fotos de los visitantes.
+-- PrefijoFoto + DigitosFoto: construyen el nombre de archivo como
+-- <PrefijoFoto> + ID de CV_Visitas con ceros a la izquierda a <DigitosFoto>
+-- dígitos (ej. CV0000000001.jpg con los valores por defecto).
+INSERT INTO dbo.CV_Configuracion (Clave, Valor) VALUES
+ (N'RutaFotos', N'C:\Control de Visitas\Fotos'),
+ (N'PrefijoFoto', N'CV'),
+ (N'DigitosFoto', N'10');
+GO
+
 /* =============================================================================
    STORED PROCEDURES
    ============================================================================= */
@@ -430,6 +453,53 @@ BEGIN
            Marca = @Marca, Modelo = @Modelo, Placas = @Placas,
            ID_Fecha_Modificacion = GETDATE()
      WHERE ID = @ID;
+
+    SELECT N'OK' AS Resultado;
+END
+GO
+
+/* -----------------------------------------------------------------------------
+   sp_CV_Visitas_ActualizarFoto
+   Guarda la ruta en disco de la foto ya escrita por la API (ver FotoService.cs).
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Visitas_ActualizarFoto
+    @ID         BIGINT,
+    @FotoRuta   NVARCHAR(260)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.CV_Visitas
+       SET FotoRuta = ISNULL(@FotoRuta, ''),
+           ID_Fecha_Modificacion = GETDATE()
+     WHERE ID = @ID;
+END
+GO
+
+/* -----------------------------------------------------------------------------
+   sp_CV_Configuracion_Obtener / sp_CV_Configuracion_Actualizar
+   Pantalla de Configuración (solo visible con el permiso CV.230.01).
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Configuracion_Obtener
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT Clave, Valor FROM dbo.CV_Configuracion ORDER BY Clave;
+END
+GO
+
+CREATE PROCEDURE dbo.sp_CV_Configuracion_Actualizar
+    @Clave  NVARCHAR(100),
+    @Valor  NVARCHAR(500)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM dbo.CV_Configuracion WHERE Clave = @Clave)
+        UPDATE dbo.CV_Configuracion
+           SET Valor = @Valor, ID_Fecha_Modificacion = GETDATE()
+         WHERE Clave = @Clave;
+    ELSE
+        INSERT INTO dbo.CV_Configuracion (Clave, Valor, ID_Fecha_Modificacion)
+        VALUES (@Clave, @Valor, GETDATE());
 
     SELECT N'OK' AS Resultado;
 END
