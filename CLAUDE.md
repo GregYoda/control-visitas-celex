@@ -81,14 +81,25 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   (`Mis visitas`). **No se muestra en la etiqueta de acceso** (decisión
   explícita: ahí no debe ir); viaja en la respuesta de validación, en
   Reportes y en Mis Visitas para consultarse por esos medios.
-- 🔧 **En proceso:** envío de correo real vía Graph API. Ya está el
-  contenido acordado (asunto + cuerpo, incluye datos del vehículo si
-  `TraeAuto`, sin mencionar el código de salida por error — el código de
-  acceso se usa una sola vez). Falta el App Registration de Azure AD
-  (permiso `Mail.Send` tipo aplicación) para el buzón `solomon@celex.com`;
-  Tenant ID/Client ID van a `CV_Configuracion`, el Client Secret **nunca**
-  ahí — se guarda con `dotnet user-secrets` porque `GET /api/configuracion`
-  no tiene autenticación y expondría el secreto a quien sea.
+- ✅ **Correo de confirmación al visitante — vía SQL Server, no Graph API.**
+  Se decidió NO enviar desde la app: ya existe en el servidor productivo un
+  mecanismo operando (SQL Server Agent Job cada minuto → revisa la tabla
+  `WM_Correo` → `sp_send_dbmail` para lo que tenga `Enviar='Si'` y
+  `Enviado='No'`). Esto evita meter un App Registration de Azure AD nuevo
+  y todo el manejo de Client Secret que eso implicaba.
+  `sp_CV_Visitas_Registrar` construye el asunto/HTML (código de acceso,
+  datos del vehículo si `TraeAuto`, sin mencionar el código de salida) e
+  inserta un renglón en `WM_Correo` con `TipoDocumento='Visita'`,
+  `ID_UUID` = UUID de la visita, `Enviado='No'`, `Enviar='Si'`,
+  `EnviadoFechaHr='1900-01-01 00:00:00'` (centinela), `IDFecha` = fecha de
+  creación. El texto libre (Nombre, Empresa, Motivo, Observaciones) se
+  sanea con `fn_CV_EscaparHtml` antes de meterlo al HTML (evita inyección).
+  Importante: el HTML se construye en `NVARCHAR` con literales `N''` y se
+  convierte a `VARCHAR` (tipo real de `WM_Correo`) hasta el final —
+  concatenar literales sin `N''` corrompe los acentos al pasar por
+  SQL Server. **`WM_Correo` ya existe en producción**; el `CREATE TABLE`
+  en el script es solo para el entorno local de pruebas — al desplegar,
+  apuntar a la tabla real y no correr ese bloque ahí.
 - ⬜ **Pendiente:** despliegue en IIS + SQL Server productivo.
 
 ## Decisiones de diseño ya tomadas (no las reabras sin razón)
@@ -232,7 +243,9 @@ control-visitas-celex/
 6. ✅ Foto guardada en disco (`POST /api/visitas/{id}/foto`, `FotoService.cs`)
    con ruta configurable desde la nueva pantalla de Configuración (ver
    "Estado actual" arriba).
-7. Integrar envío de correo real vía Graph API (mismo patrón que Circulares Telcel).
+7. ✅ Correo de confirmación al visitante encolado en `WM_Correo` desde
+   `sp_CV_Visitas_Registrar` (ver "Estado actual" arriba) — lo envía el
+   SQL Server Agent Job que ya opera en producción, sin Graph API.
 8. Seguir `docs/checklist-modo-kiosco.md` para el despliegue en la caseta.
 
 ## Idioma y tono

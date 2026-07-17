@@ -40,6 +40,19 @@ END
 GO
 
 /* -----------------------------------------------------------------------------
+   0.1) FUNCIÓN AUXILIAR: escapar texto libre antes de meterlo en el HTML del
+        correo de confirmación de visita (Nombre, Empresa, Motivo, etc. son
+        capturados por el usuario y no deben poder inyectar markup).
+   ----------------------------------------------------------------------------- */
+CREATE FUNCTION dbo.fn_CV_EscaparHtml (@Texto NVARCHAR(500))
+RETURNS NVARCHAR(1000)
+AS
+BEGIN
+    RETURN REPLACE(REPLACE(REPLACE(ISNULL(@Texto, ''), N'&', N'&amp;'), N'<', N'&lt;'), N'>', N'&gt;');
+END
+GO
+
+/* -----------------------------------------------------------------------------
    1) CATÁLOGO DE ÁREAS / DEPARTAMENTOS QUE PUEDEN RECIBIR VISITAS
    ----------------------------------------------------------------------------- */
 CREATE TABLE dbo.CV_Areas (
@@ -159,6 +172,30 @@ INSERT INTO dbo.CV_Configuracion (Clave, Valor) VALUES
  (N'DigitosFoto', N'10');
 GO
 
+/* -----------------------------------------------------------------------------
+   5) WM_Correo: cola de correos ya existente en producción -- el SQL Server
+      Agent Job que ya opera revisa esta tabla cada minuto y envía con
+      sp_send_dbmail lo que tenga Enviar='SI' y Enviado='NO'.
+      >>> SOLO PARA PRUEBAS LOCALES. En el servidor real esta tabla ya existe;
+      no correr este bloque ahí -- apuntar sp_CV_Visitas_Registrar a la
+      tabla WM_Correo real.
+   ----------------------------------------------------------------------------- */
+CREATE TABLE dbo.WM_Correo (
+    ID              BIGINT IDENTITY(1,1)   NOT NULL,
+    Asunto          VARCHAR(512)           NOT NULL,
+    Correos         VARCHAR(512)           NOT NULL,
+    Enviado         VARCHAR(2)             NOT NULL,
+    EnviadoFechaHr  SMALLDATETIME          NOT NULL,
+    Enviar          VARCHAR(2)             NOT NULL,
+    HTML            VARCHAR(MAX)           NOT NULL,
+    Usuario_ID      BIGINT                 NOT NULL,
+    ID_UUID         VARCHAR(128)           NOT NULL,
+    IDFecha         SMALLDATETIME          NOT NULL,
+    TipoDocumento   VARCHAR(128)           NOT NULL,
+    CONSTRAINT PK_WM_Correo PRIMARY KEY CLUSTERED (ID)
+);
+GO
+
 /* =============================================================================
    STORED PROCEDURES
    ============================================================================= */
@@ -214,6 +251,45 @@ BEGIN
     VALUES
         (@NuevoUUID, @CodigoAcceso, @Nombre, @ApellidoPaterno, @ApellidoMaterno, @Correo, @Empresa, @ID_Area, @Motivo, @Observaciones,
          @Anfitrion, @RegistradoPor, @ID_Usuario, @FechaVisita, @TraeAuto, @Marca, @Modelo, @Placas);
+
+    -- Correo de confirmación al visitante: se encola en WM_Correo, el
+    -- SQL Server Agent Job existente lo envía (revisa cada minuto).
+    -- Nota: se construye en NVARCHAR y se convierte a VARCHAR (tipo real de
+    -- WM_Correo) hasta el final -- concatenar literales sin N'' aquí
+    -- corrompe los acentos al pasar por el driver de sqlcmd/ODBC.
+    DECLARE @VehiculoHtml NVARCHAR(MAX) = N'';
+    IF @TraeAuto = 1
+    BEGIN
+        SET @VehiculoHtml =
+            N'<p>Como registraste que acudirás en automóvil, estos son los datos que proporcionaste:</p>' +
+            N'<table style="margin-bottom:16px;">' +
+            N'<tr><td style="padding:2px 12px 2px 0;color:#555;">Marca:</td><td><b>' + dbo.fn_CV_EscaparHtml(@Marca)  + N'</b></td></tr>' +
+            N'<tr><td style="padding:2px 12px 2px 0;color:#555;">Modelo:</td><td><b>' + dbo.fn_CV_EscaparHtml(@Modelo) + N'</b></td></tr>' +
+            N'<tr><td style="padding:2px 12px 2px 0;color:#555;">Placas:</td><td><b>' + dbo.fn_CV_EscaparHtml(@Placas) + N'</b></td></tr>' +
+            N'</table>';
+    END
+
+    DECLARE @HTML NVARCHAR(MAX) =
+        N'<p>Hola ' + dbo.fn_CV_EscaparHtml(@Nombre + N' ' + @ApellidoPaterno + N' ' + @ApellidoMaterno) + N',</p>' +
+        N'<p>Confirmamos tu visita a Celex con los siguientes datos:</p>' +
+        N'<table style="margin-bottom:16px;">' +
+        N'<tr><td style="padding:2px 12px 2px 0;color:#555;">Fecha:</td><td><b>' + FORMAT(@FechaVisita, 'dd/MM/yyyy') + N'</b></td></tr>' +
+        N'<tr><td style="padding:2px 12px 2px 0;color:#555;">Empresa:</td><td><b>' + dbo.fn_CV_EscaparHtml(@Empresa) + N'</b></td></tr>' +
+        N'<tr><td style="padding:2px 12px 2px 0;color:#555;">Persona que visitas:</td><td><b>' + dbo.fn_CV_EscaparHtml(@Anfitrion) + N'</b></td></tr>' +
+        N'<tr><td style="padding:2px 12px 2px 0;color:#555;">Motivo:</td><td><b>' + dbo.fn_CV_EscaparHtml(@Motivo) + N'</b></td></tr>' +
+        N'</table>' +
+        N'<p>Tu código de acceso es:</p>' +
+        N'<p style="font-size:28px;font-weight:bold;letter-spacing:4px;">' + @CodigoAcceso + N'</p>' +
+        N'<p>Preséntalo en la recepción el día de tu visita para agilizar tu ingreso.</p>' +
+        @VehiculoHtml +
+        N'<p>Te esperamos.</p>' +
+        N'<p>Celex</p>';
+
+    INSERT INTO dbo.WM_Correo
+        (Asunto, Correos, Enviado, EnviadoFechaHr, Enviar, HTML, Usuario_ID, ID_UUID, IDFecha, TipoDocumento)
+    VALUES
+        (N'Confirmación de tu visita a Celex', @Correo, 'No', '1900-01-01 00:00:00', 'Si', @HTML, @ID_Usuario,
+         CAST(@NuevoUUID AS VARCHAR(128)), GETDATE(), 'Visita');
 
     SELECT SCOPE_IDENTITY() AS ID, @NuevoUUID AS UUID, @CodigoAcceso AS CodigoAcceso;
 END
