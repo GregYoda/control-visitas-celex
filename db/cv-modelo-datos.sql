@@ -72,6 +72,7 @@ CREATE TABLE dbo.CV_Visitas (
     Empresa                 NVARCHAR(150)   NOT NULL,
     ID_Area                 INT             NOT NULL,
     Motivo                  NVARCHAR(300)   NOT NULL,
+    Observaciones           NVARCHAR(500)   NOT NULL DEFAULT (''),  -- comentarios libres para que vigilancia los considere al recibir la visita
     Anfitrion               NVARCHAR(100)   NOT NULL,   -- usuario WishPOS de la persona visitada
     RegistradoPor           NVARCHAR(100)   NOT NULL,   -- usuario WishPOS que capturó el registro
     ID_Usuario              INT             NOT NULL DEFAULT (0),  -- Usuario_ID (WishPOS) de quien capturó el registro
@@ -175,6 +176,7 @@ CREATE PROCEDURE dbo.sp_CV_Visitas_Registrar
     @Empresa            NVARCHAR(150),
     @ID_Area            INT,
     @Motivo             NVARCHAR(300),
+    @Observaciones      NVARCHAR(500)   = '',
     @Anfitrion          NVARCHAR(100),
     @RegistradoPor      NVARCHAR(100),
     @ID_Usuario         INT             = 0,   -- Usuario_ID (WishPOS) de quien registra
@@ -189,6 +191,7 @@ BEGIN
     DECLARE @NuevoUUID UNIQUEIDENTIFIER = NEWID();
     -- Defensivo: nunca guardar NULL aunque el llamador lo mande explícito.
     SET @ID_Usuario = ISNULL(@ID_Usuario, 0);
+    SET @Observaciones = ISNULL(@Observaciones, '');
     SET @Marca  = ISNULL(@Marca, '');
     SET @Modelo = ISNULL(@Modelo, '');
     SET @Placas = ISNULL(@Placas, '');
@@ -206,10 +209,10 @@ BEGIN
     END
 
     INSERT INTO dbo.CV_Visitas
-        (UUID, CodigoAcceso, Nombre, ApellidoPaterno, ApellidoMaterno, Correo, Empresa, ID_Area, Motivo,
+        (UUID, CodigoAcceso, Nombre, ApellidoPaterno, ApellidoMaterno, Correo, Empresa, ID_Area, Motivo, Observaciones,
          Anfitrion, RegistradoPor, ID_Usuario, FechaVisita, TraeAuto, Marca, Modelo, Placas)
     VALUES
-        (@NuevoUUID, @CodigoAcceso, @Nombre, @ApellidoPaterno, @ApellidoMaterno, @Correo, @Empresa, @ID_Area, @Motivo,
+        (@NuevoUUID, @CodigoAcceso, @Nombre, @ApellidoPaterno, @ApellidoMaterno, @Correo, @Empresa, @ID_Area, @Motivo, @Observaciones,
          @Anfitrion, @RegistradoPor, @ID_Usuario, @FechaVisita, @TraeAuto, @Marca, @Modelo, @Placas);
 
     SELECT SCOPE_IDENTITY() AS ID, @NuevoUUID AS UUID, @CodigoAcceso AS CodigoAcceso;
@@ -292,7 +295,7 @@ BEGIN
         VALUES (@ID, @ApellidoTecleado, N'Exitoso');
 
         SELECT N'OK' AS Resultado, v.ID, v.Nombre, v.ApellidoPaterno, v.ApellidoMaterno,
-               v.Empresa, v.Motivo, v.Anfitrion, a.Nombre AS Area, v.FechaVisita,
+               v.Empresa, v.Motivo, v.Observaciones, v.Anfitrion, a.Nombre AS Area, v.FechaVisita,
                v.CodigoSalida, v.FechaAcceso
         FROM dbo.CV_Visitas v
         JOIN dbo.CV_Areas a ON a.ID = v.ID_Area
@@ -359,7 +362,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT
         v.ID, v.Nombre, v.ApellidoPaterno, v.ApellidoMaterno, v.Empresa,
-        a.Nombre AS Area, v.Anfitrion, v.Motivo,
+        a.Nombre AS Area, v.Anfitrion, v.Motivo, v.Observaciones,
         CASE
             WHEN v.Status = N'Pendiente'       THEN N'Pendiente'
             WHEN v.FechaSalida = '1900-01-01'  THEN N'Dentro'
@@ -389,7 +392,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT
         v.ID, v.UUID, v.Nombre, v.ApellidoPaterno, v.ApellidoMaterno, v.Correo, v.Empresa,
-        v.ID_Area, a.Nombre AS Area, v.Motivo, v.Anfitrion, v.FechaVisita,
+        v.ID_Area, a.Nombre AS Area, v.Motivo, v.Observaciones, v.Anfitrion, v.FechaVisita,
         v.TraeAuto, v.Marca, v.Modelo, v.Placas,
         CASE
             WHEN v.Status = N'Pendiente'       THEN N'Pendiente'
@@ -419,6 +422,7 @@ CREATE PROCEDURE dbo.sp_CV_Visitas_Actualizar
     @Empresa            NVARCHAR(150),
     @ID_Area            INT,
     @Motivo             NVARCHAR(300),
+    @Observaciones      NVARCHAR(500)   = '',
     @Anfitrion          NVARCHAR(100),
     @FechaVisita        DATE,
     @TraeAuto           BIT             = 0,
@@ -428,6 +432,7 @@ CREATE PROCEDURE dbo.sp_CV_Visitas_Actualizar
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET @Observaciones = ISNULL(@Observaciones, '');
     SET @Marca  = ISNULL(@Marca, '');
     SET @Modelo = ISNULL(@Modelo, '');
     SET @Placas = ISNULL(@Placas, '');
@@ -449,6 +454,7 @@ BEGIN
     UPDATE dbo.CV_Visitas
        SET Nombre = @Nombre, ApellidoPaterno = @ApellidoPaterno, ApellidoMaterno = @ApellidoMaterno,
            Correo = @Correo, Empresa = @Empresa, ID_Area = @ID_Area, Motivo = @Motivo,
+           Observaciones = @Observaciones,
            Anfitrion = @Anfitrion, FechaVisita = @FechaVisita, TraeAuto = @TraeAuto,
            Marca = @Marca, Modelo = @Modelo, Placas = @Placas,
            ID_Fecha_Modificacion = GETDATE()

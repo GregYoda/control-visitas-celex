@@ -332,8 +332,6 @@
   .btn-editar{border:none;background:var(--purple-1);color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;}
   .btn-editar:hover{background:var(--purple-2);}
   .btn-editar:disabled{background:#d5d8de;color:#9099a8;cursor:not-allowed;}
-  .warn-banner{background:#fff7e6;border:1.5px solid #e8b84b;border-radius:10px;padding:12px 16px;font-size:13px;color:#7a5200;margin-bottom:20px;display:flex;gap:10px;align-items:flex-start;}
-  .warn-banner b{display:block;margin-bottom:2px;}
 </style>
 </head>
 <body>
@@ -508,6 +506,7 @@
               <select id="fArea"><option value="">Cargando áreas…</option></select>
             </div>
             <div class="field full"><label class="required">Motivo de la visita</label><input id="fMotivo" placeholder="ej. Reunión de proveedores"></div>
+            <div class="field full"><label>Observaciones (opcional)</label><input id="fObservaciones" placeholder="Comentarios para el personal de vigilancia al recibir la visita"></div>
             <div class="field"><label class="required">Fecha de visita</label><input id="fFechaVisita" type="date"></div>
             <div class="field"><label class="required">Persona que visita (anfitrión)</label><input id="fAnfitrion"></div>
 
@@ -807,6 +806,7 @@
               <select id="eArea"><option value="">Cargando áreas…</option></select>
             </div>
             <div class="field full"><label class="required">Motivo de la visita</label><input id="eMotivo" placeholder="ej. Reunión de proveedores"></div>
+            <div class="field full"><label>Observaciones (opcional)</label><input id="eObservaciones" placeholder="Comentarios para el personal de vigilancia al recibir la visita"></div>
             <div class="field"><label class="required">Fecha de visita</label><input id="eFechaVisita" type="date"></div>
             <div class="field"><label class="required">Persona que visita (anfitrión)</label><input id="eAnfitrion"></div>
             <div class="toggle-row">
@@ -989,6 +989,7 @@ function openRegistro(){
   document.getElementById('fCorreo').value = '';
   document.getElementById('fEmpresa').value = '';
   document.getElementById('fMotivo').value = '';
+  document.getElementById('fObservaciones').value = '';
   document.getElementById('fAnfitrion').value = session.nombre || session.username || '';
   document.getElementById('fFechaVisita').value = hoyISO();
   document.getElementById('fTraeAuto').checked = false;
@@ -1023,6 +1024,7 @@ async function generarCodigoAcceso(){
   const idArea = Number(areaSelect.value);
   const areaNombre = areaSelect.options[areaSelect.selectedIndex]?.text || '';
   const motivo = document.getElementById('fMotivo').value.trim();
+  const observaciones = document.getElementById('fObservaciones').value.trim();
   const fechaVisita = document.getElementById('fFechaVisita').value;
   const anfitrion = document.getElementById('fAnfitrion').value.trim();
   const traeAuto = document.getElementById('fTraeAuto').checked;
@@ -1045,7 +1047,7 @@ async function generarCodigoAcceso(){
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo,
+        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo, observaciones,
         anfitrion, registradoPor: session.username, idUsuario: session.usuarioId, fechaVisita, traeAuto,
         marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
       })
@@ -1058,7 +1060,7 @@ async function generarCodigoAcceso(){
   }
 
   const visit = {
-    id: data.uuid, codigoAcceso: data.codigoAcceso, nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area: areaNombre, motivo,
+    id: data.uuid, codigoAcceso: data.codigoAcceso, nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area: areaNombre, motivo, observaciones,
     fechaVisita, anfitrion, registradoPor: session.username, traeAuto, marca, modelo, placas,
     status:'pendiente', fechaRegistro:new Date(), fechaAcceso:null, foto:null, codigoSalida:null, fechaSalida:null
   };
@@ -1139,7 +1141,7 @@ async function submitValidate(){
     const idx = visits.findIndex(x=>x.id===pendingVisitId);
     const visitaAcceso = {
       id: pendingVisitId, numeroId: v.id, nombre: v.nombre, apellidoP: v.apellidoPaterno, apellidoM: v.apellidoMaterno,
-      empresa: v.empresa, area: v.area, anfitrion: v.anfitrion, motivo: v.motivo,
+      empresa: v.empresa, area: v.area, anfitrion: v.anfitrion, motivo: v.motivo, observaciones: v.observaciones,
       fechaVisita: v.fechaVisita, status: 'accesado', fechaAcceso: new Date(v.fechaAcceso),
       codigoSalida: v.codigoSalida, foto: null, fechaSalida: null
     };
@@ -1444,6 +1446,7 @@ async function abrirEditar(id){
   document.getElementById('eEmpresa').value = v.empresa;
   document.getElementById('eArea').value    = v.idArea;
   document.getElementById('eMotivo').value  = v.motivo;
+  document.getElementById('eObservaciones').value = v.observaciones || '';
   document.getElementById('eFechaVisita').value = v.fechaVisita || '';
   document.getElementById('eAnfitrion').value = v.anfitrion;
   document.getElementById('eTraeAuto').checked = v.traeAuto;
@@ -1467,6 +1470,7 @@ async function guardarEdicion(){
   const empresa  = document.getElementById('eEmpresa').value.trim();
   const idArea   = Number(document.getElementById('eArea').value);
   const motivo   = document.getElementById('eMotivo').value.trim();
+  const observaciones = document.getElementById('eObservaciones').value.trim();
   const fechaVisita = document.getElementById('eFechaVisita').value;
   const anfitrion= document.getElementById('eAnfitrion').value.trim();
   const traeAuto = document.getElementById('eTraeAuto').checked;
@@ -1487,7 +1491,7 @@ async function guardarEdicion(){
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo,
+        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo, observaciones,
         anfitrion, fechaVisita, traeAuto,
         marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
       })
@@ -1728,11 +1732,11 @@ wireEnterAvanza(['validateApP'], submitValidate);
 wireEnterAvanza(['repDesde','repHasta'], generarReporte);
 wireEnterAvanza(['cfgRutaFotos','cfgPrefijoFoto','cfgDigitosFoto'], guardarConfiguracion);
 wireEnterAvanza(
-  ['fNombre','fApP','fApM','fCorreo','fEmpresa','fArea','fMotivo','fFechaVisita','fAnfitrion','fMarca','fModelo','fPlacas'],
+  ['fNombre','fApP','fApM','fCorreo','fEmpresa','fArea','fMotivo','fObservaciones','fFechaVisita','fAnfitrion','fMarca','fModelo','fPlacas'],
   generarCodigoAcceso
 );
 wireEnterAvanza(
-  ['eNombre','eApP','eApM','eCorreo','eEmpresa','eArea','eMotivo','eFechaVisita','eAnfitrion','eMarca','eModelo','ePlacas'],
+  ['eNombre','eApP','eApM','eCorreo','eEmpresa','eArea','eMotivo','eObservaciones','eFechaVisita','eAnfitrion','eMarca','eModelo','ePlacas'],
   guardarEdicion
 );
 

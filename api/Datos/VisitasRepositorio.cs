@@ -37,6 +37,7 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
         comando.Parameters.AddWithValue("@Empresa", datos.Empresa);
         comando.Parameters.AddWithValue("@ID_Area", datos.IdArea);
         comando.Parameters.AddWithValue("@Motivo", datos.Motivo);
+        comando.Parameters.AddWithValue("@Observaciones", datos.Observaciones ?? "");
         comando.Parameters.AddWithValue("@Anfitrion", datos.Anfitrion);
         comando.Parameters.AddWithValue("@RegistradoPor", datos.RegistradoPor);
         comando.Parameters.AddWithValue("@ID_Usuario", datos.IdUsuario ?? 0);
@@ -78,6 +79,7 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
                 lector.GetString(lector.GetOrdinal("ApellidoMaterno")),
                 lector.GetString(lector.GetOrdinal("Empresa")),
                 lector.GetString(lector.GetOrdinal("Motivo")),
+                NullSiVacia(lector.GetString(lector.GetOrdinal("Observaciones"))),
                 lector.GetString(lector.GetOrdinal("Anfitrion")),
                 lector.GetString(lector.GetOrdinal("Area")),
                 DateOnly.FromDateTime(lector.GetDateTime(lector.GetOrdinal("FechaVisita"))),
@@ -157,6 +159,7 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
                 lector.GetString(lector.GetOrdinal("Area")),
                 lector.GetString(lector.GetOrdinal("Anfitrion")),
                 lector.GetString(lector.GetOrdinal("Motivo")),
+                NullSiVacia(lector.GetString(lector.GetOrdinal("Observaciones"))),
                 lector.GetString(lector.GetOrdinal("Estado")),
                 DateOnly.FromDateTime(lector.GetDateTime(lector.GetOrdinal("FechaVisita"))),
                 lector.GetDateTime(lector.GetOrdinal("FechaRegistro")),
@@ -192,6 +195,7 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
                 Convert.ToInt32(lector["ID_Area"]),
                 lector.GetString(lector.GetOrdinal("Area")),
                 lector.GetString(lector.GetOrdinal("Motivo")),
+                NullSiVacia(lector.GetString(lector.GetOrdinal("Observaciones"))),
                 lector.GetString(lector.GetOrdinal("Anfitrion")),
                 DateOnly.FromDateTime(lector.GetDateTime(lector.GetOrdinal("FechaVisita"))),
                 lector.GetBoolean(lector.GetOrdinal("TraeAuto")),
@@ -220,6 +224,7 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
         comando.Parameters.AddWithValue("@Empresa", datos.Empresa);
         comando.Parameters.AddWithValue("@ID_Area", datos.IdArea);
         comando.Parameters.AddWithValue("@Motivo", datos.Motivo);
+        comando.Parameters.AddWithValue("@Observaciones", datos.Observaciones ?? "");
         comando.Parameters.AddWithValue("@Anfitrion", datos.Anfitrion);
         comando.Parameters.Add("@FechaVisita", SqlDbType.Date).Value = datos.FechaVisita.ToDateTime(TimeOnly.MinValue);
         comando.Parameters.AddWithValue("@TraeAuto", datos.TraeAuto);

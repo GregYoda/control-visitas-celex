@@ -75,8 +75,21 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   recursivo en `Accesos`/`SubModule` y en `MiEspacio` — ver
   `WishPosAuthService.TieneAcceso`). Pensada para agregar más parámetros ahí
   mismo a futuro.
-- ⬜ **Pendiente:** envío de correo real (Graph API / M365), despliegue en
-  IIS + SQL Server productivo.
+- ✅ **Campo `Observaciones`** en `CV_Visitas` (opcional, `NVARCHAR(500)`) —
+  comentarios libres que quien registra puede dejar para que vigilancia los
+  considere al recibir la visita. Se captura en el registro y en la edición
+  (`Mis visitas`). **No se muestra en la etiqueta de acceso** (decisión
+  explícita: ahí no debe ir); viaja en la respuesta de validación, en
+  Reportes y en Mis Visitas para consultarse por esos medios.
+- 🔧 **En proceso:** envío de correo real vía Graph API. Ya está el
+  contenido acordado (asunto + cuerpo, incluye datos del vehículo si
+  `TraeAuto`, sin mencionar el código de salida por error — el código de
+  acceso se usa una sola vez). Falta el App Registration de Azure AD
+  (permiso `Mail.Send` tipo aplicación) para el buzón `solomon@celex.com`;
+  Tenant ID/Client ID van a `CV_Configuracion`, el Client Secret **nunca**
+  ahí — se guarda con `dotnet user-secrets` porque `GET /api/configuracion`
+  no tiene autenticación y expondría el secreto a quien sea.
+- ⬜ **Pendiente:** despliegue en IIS + SQL Server productivo.
 
 ## Decisiones de diseño ya tomadas (no las reabras sin razón)
 
