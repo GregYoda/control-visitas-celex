@@ -86,9 +86,9 @@ public class WishPosAuthService(HttpClient http) : IWishPosAuthService
         }
 
         // La pantalla de Configuración solo se muestra si WishPOS le dio al
-        // usuario acceso a la pantalla CV.230.01 (buscar en Accesos y
+        // usuario acceso a la pantalla CV.200.00 (buscar en Accesos y
         // MiEspacio, incluyendo SubModule anidados).
-        const string PantallaConfiguracion = "CV.230.01";
+        const string PantallaConfiguracion = "CV.200.00";
         var puedeConfigurar = TieneAcceso(resultado.Accesos, PantallaConfiguracion)
             || TieneAcceso(resultado.MiEspacio, PantallaConfiguracion);
 

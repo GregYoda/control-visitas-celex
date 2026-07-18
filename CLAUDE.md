@@ -71,7 +71,7 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   (clave/valor) editable desde `screen-configuracion`: `RutaFotos`,
   `PrefijoFoto` y `DigitosFoto` (los 3 parámetros del nombrado de fotos, todos
   editables — ninguno quedó fijo en el código). Solo se muestra si el login
-  de WishPOS incluye el permiso `Pantalla_Identidad = "CV.230.01"` (se busca
+  de WishPOS incluye el permiso `Pantalla_Identidad = "CV.200.00"` (se busca
   recursivo en `Accesos`/`SubModule` y en `MiEspacio` — ver
   `WishPosAuthService.TieneAcceso`). Pensada para agregar más parámetros ahí
   mismo a futuro.

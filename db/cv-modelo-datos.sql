@@ -151,7 +151,7 @@ GO
 
 /* -----------------------------------------------------------------------------
    4) CONFIGURACIÓN: parámetros del sistema (clave/valor), editable desde la
-      pantalla de Configuración (solo visible con el permiso CV.230.01 de
+      pantalla de Configuración (solo visible con el permiso CV.200.00 de
       WishPOS -- ver WishPosAuthService.cs).
    ----------------------------------------------------------------------------- */
 CREATE TABLE dbo.CV_Configuracion (
@@ -559,7 +559,7 @@ GO
 
 /* -----------------------------------------------------------------------------
    sp_CV_Configuracion_Obtener / sp_CV_Configuracion_Actualizar
-   Pantalla de Configuración (solo visible con el permiso CV.230.01).
+   Pantalla de Configuración (solo visible con el permiso CV.200.00).
    ----------------------------------------------------------------------------- */
 CREATE PROCEDURE dbo.sp_CV_Configuracion_Obtener
 AS
