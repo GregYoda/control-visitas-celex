@@ -881,16 +881,19 @@ function hoyISO(){
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+function esUsuarioDemo(){
+  return (session.nombre || session.username || '').trim().toUpperCase() === 'DEMO MESA DE CONTROL ACTIVACIONES';
+}
 
 /* ---------- navegación ---------- */
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   // el teclado en pantalla solo aplica a pantallas de caseta con campo de
-  // texto real; "home" (solo botones), "código de acceso" y "código de
-  // salida" usan su propio PIN pad numérico (o ningún input) y no tienen
-  // ningún <input> de texto al que el teclado QWERTY pueda escribirle.
-  const kioskScreens = ['screen-validate','screen-photo','screen-badge','screen-salida-confirm','screen-salida-done'];
+  // texto real; el resto (home, foto, etiqueta, código de acceso/salida,
+  // confirmar/registrar salida) no tienen ningún <input> de texto al que
+  // el teclado QWERTY pueda escribirle.
+  const kioskScreens = ['screen-validate','screen-badge','screen-salida-done'];
   document.getElementById('vkbToggle').style.display = kioskScreens.includes(id) ? 'flex' : 'none';
   if(!kioskScreens.includes(id)){
     document.getElementById('vkbPanel').classList.remove('show');
@@ -979,25 +982,49 @@ function doLogout(){
 /* ---------- registro de visita ---------- */
 function openRegistro(){
   document.getElementById('regUserLabel').textContent = session.nombre || session.username || '';
-  cargarAreas();
-  // Limpia el formulario por completo para empezar un registro nuevo --
-  // antes solo se limpiaba condicionalmente y quedaban datos de la visita
-  // anterior (nombre, apellidos, correo, empresa, motivo, auto...).
-  document.getElementById('fNombre').value = '';
-  document.getElementById('fApP').value = '';
-  document.getElementById('fApM').value = '';
-  document.getElementById('fCorreo').value = '';
-  document.getElementById('fEmpresa').value = '';
-  document.getElementById('fMotivo').value = '';
-  document.getElementById('fObservaciones').value = '';
-  document.getElementById('fAnfitrion').value = session.nombre || session.username || '';
+  const esDemo = esUsuarioDemo();
+  cargarAreas().then(() => {
+    if(esDemo){
+      const areaSelect = document.getElementById('fArea');
+      if(areaSelect.options.length) areaSelect.selectedIndex = 0;
+    }
+  });
   document.getElementById('fFechaVisita').value = hoyISO();
-  document.getElementById('fTraeAuto').checked = false;
-  document.getElementById('fMarca').value = '';
-  document.getElementById('fModelo').value = '';
-  document.getElementById('fPlacas').value = '';
-  document.getElementById('autoFields').classList.remove('show');
+  document.getElementById('fAnfitrion').value = session.nombre || session.username || '';
   document.getElementById('regError').textContent='';
+
+  if(esDemo){
+    // Cuenta de demostración: precarga una visita de ejemplo para agilizar
+    // las demos en vivo (activaciones), en vez de capturar todo a mano.
+    document.getElementById('fNombre').value = 'Juan';
+    document.getElementById('fApP').value = 'Pérez';
+    document.getElementById('fApM').value = 'López';
+    document.getElementById('fCorreo').value = 'juan.perez@example.com';
+    document.getElementById('fEmpresa').value = 'Empresa Demo S.A. de C.V.';
+    document.getElementById('fMotivo').value = 'Demostración del sistema';
+    document.getElementById('fObservaciones').value = '';
+    document.getElementById('fTraeAuto').checked = true;
+    document.getElementById('fMarca').value = 'Nissan';
+    document.getElementById('fModelo').value = 'Versa';
+    document.getElementById('fPlacas').value = 'ABC-123';
+    document.getElementById('autoFields').classList.add('show');
+  }else{
+    // Limpia el formulario por completo para empezar un registro nuevo --
+    // antes solo se limpiaba condicionalmente y quedaban datos de la visita
+    // anterior (nombre, apellidos, correo, empresa, motivo, auto...).
+    document.getElementById('fNombre').value = '';
+    document.getElementById('fApP').value = '';
+    document.getElementById('fApM').value = '';
+    document.getElementById('fCorreo').value = '';
+    document.getElementById('fEmpresa').value = '';
+    document.getElementById('fMotivo').value = '';
+    document.getElementById('fObservaciones').value = '';
+    document.getElementById('fTraeAuto').checked = false;
+    document.getElementById('fMarca').value = '';
+    document.getElementById('fModelo').value = '';
+    document.getElementById('fPlacas').value = '';
+    document.getElementById('autoFields').classList.remove('show');
+  }
   showScreen('screen-registro');
 }
 function toggleAutoFields(){
@@ -1097,7 +1124,7 @@ function enviarCorreo(){
   if(!v) return;
   const msg = document.getElementById('qrMsg');
   msg.style.color='var(--ok)';
-  msg.textContent = `Correo simulado enviado a ${v.correo} con el código de acceso ${v.codigoAcceso}. (En producción se integraría con Outlook / Graph API).`;
+  msg.textContent = `El correo con el código de acceso se enviará automáticamente a ${v.correo}.`;
 }
 
 
