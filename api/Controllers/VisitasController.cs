@@ -67,4 +67,11 @@ public class VisitasController(IVisitasRepositorio repositorio, IFotoService fot
         await repositorio.ActualizarFotoRutaAsync(id, rutaCompleta);
         return Ok(new GuardarFotoResultado(rutaCompleta));
     }
+
+    [HttpGet("{id:long}/foto")]
+    public async Task<IActionResult> ObtenerFoto(long id)
+    {
+        var ruta = await fotoService.ObtenerRutaFisicaAsync(id);
+        return ruta is null ? NotFound() : PhysicalFile(ruta, "image/jpeg");
+    }
 }

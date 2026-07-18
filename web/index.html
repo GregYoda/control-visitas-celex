@@ -1366,8 +1366,8 @@ async function submitSalidaCodigo(){
   showScreen('screen-salida-confirm');
 }
 function renderSalidaConfirm(visita){
-  const fotoHtml = visita.fotoRuta
-    ? `<img src="${visita.fotoRuta}" class="badge-photo" alt="Foto del visitante">`
+  const fotoHtml = visita.tieneFoto
+    ? `<img src="${API_BASE_URL}/api/visitas/${visita.id}/foto" class="badge-photo" alt="Foto del visitante">`
     : `<div class="badge-photo badge-photo-placeholder">👤</div>`;
   document.getElementById('salidaConfirmCard').innerHTML = `
     <div class="badge-photo-wrap">${fotoHtml}</div>
@@ -1440,7 +1440,7 @@ function renderMisVisitas(){
   const rows = misVisitasCache.map(v => {
     const estadoClass = ESTADO_CLASE[v.estado] || 'pendiente';
     return `<tr>
-      <td>${v.fotoRuta ? `<img src="${v.fotoRuta}" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
+      <td>${v.tieneFoto ? `<img src="${API_BASE_URL}/api/visitas/${v.id}/foto" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
       <td><b>${v.nombre} ${v.apellidoPaterno} ${v.apellidoMaterno}</b><br><span style="color:#8b93a3;font-size:12px;">${v.empresa}</span></td>
       <td>${v.area}</td>
       <td>${fmtFechaVisita(v.fechaVisita)}</td>
@@ -1622,7 +1622,7 @@ async function generarReporte(){
 
   let rows = filas.map(v => `
     <tr>
-      <td>${v.fotoRuta ? `<img src="${v.fotoRuta}" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
+      <td>${v.tieneFoto ? `<img src="${API_BASE_URL}/api/visitas/${v.id}/foto" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
       <td>${v.nombre} ${v.apellidoPaterno} ${v.apellidoMaterno}</td>
       <td>${v.empresa}</td>
       <td>${v.area}</td>

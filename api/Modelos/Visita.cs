@@ -46,7 +46,7 @@ public record SalidaInfo(
     string Empresa,
     string Anfitrion,
     DateTime FechaAcceso,
-    string? FotoRuta);
+    bool TieneFoto);
 
 public record ConfirmarSalidaResultado(
     string Nombre,
@@ -73,7 +73,7 @@ public record ReporteFila(
     string? CodigoSalida,
     DateTime? FechaSalida,
     int? MinutosEstancia,
-    string? FotoRuta);
+    bool TieneFoto);
 
 public record MiVisita(
     long Id,
@@ -97,7 +97,7 @@ public record MiVisita(
     string Status,
     DateTime FechaRegistro,
     DateTime? FechaAcceso,
-    string? FotoRuta);
+    bool TieneFoto);
 
 public record VisitaActualizarRequest(
     string Nombre,

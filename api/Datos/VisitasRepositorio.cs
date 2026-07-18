@@ -24,6 +24,9 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
     private static readonly DateTime FechaVacia = new(1900, 1, 1);
     private static DateTime? NullSiVacia(DateTime valor) => valor == FechaVacia ? null : valor;
     private static string? NullSiVacia(string valor) => string.IsNullOrEmpty(valor) ? null : valor;
+    // FotoRuta es una ruta de disco del servidor -- no se le manda al frontend
+    // (ver GET /api/visitas/{id}/foto), solo si existe o no.
+    private static bool TieneFoto(string fotoRuta) => !string.IsNullOrEmpty(fotoRuta);
 
     public async Task<VisitaRegistroResponse> RegistrarAsync(VisitaRegistroRequest datos)
     {
@@ -115,7 +118,7 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
             lector.GetString(lector.GetOrdinal("Empresa")),
             lector.GetString(lector.GetOrdinal("Anfitrion")),
             lector.GetDateTime(lector.GetOrdinal("FechaAcceso")),
-            NullSiVacia(lector.GetString(lector.GetOrdinal("FotoRuta"))));
+            TieneFoto(lector.GetString(lector.GetOrdinal("FotoRuta"))));
     }
 
     public async Task<ConfirmarSalidaResultado?> ConfirmarSalidaAsync(long id)
@@ -167,7 +170,7 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
                 NullSiVacia(lector.GetString(lector.GetOrdinal("CodigoSalida"))),
                 NullSiVacia(lector.GetDateTime(lector.GetOrdinal("FechaSalida"))),
                 lector.IsDBNull(lector.GetOrdinal("MinutosEstancia")) ? null : Convert.ToInt32(lector["MinutosEstancia"]),
-                NullSiVacia(lector.GetString(lector.GetOrdinal("FotoRuta")))));
+                TieneFoto(lector.GetString(lector.GetOrdinal("FotoRuta")))));
         }
         return filas;
     }
@@ -206,7 +209,7 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
                 lector.GetString(lector.GetOrdinal("Status")),
                 lector.GetDateTime(lector.GetOrdinal("FechaRegistro")),
                 NullSiVacia(lector.GetDateTime(lector.GetOrdinal("FechaAcceso"))),
-                NullSiVacia(lector.GetString(lector.GetOrdinal("FotoRuta")))));
+                TieneFoto(lector.GetString(lector.GetOrdinal("FotoRuta")))));
         }
         return mias;
     }

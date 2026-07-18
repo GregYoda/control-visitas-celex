@@ -100,6 +100,22 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   SQL Server. **`WM_Correo` ya existe en producción**; el `CREATE TABLE`
   en el script es solo para el entorno local de pruebas — al desplegar,
   apuntar a la tabla real y no correr ese bloque ahí.
+- ✅ **Fotos servidas por la API, no por ruta de disco.** `CV_Visitas.FotoRuta`
+  guarda una ruta de Windows (ej. `C:\Control de Visitas\Fotos\CV...jpg`), que
+  un navegador no puede usar como `<img src>`. Se agregó
+  `GET /api/visitas/{id}/foto` (`FotoService.ObtenerRutaFisicaAsync` recalcula
+  la ruta con los valores *actuales* de `RutaFotos`/`PrefijoFoto`/`DigitosFoto`,
+  no depende del `FotoRuta` guardado). La API ya no le manda la ruta cruda al
+  frontend: `SalidaInfo`, `ReporteFila` y `MiVisita` cambiaron su campo
+  `FotoRuta` por `TieneFoto` (booleano); el frontend arma la URL como
+  `${API_BASE_URL}/api/visitas/{id}/foto`. Se evaluó servir las fotos
+  directamente desde IIS (carpeta/virtual directory), pero se descartó: rompe
+  la configurabilidad de `RutaFotos` (habría que reconfigurar IIS cada vez que
+  cambie) y expone las fotos sin control de acceso. Corregido en
+  `screen-salida-confirm`, Reportes y Mis Visitas — antes de este cambio esas
+  tres pantallas nunca mostraban la foto real, solo el ícono de placeholder
+  (la etiqueta de acceso justo después de tomar la foto sí funcionaba, porque
+  usa el `data:` URL en memoria de la misma sesión, no `FotoRuta`).
 - ⬜ **Pendiente:** despliegue en IIS + SQL Server productivo.
 
 ## Decisiones de diseño ya tomadas (no las reabras sin razón)
