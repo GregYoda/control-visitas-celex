@@ -96,7 +96,7 @@ CREATE TABLE dbo.CV_Visitas (
     Modelo                  NVARCHAR(50)    NOT NULL DEFAULT (''),
     Placas                  NVARCHAR(20)    NOT NULL DEFAULT (''),
 
-    Status                  NVARCHAR(20)    NOT NULL DEFAULT (N'Pendiente'),  -- Pendiente | Accesado
+    Status                  NVARCHAR(20)    NOT NULL DEFAULT (N'Pendiente'),  -- Pendiente | Accesado | Cancelada
     FechaRegistro           DATETIME        NOT NULL DEFAULT (GETDATE()),
     FechaAcceso             DATETIME        NOT NULL DEFAULT ('1900-01-01 00:00:00'),
     FotoRuta                NVARCHAR(260)   NOT NULL DEFAULT (''),  -- ruta en disco/blob storage de la foto de la caseta
@@ -108,7 +108,7 @@ CREATE TABLE dbo.CV_Visitas (
 
     CONSTRAINT PK_CV_Visitas PRIMARY KEY CLUSTERED (ID),
     CONSTRAINT FK_CV_Visitas_Area FOREIGN KEY (ID_Area) REFERENCES dbo.CV_Areas(ID),
-    CONSTRAINT CK_CV_Visitas_Status CHECK (Status IN (N'Pendiente', N'Accesado')),
+    CONSTRAINT CK_CV_Visitas_Status CHECK (Status IN (N'Pendiente', N'Accesado', N'Cancelada')),
     CONSTRAINT CK_CV_Visitas_Auto CHECK (
         (TraeAuto = 0) OR (TraeAuto = 1 AND Marca <> '' AND Modelo <> '' AND Placas <> '')
     )
@@ -300,8 +300,8 @@ GO
    Paso 2: la caseta recibió el código de acceso de 6 dígitos y el visitante
    tecleó su apellido paterno. Si coincide, marca el acceso, guarda la foto y
    genera el código de salida.
-   Resultado posible: OK | NO_ENCONTRADO | YA_UTILIZADO | FECHA_NO_COINCIDE |
-                      APELLIDO_NO_COINCIDE
+   Resultado posible: OK | NO_ENCONTRADO | YA_UTILIZADO | CANCELADA |
+                      FECHA_NO_COINCIDE | APELLIDO_NO_COINCIDE
    ----------------------------------------------------------------------------- */
 CREATE PROCEDURE dbo.sp_CV_Visitas_ValidarAcceso
     @CodigoAcceso       CHAR(6),
@@ -331,6 +331,12 @@ BEGIN
     IF @Status = N'Accesado'
     BEGIN
         SELECT N'YA_UTILIZADO' AS Resultado;
+        RETURN;
+    END
+
+    IF @Status = N'Cancelada'
+    BEGIN
+        SELECT N'CANCELADA' AS Resultado;
         RETURN;
     END
 
@@ -440,6 +446,7 @@ BEGIN
         v.ID, v.Nombre, v.ApellidoPaterno, v.ApellidoMaterno, v.Empresa,
         a.Nombre AS Area, v.Anfitrion, v.Motivo, v.Observaciones,
         CASE
+            WHEN v.Status = N'Cancelada'       THEN N'Cancelada'
             WHEN v.Status = N'Pendiente'       THEN N'Pendiente'
             WHEN v.FechaSalida = '1900-01-01'  THEN N'Dentro'
             ELSE N'Salida registrada'
@@ -471,6 +478,7 @@ BEGIN
         v.ID_Area, a.Nombre AS Area, v.Motivo, v.Observaciones, v.Anfitrion, v.FechaVisita,
         v.TraeAuto, v.Marca, v.Modelo, v.Placas,
         CASE
+            WHEN v.Status = N'Cancelada'       THEN N'Cancelada'
             WHEN v.Status = N'Pendiente'       THEN N'Pendiente'
             WHEN v.FechaSalida = '1900-01-01'  THEN N'Dentro'
             ELSE N'Salida registrada'
@@ -533,6 +541,42 @@ BEGIN
            Observaciones = @Observaciones,
            Anfitrion = @Anfitrion, FechaVisita = @FechaVisita, TraeAuto = @TraeAuto,
            Marca = @Marca, Modelo = @Modelo, Placas = @Placas,
+           ID_Fecha_Modificacion = GETDATE()
+     WHERE ID = @ID;
+
+    SELECT N'OK' AS Resultado;
+END
+GO
+
+/* -----------------------------------------------------------------------------
+   sp_CV_Visitas_Cancelar
+   Cancela una visita desde "Mis visitas". Solo permitida mientras sigue
+   "Pendiente" -- una vez que ya se usó el código de acceso, la visita ya
+   entró y cancelarla no tendría sentido (para eso está el flujo de salida).
+   Resultado posible: OK | NO_ENCONTRADO | NO_CANCELABLE
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Visitas_Cancelar
+    @ID BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Status NVARCHAR(20);
+    SELECT @Status = Status FROM dbo.CV_Visitas WHERE ID = @ID;
+
+    IF @Status IS NULL
+    BEGIN
+        SELECT N'NO_ENCONTRADO' AS Resultado;
+        RETURN;
+    END
+
+    IF @Status <> N'Pendiente'
+    BEGIN
+        SELECT N'NO_CANCELABLE' AS Resultado;
+        RETURN;
+    END
+
+    UPDATE dbo.CV_Visitas
+       SET Status = N'Cancelada',
            ID_Fecha_Modificacion = GETDATE()
      WHERE ID = @ID;
 

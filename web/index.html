@@ -152,6 +152,11 @@
     color:#444a58;font-weight:600;font-size:14px;margin-top:10px;
   }
   .btn-secondary:hover{background:#f4f5f8;}
+  .btn-danger{
+    width:100%;padding:12px;border:1.5px solid #f3b9b4;border-radius:9px;background:#fff;
+    color:#b3261e;font-weight:600;font-size:14px;margin-top:10px;
+  }
+  .btn-danger:hover{background:#fdeceb;}
   .login-error{color:var(--err);font-size:13px;margin-top:10px;min-height:16px;}
 
   /* ---------- Module home cards ---------- */
@@ -272,6 +277,7 @@
   .status-pill.accesado{background:#dff5e6;color:#1f9d55;}
   .status-pill.dentro{background:#e3edff;color:#1d4ed8;}
   .status-pill.salida{background:#f1e8ff;color:#7b3fe4;}
+  .status-pill.cancelada{background:#fde2e2;color:#b3261e;}
   .report-thumb{width:34px;height:34px;border-radius:50%;object-fit:cover;display:block;}
   .report-thumb-empty{display:flex;align-items:center;justify-content:center;background:#eef0f4;color:#b5bac6;font-size:16px;}
   .empty-note{color:#8b93a3;font-size:13.5px;padding:30px;text-align:center;}
@@ -822,8 +828,9 @@
           <div class="login-error" id="editError"></div>
           <div class="form-actions">
             <button class="btn-primary" onclick="guardarEdicion()">Guardar cambios</button>
-            <button class="btn-secondary" onclick="showScreen('screen-mis-visitas')">Cancelar</button>
+            <button class="btn-secondary" onclick="showScreen('screen-mis-visitas')">Volver sin guardar</button>
           </div>
+          <button class="btn-danger" onclick="cancelarVisita()">Cancelar esta visita</button>
         </div>
       </div>
     </div>
@@ -893,7 +900,7 @@ function showScreen(id){
   // texto real; el resto (home, foto, etiqueta, código de acceso/salida,
   // confirmar/registrar salida) no tienen ningún <input> de texto al que
   // el teclado QWERTY pueda escribirle.
-  const kioskScreens = ['screen-validate','screen-badge','screen-salida-done'];
+  const kioskScreens = ['screen-validate'];
   document.getElementById('vkbToggle').style.display = kioskScreens.includes(id) ? 'flex' : 'none';
   if(!kioskScreens.includes(id)){
     document.getElementById('vkbPanel').classList.remove('show');
@@ -1190,6 +1197,7 @@ async function submitValidate(){
   const mensajes = {
     NO_ENCONTRADO: 'Código no reconocido. Verifica que esté bien escrito.',
     YA_UTILIZADO: 'Este código ya fue utilizado para un acceso.',
+    CANCELADA: 'Esta visita fue cancelada. Solicita apoyo en recepción.',
     FECHA_NO_COINCIDE: `Esta visita está registrada para el ${fmtFechaVisita(data.fechaVisita)}, no para hoy. No se puede iniciar el acceso.`
   };
   openAccesoCodigo();
@@ -1447,7 +1455,7 @@ function renderMisVisitas(){
       <td><span class="status-pill ${estadoClass}">${v.estado}</span></td>
       <td>${fmtFecha(new Date(v.fechaRegistro))}</td>
       <td>${v.status !== 'Pendiente'
-        ? `<button class="btn-editar" disabled title="No se puede editar: la visita ya inició su acceso.">Editar</button>`
+        ? `<button class="btn-editar" disabled title="${v.status === 'Cancelada' ? 'Esta visita fue cancelada.' : 'No se puede editar: la visita ya inició su acceso.'}">Editar</button>`
         : `<button class="btn-editar" onclick="abrirEditar(${v.id})">Editar</button>`}</td>
     </tr>`;
   }).join('');
@@ -1542,6 +1550,31 @@ async function guardarEdicion(){
   await openMisVisitas();
 }
 
+async function cancelarVisita(){
+  const err = document.getElementById('editError');
+  if(!confirm('¿Seguro que quieres cancelar esta visita? El visitante ya no podrá usar su código de acceso.')) return;
+
+  let data;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/visitas/${editingVisitId}/cancelar`, { method: 'POST' });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    data = await resp.json();
+  }catch(e){
+    err.textContent = 'No se pudo cancelar la visita (¿está corriendo la API?).';
+    return;
+  }
+
+  if(data.resultado === 'NO_CANCELABLE'){
+    err.textContent = 'Esta visita ya inició su acceso y no se puede cancelar.';
+    return;
+  }
+  if(data.resultado === 'NO_ENCONTRADO'){
+    err.textContent = 'No se encontró la visita.';
+    return;
+  }
+  await openMisVisitas();
+}
+
 /* ---------- configuración (solo visible con permiso CV.200.00) ---------- */
 const CONFIG_CAMPOS = { RutaFotos: 'cfgRutaFotos', PrefijoFoto: 'cfgPrefijoFoto', DigitosFoto: 'cfgDigitosFoto' };
 
@@ -1599,7 +1632,7 @@ function openReportes(){
   showScreen('screen-reportes');
 }
 let ultimoReporte = [];
-const ESTADO_CLASE = { 'Pendiente':'pendiente', 'Dentro':'dentro', 'Salida registrada':'salida' };
+const ESTADO_CLASE = { 'Pendiente':'pendiente', 'Dentro':'dentro', 'Salida registrada':'salida', 'Cancelada':'cancelada' };
 
 async function generarReporte(){
   const desde = document.getElementById('repDesde').value;

@@ -116,6 +116,21 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   tres pantallas nunca mostraban la foto real, solo el ícono de placeholder
   (la etiqueta de acceso justo después de tomar la foto sí funcionaba, porque
   usa el `data:` URL en memoria de la misma sesión, no `FotoRuta`).
+- ✅ **Teclado en pantalla quitado de "etiqueta de acceso" y "salida
+  registrada"** (`screen-badge`, `screen-salida-done`) — ninguna de las dos
+  tiene un `<input>` de texto real, el botón no hacía nada ahí. `kioskScreens`
+  en `showScreen()` ahora solo incluye `screen-validate`.
+- ✅ **Cancelar visita desde "Mis visitas".** Nuevo estado `Status = 'Cancelada'`
+  en `CV_Visitas` (antes solo `Pendiente`/`Accesado`) y SP
+  `sp_CV_Visitas_Cancelar` — solo permite cancelar mientras sigue
+  `Pendiente` (una vez que ya se usó el código de acceso, no tiene sentido
+  cancelar; para eso está el flujo de salida). `sp_CV_Visitas_ValidarAcceso`
+  rechaza el código con el nuevo resultado `CANCELADA` si la visita fue
+  cancelada. `Estado` en Reportes/Mis Visitas ahora puede mostrar
+  "Cancelada" (pill roja nueva). Endpoint `POST /api/visitas/{id}/cancelar`,
+  botón "Cancelar esta visita" en la pantalla de edición (con confirmación),
+  separado del botón "Volver sin guardar" (antes decía "Cancelar", ambiguo
+  con la nueva acción).
 - ⬜ **Pendiente:** despliegue en IIS + SQL Server productivo.
 
 ## Decisiones de diseño ya tomadas (no las reabras sin razón)
@@ -169,13 +184,13 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   en el equipo de la caseta.
 - El teclado en pantalla (QWERTY, arrastrable/redimensionable) solo debe
   aparecer en las pantallas del lado de **caseta/kiosko** que tengan un campo
-  de texto real (validación, foto, badge, confirmación, salida registrada) —
-  nunca en las pantallas de empleado, que sí tienen teclado/mouse reales,
-  **ni en "home" (solo botones), "código de acceso" o "código de salida"**,
-  que usan su propio PIN pad numérico compartido (ver `pinModo` en el JS) o
-  ningún input, y no tienen ningún `<input>` de texto al que el teclado
-  QWERTY pueda escribirle
-  (mostrarlo ahí no hacía nada al presionar teclas).
+  de texto real. Hoy esa es únicamente **validación** (apellido paterno) —
+  ninguna otra pantalla de caseta (home, foto, etiqueta de acceso, código de
+  acceso/salida, confirmar/registrar salida, salida registrada) tiene un
+  `<input>` de texto al que el teclado QWERTY pueda escribirle; las de
+  código usan su propio PIN pad numérico compartido (ver `pinModo` en el
+  JS). Nunca debe aparecer en las pantallas de empleado, que sí tienen
+  teclado/mouse reales. Ver el arreglo `kioskScreens` en `showScreen()`.
 - Estilo visual: se sigue el look de WishPOS existente (topbar azul con degradado,
   sidebar gris-azulado con íconos, tarjetas con círculo morado, ola teal al
   fondo) — no se debe rediseñar sin que el usuario lo pida explícitamente.

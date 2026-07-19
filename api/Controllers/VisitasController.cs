@@ -68,6 +68,13 @@ public class VisitasController(IVisitasRepositorio repositorio, IFotoService fot
         return Ok(new GuardarFotoResultado(rutaCompleta));
     }
 
+    [HttpPost("{id:long}/cancelar")]
+    public async Task<IActionResult> Cancelar(long id)
+    {
+        var resultado = await repositorio.CancelarAsync(id);
+        return Ok(resultado);
+    }
+
     [HttpGet("{id:long}/foto")]
     public async Task<IActionResult> ObtenerFoto(long id)
     {

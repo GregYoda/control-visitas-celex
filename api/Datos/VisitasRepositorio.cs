@@ -13,6 +13,7 @@ public interface IVisitasRepositorio
     Task<List<ReporteFila>> ReporteAsync(DateOnly fechaInicio, DateOnly fechaFin);
     Task<List<MiVisita>> MisVisitasAsync(string registradoPor);
     Task<ActualizarResultado> ActualizarAsync(long id, VisitaActualizarRequest datos);
+    Task<ActualizarResultado> CancelarAsync(long id);
     Task ActualizarFotoRutaAsync(long id, string fotoRuta);
 }
 
@@ -234,6 +235,18 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
         comando.Parameters.AddWithValue("@Marca", datos.Marca ?? "");
         comando.Parameters.AddWithValue("@Modelo", datos.Modelo ?? "");
         comando.Parameters.AddWithValue("@Placas", datos.Placas ?? "");
+
+        await conexion.OpenAsync();
+        await using var lector = await comando.ExecuteReaderAsync();
+        await lector.ReadAsync();
+        return new ActualizarResultado(lector.GetString(lector.GetOrdinal("Resultado")));
+    }
+
+    public async Task<ActualizarResultado> CancelarAsync(long id)
+    {
+        await using var conexion = conexionFactory.Crear();
+        await using var comando = new SqlCommand("dbo.sp_CV_Visitas_Cancelar", conexion) { CommandType = CommandType.StoredProcedure };
+        comando.Parameters.AddWithValue("@ID", id);
 
         await conexion.OpenAsync();
         await using var lector = await comando.ExecuteReaderAsync();
