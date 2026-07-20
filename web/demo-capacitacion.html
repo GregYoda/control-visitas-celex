@@ -1,0 +1,2067 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Visitas · Celex</title>
+<style>
+  :root{
+    --navy-top:#0a1024;
+    --navy-1:#122a63;
+    --navy-2:#1d3f8f;
+    --sidebar-1:#5b6270;
+    --sidebar-2:#4a505c;
+    --sidebar-hover:#3a414d;
+    --content-1:#e9edf4;
+    --content-2:#dbe2ec;
+    --menu-bar:#6e655e;
+    --purple-1:#7b3fe4;
+    --purple-2:#9a66ff;
+    --teal-badge-1:#0f6a6b;
+    --teal-badge-2:#1a8a8b;
+    --teal-1:#0d3b3c;
+    --teal-2:#155e5f;
+    --teal-3:#1d7677;
+    --ok:#1f9d55;
+    --err:#d64545;
+    --warn:#c98a1c;
+    --ink:#232733;
+    --white:#ffffff;
+    --radius:14px;
+    --shadow:0 6px 20px rgba(15,25,55,.16);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:'Segoe UI',Roboto,Arial,sans-serif;
+    color:var(--ink);
+    background:var(--content-1);
+    overflow-x:hidden;
+  }
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+  .screen{display:none;min-height:100vh;position:relative;}
+  .screen.active{display:block;}
+
+  /* ---------- Layout shell (topbar + sidebar) ---------- */
+  .app-shell{display:flex;min-height:100vh;flex-direction:column;}
+  .topbar{
+    background:linear-gradient(90deg,var(--navy-1),var(--navy-2) 60%,#2a54b8);
+    border-top:6px solid var(--navy-top);
+    padding:18px 30px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand-badge{
+    width:46px;height:46px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#3a5fc4,#0e1c46);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:700;font-size:18px;letter-spacing:1px;
+    border:2px solid rgba(255,255,255,.55);
+  }
+  .brand-name{color:#fff;font-size:15px;letter-spacing:2px;font-weight:600;opacity:.9;}
+  .topbar-right{display:flex;align-items:center;gap:16px;}
+  .session-chip{color:#dfe6ff;font-size:13px;}
+  .btn-logout{
+    background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);
+    padding:8px 14px;border-radius:20px;font-size:13px;
+  }
+  .btn-logout:hover{background:rgba(255,255,255,.22);}
+
+  .body-row{display:flex;flex:1;min-height:0;}
+  .sidebar{
+    width:280px;flex-shrink:0;
+    background:linear-gradient(180deg,var(--sidebar-1),var(--sidebar-2));
+    padding-top:6px;
+  }
+  .side-item{
+    display:flex;align-items:center;gap:14px;
+    padding:13px 22px;color:#f1f2f5;font-size:14.5px;
+    border-bottom:1px solid rgba(255,255,255,.05);
+    position:relative;
+  }
+  .side-item:hover{background:var(--sidebar-hover);}
+  .side-item.new-module{background:rgba(122,63,228,.18);}
+  .side-item.new-module:hover{background:rgba(122,63,228,.32);}
+  .side-icon{width:20px;text-align:center;opacity:.9;}
+  .side-item.active-mod{background:var(--sidebar-hover);border-left:3px solid var(--purple-2);}
+
+  .content{flex:1;padding:34px 40px;position:relative;overflow:auto;}
+  .content-title{
+    background:var(--menu-bar);color:#fff;padding:14px 22px;font-size:22px;font-weight:700;
+    border-radius:4px;margin-bottom:34px;
+  }
+  .breadcrumb-back{
+    display:inline-flex;align-items:center;gap:6px;color:#556;background:none;border:none;
+    font-size:13.5px;margin-bottom:16px;padding:0;
+  }
+  .breadcrumb-back:hover{text-decoration:underline;}
+
+  .cards-row{display:flex;gap:24px;flex-wrap:wrap;}
+  .big-card{
+    background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:22px 30px;display:flex;align-items:center;gap:18px;
+    min-width:300px;border:1px solid #eef0f4;transition:transform .12s;
+  }
+  .big-card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(15,25,55,.2);}
+  .card-icon{
+    width:52px;height:52px;border-radius:50%;flex-shrink:0;
+    background:radial-gradient(circle at 35% 30%,var(--purple-2),var(--purple-1));
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;
+  }
+  .card-icon.teal{background:radial-gradient(circle at 35% 30%,var(--teal-badge-2),var(--teal-badge-1));}
+  .card-label{font-weight:700;letter-spacing:1.5px;font-size:15px;color:#3a3f4b;text-transform:uppercase;}
+  .card-sub{font-size:12.5px;color:#8b93a3;letter-spacing:.5px;margin-top:3px;text-transform:none;font-weight:400;}
+
+  /* bottom teal wave decoration */
+  .wave-wrap{position:fixed;left:0;right:0;bottom:0;height:70px;pointer-events:none;z-index:0;}
+
+  /* ---------- Login ---------- */
+  .login-wrap{
+    min-height:100vh;display:flex;flex-direction:column;
+    background:linear-gradient(180deg,var(--content-1),var(--content-2));
+  }
+  .login-topbar{
+    background:linear-gradient(90deg,var(--navy-1),var(--navy-2) 60%,#2a54b8);
+    border-top:6px solid var(--navy-top);padding:20px 30px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+  }
+  .demo-tag{
+    color:#fff;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);
+    font-size:11px;font-weight:700;letter-spacing:.06em;padding:5px 12px;border-radius:999px;white-space:nowrap;
+  }
+  .demo-note{
+    margin-top:18px;padding:12px 14px;background:#fff7e6;border:1px solid #e8b84b;
+    border-radius:10px;font-size:12px;line-height:1.5;color:#7a5200;
+  }
+  .demo-note code{background:#fdeecb;border:1px solid #e0c07a;border-radius:5px;padding:1px 6px;font-size:11.5px;color:#5b3d00;}
+  .login-center{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .login-card{
+    background:#fff;border-radius:18px;box-shadow:var(--shadow);
+    padding:40px 44px;width:380px;max-width:92vw;
+  }
+  .login-card h2{margin:0 0 4px;font-size:20px;color:var(--ink);}
+  .login-card p.hint{margin:0 0 24px;color:#8b93a3;font-size:13px;}
+  .field{margin-bottom:18px;}
+  .field label{display:block;font-size:12.5px;color:#5a6070;margin-bottom:6px;font-weight:600;letter-spacing:.3px;}
+  .field label.required::after{content:' *';color:var(--err);}
+  .field input,.field select,.field textarea{
+    width:100%;padding:11px 13px;border:1.5px solid #dfe3ea;border-radius:9px;font-size:14.5px;
+    background:#fbfcfe;
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--purple-2);background:#fff;}
+  .btn-primary{
+    width:100%;padding:12px;border:none;border-radius:9px;
+    background:linear-gradient(90deg,var(--purple-1),var(--purple-2));
+    color:#fff;font-weight:700;font-size:14.5px;letter-spacing:.5px;
+  }
+  .btn-primary:hover{filter:brightness(1.06);}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-secondary{
+    width:100%;padding:12px;border:1.5px solid #d8dce3;border-radius:9px;background:#fff;
+    color:#444a58;font-weight:600;font-size:14px;margin-top:10px;
+  }
+  .btn-secondary:hover{background:#f4f5f8;}
+  .btn-danger{
+    width:100%;padding:12px;border:1.5px solid #f3b9b4;border-radius:9px;background:#fff;
+    color:#b3261e;font-weight:600;font-size:14px;margin-top:10px;
+  }
+  .btn-danger:hover{background:#fdeceb;}
+  .login-error{color:var(--err);font-size:13px;margin-top:10px;min-height:16px;}
+
+  /* ---------- Module home cards ---------- */
+  .module-card{
+    background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:30px;width:280px;text-align:center;border:1px solid #eef0f4;
+  }
+  .module-card .card-icon{margin:0 auto 16px;width:64px;height:64px;font-size:26px;}
+  .module-card h3{margin:0 0 8px;font-size:16px;}
+  .module-card p{margin:0 0 18px;font-size:12.5px;color:#8b93a3;line-height:1.5;}
+  .module-card button{
+    border:none;background:var(--purple-1);color:#fff;padding:10px 20px;border-radius:20px;
+    font-weight:600;font-size:13px;
+  }
+  .module-card button:hover{background:var(--purple-2);}
+  .module-card.kiosk-card .card-icon{background:radial-gradient(circle at 35% 30%,var(--teal-badge-2),var(--teal-badge-1));}
+  .module-card.kiosk-card button{background:var(--teal-2);}
+  .module-card.kiosk-card button:hover{background:var(--teal-3);}
+
+  /* ---------- Form (registro) ---------- */
+  .form-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:32px 36px;max-width:640px;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;}
+  .form-grid .field.full{grid-column:1/-1;}
+  .toggle-row{display:flex;align-items:center;gap:12px;margin:6px 0 16px;grid-column:1/-1;}
+  .toggle-row label{font-size:13.5px;font-weight:600;color:#5a6070;}
+  .switch{position:relative;width:46px;height:24px;flex-shrink:0;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;background:#d8dce3;border-radius:24px;transition:.2s;}
+  .slider:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+  .switch input:checked + .slider{background:var(--purple-1);}
+  .switch input:checked + .slider:before{transform:translateX(22px);}
+  .auto-fields{display:none;grid-template-columns:1fr 1fr 1fr;gap:0 14px;grid-column:1/-1;}
+  .auto-fields.show{display:grid;}
+  .form-actions{display:flex;gap:12px;margin-top:8px;}
+  .form-actions .btn-primary{width:auto;padding:12px 30px;}
+  .form-actions .btn-secondary{width:auto;padding:12px 24px;margin-top:0;}
+
+  /* ---------- Código de acceso display ---------- */
+  .qr-wrap{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:36px 40px;max-width:480px;text-align:center;}
+  .qr-summary{text-align:left;background:#f7f8fb;border-radius:10px;padding:16px 18px;font-size:13.5px;color:#444a58;line-height:1.7;margin-bottom:20px;}
+  .qr-summary b{color:var(--ink);}
+  .qr-actions{display:flex;gap:10px;flex-wrap:wrap;}
+  .qr-actions button{flex:1;min-width:140px;}
+
+  /* ---------- Kiosk mode ---------- */
+  .kiosk-shell{min-height:100vh;background:linear-gradient(180deg,var(--teal-1),#0a2324 60%,#071718);color:#fff;display:flex;flex-direction:column;}
+  .kiosk-top{padding:22px 34px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.08);}
+  .kiosk-top .brand-name{color:#fff;}
+  .kiosk-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:26px;text-align:center;}
+  .kiosk-body h1{font-size:32px;margin:0;}
+  .kiosk-body p.sub{color:#bcd9d9;font-size:15px;margin:0 0 10px;}
+  .btn-kiosk-main{
+    background:linear-gradient(90deg,var(--teal-badge-2),var(--teal-badge-1));
+    color:#fff;border:none;padding:30px 60px;border-radius:20px;font-size:22px;font-weight:700;
+    letter-spacing:1px;box-shadow:0 10px 30px rgba(0,0,0,.35);min-height:90px;
+  }
+  .btn-kiosk-main:hover{filter:brightness(1.1);}
+  .btn-kiosk-main.salida{background:linear-gradient(90deg,#d99a2c,#b3790f);}
+  .btn-kiosk-secondary{
+    background:rgba(255,255,255,.08);color:#fff;border:1.5px solid rgba(255,255,255,.35);
+    padding:16px 32px;border-radius:14px;font-size:15px;font-weight:600;min-height:56px;
+  }
+  .btn-kiosk-secondary:hover{background:rgba(255,255,255,.16);}
+  .kiosk-card-box{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:36px 44px;max-width:560px;width:100%;}
+  .kiosk-video-wrap{position:relative;width:340px;height:340px;max-width:80vw;max-height:80vw;border-radius:20px;overflow:hidden;border:3px solid rgba(255,255,255,.3);background:#000;margin:0 auto;}
+  .kiosk-video-wrap video{width:100%;height:100%;object-fit:cover;}
+  #photoVideo{transform:scaleX(-1);}
+  .face-guide{position:absolute;inset:12% 24%;border:3px dashed rgba(255,255,255,.7);border-radius:50% / 40%;pointer-events:none;}
+  .photo-preview-wrap{position:relative;width:340px;height:340px;max-width:80vw;max-height:80vw;border-radius:20px;overflow:hidden;border:3px solid rgba(255,255,255,.3);background:#000;margin:0 auto;}
+  .photo-preview-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+  .kiosk-field{width:100%;}
+  .kiosk-field input{
+    width:100%;padding:18px 16px;border-radius:14px;border:none;font-size:22px;text-align:center;
+    background:#fff;color:var(--ink);
+  }
+  .kiosk-msg{font-size:14px;min-height:20px;}
+  .kiosk-msg.err{color:#ff9d9d;}
+  .kiosk-msg.ok{color:#8dffb0;}
+  .sim-toggle{background:none;border:none;color:#9fdcdc;text-decoration:underline;font-size:13px;margin-top:6px;}
+
+  /* ---------- Badge ---------- */
+  .badge-card{
+    background:#fff;color:var(--ink);border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.35);
+    padding:34px 40px;max-width:420px;width:100%;text-align:center;
+  }
+  .badge-check{width:64px;height:64px;border-radius:50%;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px;}
+  .badge-photo-wrap{position:relative;width:96px;height:96px;margin:0 auto 14px;}
+  .badge-photo{width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid #eef0f4;background:#f0f1f5;display:block;}
+  .badge-photo-placeholder{display:flex;align-items:center;justify-content:center;font-size:40px;color:#c3c8d3;}
+  .badge-photo-check{position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-radius:50%;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #fff;}
+  .badge-title{font-weight:800;color:var(--ok);letter-spacing:1px;font-size:15px;margin-bottom:18px;}
+  .badge-name{font-size:22px;font-weight:700;margin-bottom:4px;}
+  .badge-row{display:flex;justify-content:space-between;font-size:13.5px;padding:8px 0;border-bottom:1px dashed #e4e6ec;text-align:left;}
+  .badge-row span:first-child{color:#8b93a3;}
+  .badge-row span:last-child{font-weight:600;color:var(--ink);text-align:right;}
+  .exit-code-box{margin-top:16px;padding:14px;border-radius:12px;background:#fff7e6;border:1.5px dashed #e8b84b;}
+  .exit-code-label{font-size:11px;color:#a1720c;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
+  .exit-code-value{font-size:30px;font-weight:800;letter-spacing:7px;color:#a1720c;}
+
+  /* ---------- PIN pad (registro de salida) ---------- */
+  .pin-display{display:flex;gap:10px;}
+  .pin-box{width:46px;height:56px;border-radius:10px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;}
+  .pin-box.filled{background:rgba(255,255,255,.22);border-color:#d99a2c;}
+  .pin-pad{display:grid;grid-template-columns:repeat(3,78px);gap:14px;}
+  .pin-key{width:78px;height:78px;border-radius:50%;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:24px;font-weight:700;}
+  .pin-key:active{background:#d99a2c;}
+  .pin-key-fn{font-size:16px;background:rgba(255,255,255,.06);}
+
+  /* ---------- Reports ---------- */
+  .filters-row{display:flex;gap:14px;align-items:end;flex-wrap:wrap;background:#fff;padding:20px 24px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:24px;}
+  .filters-row .field{margin:0;}
+  table.report-table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
+  table.report-table th{background:var(--menu-bar);color:#fff;padding:12px 14px;text-align:left;font-size:12.5px;letter-spacing:.3px;}
+  table.report-table td{padding:11px 14px;font-size:13px;border-bottom:1px solid #eef0f4;}
+  table.report-table tr:last-child td{border-bottom:none;}
+  .status-pill{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:.3px;}
+  .status-pill.pendiente{background:#fff3d6;color:#a1720c;}
+  .status-pill.accesado{background:#dff5e6;color:#1f9d55;}
+  .status-pill.dentro{background:#e3edff;color:#1d4ed8;}
+  .status-pill.salida{background:#f1e8ff;color:#7b3fe4;}
+  .status-pill.cancelada{background:#fde2e2;color:#b3261e;}
+  .report-thumb{width:34px;height:34px;border-radius:50%;object-fit:cover;display:block;}
+  .report-thumb-empty{display:flex;align-items:center;justify-content:center;background:#eef0f4;color:#b5bac6;font-size:16px;}
+  .empty-note{color:#8b93a3;font-size:13.5px;padding:30px;text-align:center;}
+
+  /* ---------- Virtual keyboard ---------- */
+  .vkb-toggle{
+    position:fixed;right:26px;bottom:26px;z-index:500;
+    background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.4);color:#fff;
+    padding:14px 20px;border-radius:30px;font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center;
+  }
+  .vkb-toggle:hover{background:rgba(255,255,255,.22);}
+  .vkb-panel{
+    position:fixed;z-index:600;background:#232733;border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.5);
+    display:none;flex-direction:column;overflow:hidden;min-width:320px;min-height:200px;
+    width:560px;height:230px;
+  }
+  .vkb-panel.show{display:flex;}
+  .vkb-header{
+    background:#181b23;color:#fff;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;
+    cursor:grab;font-size:12.5px;letter-spacing:.5px;flex-shrink:0;user-select:none;
+  }
+  .vkb-header button{background:none;border:none;color:#fff;font-size:16px;opacity:.8;}
+  .vkb-header button:hover{opacity:1;}
+  .vkb-keys{flex:1;display:flex;flex-direction:column;gap:5px;padding:8px;min-height:0;}
+  .vkb-row{display:flex;gap:5px;flex:1;}
+  .vkb-key{
+    flex:1;background:#333a48;color:#fff;border:none;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;font-size:15px;user-select:none;
+  }
+  .vkb-key:active{background:var(--purple-1);}
+  .vkb-key.wide{flex:2;}
+  .vkb-key.space{flex:6;}
+  .vkb-resize{
+    position:absolute;right:2px;bottom:2px;width:16px;height:16px;cursor:nwse-resize;
+    background:linear-gradient(135deg,transparent 50%,#555 50%);border-bottom-right-radius:10px;
+  }
+  .vkb-panel-inner{position:relative;flex:1;display:flex;flex-direction:column;min-height:0;}
+
+  ::-webkit-scrollbar{width:10px;}
+  ::-webkit-scrollbar-thumb{background:#c4cad6;border-radius:10px;}
+
+  @media print {
+    body * { visibility: hidden; }
+    #badgeCard, #badgeCard * { visibility: visible; }
+    #badgeCard {
+      position: fixed; top: 20mm; left: 50%; transform: translateX(-50%);
+      box-shadow: none; border: 1px solid #ddd; width: 90mm;
+    }
+  }
+
+  /* ---------- Mis visitas ---------- */
+  .mv-table-wrap{overflow-x:auto;}
+  table.mv-table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
+  table.mv-table th{background:var(--menu-bar);color:#fff;padding:12px 14px;text-align:left;font-size:12.5px;letter-spacing:.3px;}
+  table.mv-table td{padding:11px 14px;font-size:13px;border-bottom:1px solid #eef0f4;vertical-align:middle;}
+  table.mv-table tr:last-child td{border-bottom:none;}
+  table.mv-table tr:hover td{background:#f9fafb;}
+  .btn-editar{border:none;background:var(--purple-1);color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;}
+  .btn-editar:hover{background:var(--purple-2);}
+  .btn-editar:disabled{background:#d5d8de;color:#9099a8;cursor:not-allowed;}
+</style>
+</head>
+<body>
+
+<!-- =================== LOGIN (empleado) =================== -->
+<section class="screen active" id="screen-login">
+  <div class="login-wrap">
+    <div class="login-topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <span class="demo-tag">VERSIÓN DEMO · CAPACITACIÓN</span>
+    </div>
+    <div class="login-center">
+      <div class="login-card">
+        <h2>Iniciar sesión</h2>
+        <p class="hint">Usa tu contraseña de WishPOS</p>
+        <div class="field"><label>Contraseña</label><input id="loginPass" type="password" placeholder="••••••••"></div>
+        <button class="btn-primary" onclick="doLogin()">Entrar</button>
+        <div class="login-error" id="loginError"></div>
+        <div class="demo-note">
+          <b>Modo demostración</b> — no se conecta a ningún servidor; los datos son de ejemplo y se reinician al recargar la página.<br>
+          Contraseña para entrar: <code>demo</code> (cualquiera funciona). Escribe <code>activaciones</code> para ver el registro con datos precargados.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== MENU PRINCIPAL =================== -->
+<section class="screen" id="screen-menu">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right">
+        <span class="session-chip">👤 <span id="menuUserLabel"></span></span>
+        <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
+      </div>
+    </div>
+    <div class="body-row">
+      <div class="sidebar" id="sidebarList"></div>
+      <div class="content">
+        <div class="content-title">Menú</div>
+        <div class="cards-row">
+          <div class="big-card">
+            <div class="card-icon">🏢</div>
+            <div><div class="card-label">Administración Comercial</div></div>
+          </div>
+          <div class="big-card">
+            <div class="card-icon">🔧</div>
+            <div><div class="card-label">Herramientas Comerciales</div></div>
+          </div>
+          <div class="big-card" style="cursor:pointer" onclick="showScreen('screen-visitas-home')">
+            <div class="card-icon teal">🪪</div>
+            <div>
+              <div class="card-label">Control de Visitas</div>
+              <div class="card-sub">Registro, acceso y bitácora de visitantes</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="wave-wrap"><svg viewBox="0 0 1600 90" preserveAspectRatio="none" width="100%" height="100%"><path d="M0,40 C300,90 500,0 800,30 C1100,60 1300,10 1600,40 L1600,90 L0,90 Z" fill="url(#g1)"/><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0d3b3c"/><stop offset="1" stop-color="#1d7677"/></linearGradient></defs></svg></div>
+</section>
+
+<!-- =================== MODULO: HOME VISITAS =================== -->
+<section class="screen" id="screen-visitas-home">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right">
+        <span class="session-chip">👤 <span id="visitasUserLabel"></span></span>
+        <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
+      </div>
+    </div>
+    <div class="body-row">
+      <div class="sidebar" id="sidebarList2"></div>
+      <div class="content">
+        <div class="content-title">Control de Visitas</div>
+        <button class="breadcrumb-back" onclick="showScreen('screen-menu')">‹ Volver al menú</button>
+        <div class="cards-row">
+          <div class="module-card">
+            <div class="card-icon">📝</div>
+            <h3>Registrar visita</h3>
+            <p>Captura los datos de tu visitante y genera su código de acceso.</p>
+            <button onclick="openRegistro()">Registrar</button>
+          </div>
+          <div class="module-card">
+            <div class="card-icon">📊</div>
+            <h3>Reportes / Bitácora</h3>
+            <p>Consulta accesos por rango de fechas y exporta el reporte.</p>
+            <button onclick="openReportes()">Ver reportes</button>
+          </div>
+          <div class="module-card kiosk-card">
+            <div class="card-icon">🛡️</div>
+            <h3>Área de Acceso</h3>
+            <p>Modo caseta / kiosko para registrar la llegada de visitantes.</p>
+            <button onclick="showScreen('screen-kiosk-home')">Entrar al kiosko</button>
+          </div>
+          <div class="module-card">
+            <div class="card-icon" style="background:radial-gradient(circle at 35% 30%,#4f8ef7,#1a5fd4);">📋</div>
+            <h3>Mis visitas</h3>
+            <p>Consulta y modifica las visitas que tú registraste.</p>
+            <button onclick="openMisVisitas()">Ver mis visitas</button>
+          </div>
+          <div class="module-card" id="configCard" style="display:none;">
+            <div class="card-icon" style="background:radial-gradient(circle at 35% 30%,#8b93a3,#5a6070);">⚙️</div>
+            <h3>Configuración</h3>
+            <p>Parámetros del sistema, como la ruta donde se guardan las fotos.</p>
+            <button onclick="openConfiguracion()">Configurar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="wave-wrap"><svg viewBox="0 0 1600 90" preserveAspectRatio="none" width="100%" height="100%"><path d="M0,40 C300,90 500,0 800,30 C1100,60 1300,10 1600,40 L1600,90 L0,90 Z" fill="url(#g1b)"/><defs><linearGradient id="g1b" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0d3b3c"/><stop offset="1" stop-color="#1d7677"/></linearGradient></defs></svg></div>
+</section>
+
+<!-- =================== CONFIGURACIÓN =================== -->
+<section class="screen" id="screen-configuracion">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right"><button class="btn-logout" onclick="doLogout()">Cerrar sesión</button></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;overflow:auto;">
+        <button class="breadcrumb-back" onclick="showScreen('screen-visitas-home')">‹ Volver</button>
+        <div class="content-title" style="max-width:640px;">Configuración</div>
+        <div class="form-card" style="max-width:640px;">
+          <div class="form-grid">
+            <div class="field full">
+              <label class="required">Ruta de fotos</label>
+              <input id="cfgRutaFotos" placeholder="C:\Control de Visitas\Fotos">
+            </div>
+            <div class="field">
+              <label class="required">Prefijo del nombre de archivo</label>
+              <input id="cfgPrefijoFoto" placeholder="CV">
+            </div>
+            <div class="field">
+              <label class="required">Dígitos del ID (ceros a la izquierda)</label>
+              <input id="cfgDigitosFoto" type="number" min="1" max="20" placeholder="10">
+            </div>
+          </div>
+          <p style="color:#8b93a3;font-size:12.5px;margin:-6px 0 18px;">
+            Con los valores por defecto, la foto de la visita con ID 1 se guarda como <b>CV0000000001.jpg</b>.
+          </p>
+          <div class="login-error" id="configMsg"></div>
+          <div class="form-actions">
+            <button class="btn-primary" onclick="guardarConfiguracion()">Guardar cambios</button>
+            <button class="btn-secondary" onclick="showScreen('screen-visitas-home')">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== REGISTRO DE VISITA =================== -->
+<section class="screen" id="screen-registro">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right"><span class="session-chip">👤 <span id="regUserLabel"></span></span></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;overflow:auto;">
+        <button class="breadcrumb-back" onclick="showScreen('screen-visitas-home')">‹ Volver</button>
+        <div class="content-title" style="max-width:640px;">Registrar visita</div>
+        <div class="form-card">
+          <div class="form-grid">
+            <div class="field"><label class="required">Nombre</label><input id="fNombre"></div>
+            <div class="field"><label class="required">Apellido paterno</label><input id="fApP"></div>
+            <div class="field"><label class="required">Apellido materno</label><input id="fApM"></div>
+            <div class="field"><label class="required">Correo electrónico</label><input id="fCorreo" type="email"></div>
+            <div class="field"><label class="required">Empresa</label><input id="fEmpresa"></div>
+            <div class="field"><label class="required">Área a visitar</label>
+              <select id="fArea"><option value="">Cargando áreas…</option></select>
+            </div>
+            <div class="field full"><label class="required">Motivo de la visita</label><input id="fMotivo" placeholder="ej. Reunión de proveedores"></div>
+            <div class="field full"><label>Observaciones (opcional)</label><input id="fObservaciones" placeholder="Comentarios para el personal de vigilancia al recibir la visita"></div>
+            <div class="field"><label class="required">Fecha de visita</label><input id="fFechaVisita" type="date"></div>
+            <div class="field"><label class="required">Persona que visita (anfitrión)</label><input id="fAnfitrion"></div>
+
+            <div class="toggle-row">
+              <label class="switch"><input type="checkbox" id="fTraeAuto" onchange="toggleAutoFields()"><span class="slider"></span></label>
+              <label>¿El visitante trae vehículo?</label>
+            </div>
+            <div class="auto-fields" id="autoFields">
+              <div class="field"><label class="required">Marca</label><input id="fMarca"></div>
+              <div class="field"><label class="required">Modelo</label><input id="fModelo"></div>
+              <div class="field"><label class="required">Placas</label><input id="fPlacas"></div>
+            </div>
+          </div>
+          <div class="login-error" id="regError"></div>
+          <div class="form-actions">
+            <button class="btn-primary" onclick="generarCodigoAcceso()">Generar código de acceso</button>
+            <button class="btn-secondary" onclick="showScreen('screen-visitas-home')">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== CÓDIGO DE ACCESO GENERADO =================== -->
+<section class="screen" id="screen-codigo-acceso">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;display:flex;flex-direction:column;align-items:center;overflow:auto;">
+        <button class="breadcrumb-back" style="align-self:flex-start;" onclick="showScreen('screen-visitas-home')">‹ Volver al módulo</button>
+        <div class="qr-wrap">
+          <h2 style="margin:0 0 4px;">Código de acceso generado</h2>
+          <p style="color:#8b93a3;font-size:13px;margin:0 0 6px;">Comparte este código con el visitante — lo va a necesitar en la caseta para registrar su llegada.</p>
+          <div class="exit-code-box">
+            <div class="exit-code-label">CÓDIGO DE ACCESO</div>
+            <div class="exit-code-value" id="codigoAccesoValor"></div>
+          </div>
+          <div class="qr-summary" id="qrSummary"></div>
+          <div class="qr-actions">
+            <button class="btn-primary" onclick="enviarCorreo()">✉️ Enviar por correo</button>
+            <button class="btn-secondary" onclick="copiarCodigoAcceso()">📋 Copiar código</button>
+          </div>
+          <div class="login-error" id="qrMsg" style="color:var(--ok);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: HOME =================== -->
+<section class="screen" id="screen-kiosk-home">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <h1>Bienvenido al control de accesos</h1>
+      <p class="sub">Toca el botón para registrar la llegada o salida de un visitante</p>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;">
+        <button class="btn-kiosk-main" onclick="openAccesoCodigo()">🔑 REGISTRAR ACCESO</button>
+        <button class="btn-kiosk-main salida" onclick="openSalidaCodigo()">🚪 REGISTRAR SALIDA</button>
+      </div>
+      <button class="btn-kiosk-secondary" onclick="doLogout()">‹ Salir del kiosko</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: CÓDIGO DE ACCESO =================== -->
+<section class="screen" id="screen-acceso-codigo">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <h1 style="font-size:24px;">Ingresa tu código de acceso</h1>
+      <p class="sub">Ingresa el código de 6 dígitos que te compartieron al registrar tu visita</p>
+      <div class="pin-display" id="accesoPinDisplay">
+        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
+        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
+      </div>
+      <div class="kiosk-msg err" id="accesoMsg"></div>
+      <div class="pin-pad">
+        <button class="pin-key" onclick="pinPress('1')">1</button>
+        <button class="pin-key" onclick="pinPress('2')">2</button>
+        <button class="pin-key" onclick="pinPress('3')">3</button>
+        <button class="pin-key" onclick="pinPress('4')">4</button>
+        <button class="pin-key" onclick="pinPress('5')">5</button>
+        <button class="pin-key" onclick="pinPress('6')">6</button>
+        <button class="pin-key" onclick="pinPress('7')">7</button>
+        <button class="pin-key" onclick="pinPress('8')">8</button>
+        <button class="pin-key" onclick="pinPress('9')">9</button>
+        <button class="pin-key pin-key-fn" onclick="pinClear()">C</button>
+        <button class="pin-key" onclick="pinPress('0')">0</button>
+        <button class="pin-key pin-key-fn" onclick="pinBackspace()">⌫</button>
+      </div>
+      <button class="btn-kiosk-secondary" onclick="showScreen('screen-kiosk-home')">‹ Cancelar</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: VALIDAR APELLIDO =================== -->
+<section class="screen" id="screen-validate">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <h1 style="font-size:24px;">Confirma tu identidad</h1>
+      <p class="sub">Por seguridad, escribe tu apellido paterno tal como fue registrado</p>
+      <div class="kiosk-field">
+        <input id="validateApP" placeholder="Apellido paterno" autocomplete="off">
+      </div>
+      <button class="btn-kiosk-main" style="padding:18px 44px;font-size:17px;" onclick="submitValidate()">Validar</button>
+      <div class="kiosk-msg err" id="validateMsg"></div>
+      <button class="btn-kiosk-secondary" onclick="showScreen('screen-kiosk-home')">‹ Cancelar</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: FOTOGRAFÍA DE LA VISITA =================== -->
+<section class="screen" id="screen-photo">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <h1 style="font-size:24px;">Foto de la visita</h1>
+      <p class="sub">Para la credencial de acceso, toma una fotografía del visitante</p>
+
+      <div class="kiosk-video-wrap" id="photoVideoWrap">
+        <video id="photoVideo" muted playsinline autoplay></video>
+        <div class="face-guide"></div>
+      </div>
+      <div class="photo-preview-wrap" id="photoPreviewWrap" style="display:none;">
+        <img id="photoPreviewImg" alt="Foto capturada">
+      </div>
+
+      <div class="kiosk-msg err" id="photoMsg"></div>
+
+      <div id="photoActionsCapture" style="display:flex;gap:12px;">
+        <button class="btn-kiosk-main" style="padding:18px 40px;font-size:17px;" onclick="takePhoto()">📸 Tomar foto</button>
+      </div>
+      <div id="photoActionsConfirm" style="display:none;gap:12px;">
+        <button class="btn-kiosk-secondary" onclick="retakePhoto()">🔁 Repetir foto</button>
+        <button class="btn-kiosk-main" style="padding:16px 34px;font-size:16px;" onclick="confirmPhotoAndContinue(false)">✅ Usar esta foto</button>
+      </div>
+
+      <button class="sim-toggle" onclick="confirmPhotoAndContinue(true)">Continuar sin foto</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: ETIQUETA DE ACCESO =================== -->
+<section class="screen" id="screen-badge">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <div class="badge-card" id="badgeCard">
+        <!-- filled by JS -->
+      </div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn-kiosk-secondary" onclick="window.print()">🖨️ Imprimir etiqueta</button>
+        <button class="btn-kiosk-main" style="padding:16px 30px;font-size:15px;" onclick="showScreen('screen-kiosk-home')">Nuevo registro</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: CÓDIGO DE SALIDA =================== -->
+<section class="screen" id="screen-salida-codigo">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <h1 style="font-size:24px;">Registrar salida</h1>
+      <p class="sub">Ingresa tu código de 6 dígitos (el que recibiste al entrar)</p>
+      <div class="pin-display" id="salidaPinDisplay">
+        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
+        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
+      </div>
+      <div class="kiosk-msg err" id="salidaMsg"></div>
+      <div class="pin-pad">
+        <button class="pin-key" onclick="pinPress('1')">1</button>
+        <button class="pin-key" onclick="pinPress('2')">2</button>
+        <button class="pin-key" onclick="pinPress('3')">3</button>
+        <button class="pin-key" onclick="pinPress('4')">4</button>
+        <button class="pin-key" onclick="pinPress('5')">5</button>
+        <button class="pin-key" onclick="pinPress('6')">6</button>
+        <button class="pin-key" onclick="pinPress('7')">7</button>
+        <button class="pin-key" onclick="pinPress('8')">8</button>
+        <button class="pin-key" onclick="pinPress('9')">9</button>
+        <button class="pin-key pin-key-fn" onclick="pinClear()">C</button>
+        <button class="pin-key" onclick="pinPress('0')">0</button>
+        <button class="pin-key pin-key-fn" onclick="pinBackspace()">⌫</button>
+      </div>
+      <p style="font-size:12.5px;color:#8ec4c4;margin:4px 0 0;">¿Olvidaste tu código? Solicita apoyo en recepción.</p>
+      <button class="btn-kiosk-secondary" onclick="showScreen('screen-kiosk-home')">‹ Cancelar</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: CONFIRMAR SALIDA =================== -->
+<section class="screen" id="screen-salida-confirm">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <h1 style="font-size:22px;">¿Eres tú?</h1>
+      <div class="badge-card" id="salidaConfirmCard" style="max-width:380px;"><!-- filled by JS --></div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn-kiosk-secondary" onclick="rechazarSalidaConfirm()">❌ No soy yo</button>
+        <button class="btn-kiosk-main" style="padding:16px 30px;font-size:15px;" onclick="confirmarSalida()">✅ Confirmar salida</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== KIOSKO: SALIDA REGISTRADA =================== -->
+<section class="screen" id="screen-salida-done">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
+    </div>
+    <div class="kiosk-body">
+      <div class="badge-card" id="salidaDoneCard" style="max-width:380px;"><!-- filled by JS --></div>
+      <button class="btn-kiosk-main" style="padding:16px 30px;font-size:15px;" onclick="showScreen('screen-kiosk-home')">Finalizar</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== REPORTES =================== -->
+<section class="screen" id="screen-reportes">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right"><button class="btn-logout" onclick="doLogout()">Cerrar sesión</button></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;overflow:auto;">
+        <button class="breadcrumb-back" onclick="showScreen('screen-visitas-home')">‹ Volver</button>
+        <div class="content-title">Reportes / Bitácora de accesos</div>
+        <div class="filters-row">
+          <div class="field"><label>Fecha inicio</label><input type="date" id="repDesde"></div>
+          <div class="field"><label>Fecha fin</label><input type="date" id="repHasta"></div>
+          <button class="btn-primary" style="width:auto;padding:11px 22px;" onclick="generarReporte()">Generar reporte</button>
+          <button class="btn-secondary" style="width:auto;padding:11px 22px;margin-top:0;" onclick="exportarCSV()">⬇️ Exportar CSV</button>
+        </div>
+        <div id="reportTableWrap"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== MIS VISITAS =================== -->
+<section class="screen" id="screen-mis-visitas">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right"><button class="btn-logout" onclick="doLogout()">Cerrar sesión</button></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;overflow:auto;">
+        <button class="breadcrumb-back" onclick="showScreen('screen-visitas-home')">‹ Volver</button>
+        <div class="content-title">Mis visitas</div>
+        <div id="misVisitasWrap"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== EDITAR VISITA =================== -->
+<section class="screen" id="screen-editar-visita">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right"><span class="session-chip">👤 <span id="editUserLabel"></span></span></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;overflow:auto;">
+        <button class="breadcrumb-back" onclick="showScreen('screen-mis-visitas')">‹ Volver a mis visitas</button>
+        <div class="content-title" style="max-width:640px;">Editar visita</div>
+        <div class="form-card">
+          <div class="form-grid">
+            <div class="field"><label class="required">Nombre</label><input id="eNombre"></div>
+            <div class="field"><label class="required">Apellido paterno</label><input id="eApP"></div>
+            <div class="field"><label class="required">Apellido materno</label><input id="eApM"></div>
+            <div class="field"><label class="required">Correo electrónico</label><input id="eCorreo" type="email"></div>
+            <div class="field"><label class="required">Empresa</label><input id="eEmpresa"></div>
+            <div class="field"><label class="required">Área a visitar</label>
+              <select id="eArea"><option value="">Cargando áreas…</option></select>
+            </div>
+            <div class="field full"><label class="required">Motivo de la visita</label><input id="eMotivo" placeholder="ej. Reunión de proveedores"></div>
+            <div class="field full"><label>Observaciones (opcional)</label><input id="eObservaciones" placeholder="Comentarios para el personal de vigilancia al recibir la visita"></div>
+            <div class="field"><label class="required">Fecha de visita</label><input id="eFechaVisita" type="date"></div>
+            <div class="field"><label class="required">Persona que visita (anfitrión)</label><input id="eAnfitrion"></div>
+            <div class="toggle-row">
+              <label class="switch"><input type="checkbox" id="eTraeAuto" onchange="toggleEditAutoFields()"><span class="slider"></span></label>
+              <label>¿El visitante trae vehículo?</label>
+            </div>
+            <div class="auto-fields" id="editAutoFields">
+              <div class="field"><label class="required">Marca</label><input id="eMarca"></div>
+              <div class="field"><label class="required">Modelo</label><input id="eModelo"></div>
+              <div class="field"><label class="required">Placas</label><input id="ePlacas"></div>
+            </div>
+          </div>
+          <div class="login-error" id="editError"></div>
+          <div class="form-actions">
+            <button class="btn-primary" onclick="guardarEdicion()">Guardar cambios</button>
+            <button class="btn-secondary" onclick="showScreen('screen-mis-visitas')">Volver sin guardar</button>
+          </div>
+          <button class="btn-danger" onclick="cancelarVisita()">Cancelar esta visita</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== TECLADO VIRTUAL (kiosko) =================== -->
+<button class="vkb-toggle" id="vkbToggle" onclick="toggleKeyboard()" style="display:none;">⌨️ Teclado en pantalla</button>
+<div class="vkb-panel" id="vkbPanel">
+  <div class="vkb-panel-inner">
+    <div class="vkb-header" id="vkbHeader">
+      <span>TECLADO EN PANTALLA — arrastra aquí</span>
+      <button onclick="toggleKeyboard()">✕</button>
+    </div>
+    <div class="vkb-keys" id="vkbKeys"></div>
+    <div class="vkb-resize" id="vkbResize"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   ESTADO GLOBAL (en memoria — en producción esto vendría de
+   una API / SQL Server, similar al resto del stack de Celex)
+   ========================================================= */
+const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro puerto
+
+/* =========================================================
+   BACKEND SIMULADO (solo para la versión DEMO de capacitación)
+   ---------------------------------------------------------
+   Reemplaza las llamadas al API real (window.fetch) por una
+   simulación en memoria que replica los stored procedures.
+   Así el archivo funciona por sí solo, sin API ni SQL Server:
+   basta abrir el HTML. Los datos se reinician al recargar.
+   ========================================================= */
+(function(){
+  const _db = {
+    seq: 0,
+    areas: [
+      {id:1,nombre:'Dirección General'},{id:2,nombre:'Sistemas / TI'},
+      {id:3,nombre:'Finanzas'},{id:4,nombre:'Recursos Humanos'},
+      {id:5,nombre:'Comercial'},{id:6,nombre:'Almacén / Logística'},
+      {id:7,nombre:'Contraloría Interna'},{id:8,nombre:'Otro'}
+    ],
+    visitas: [],
+    config: { RutaFotos:'C\\Control de Visitas\\Fotos', PrefijoFoto:'CV', DigitosFoto:'10' }
+  };
+  window.__demoFotos = {};                 // idNumérico -> data URL de la foto
+
+  function hoy(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+  function sinAcentos(s){ return (s||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+  function areaNombre(id){ const a=_db.areas.find(x=>x.id===Number(id)); return a?a.nombre:''; }
+  function codigo6(){ return String(Math.floor(Math.random()*1000000)).padStart(6,'0'); }
+  function codigoAccesoUnico(fecha){ let c; do{ c=codigo6(); }while(_db.visitas.some(v=>v.codigoAcceso===c && v.fechaVisita===fecha)); return c; }
+  function codigoSalidaUnico(){ let c; do{ c=codigo6(); }while(_db.visitas.some(v=>v.codigoSalida===c && !v.fechaSalida && v.status==='Accesado' && v.fechaAcceso && v.fechaAcceso.slice(0,10)===hoy())); return c; }
+  function estadoDe(v){
+    if(v.status==='Cancelada') return 'Cancelada';
+    if(v.status==='Pendiente') return 'Pendiente';
+    return v.fechaSalida ? 'Salida registrada' : 'Dentro';
+  }
+  function miVisita(v){
+    return { id:v.id, uuid:v.uuid, nombre:v.nombre, apellidoPaterno:v.apellidoPaterno, apellidoMaterno:v.apellidoMaterno,
+      correo:v.correo, empresa:v.empresa, idArea:v.idArea, area:areaNombre(v.idArea), motivo:v.motivo, observaciones:v.observaciones||null,
+      anfitrion:v.anfitrion, fechaVisita:v.fechaVisita, traeAuto:v.traeAuto, marca:v.marca||null, modelo:v.modelo||null, placas:v.placas||null,
+      estado:estadoDe(v), status:v.status, fechaRegistro:v.fechaRegistro, fechaAcceso:v.fechaAcceso||null, tieneFoto:!!window.__demoFotos[v.id] };
+  }
+  function reporteFila(v){
+    return { id:v.id, nombre:v.nombre, apellidoPaterno:v.apellidoPaterno, apellidoMaterno:v.apellidoMaterno, empresa:v.empresa,
+      area:areaNombre(v.idArea), anfitrion:v.anfitrion, motivo:v.motivo, observaciones:v.observaciones||null, estado:estadoDe(v),
+      fechaVisita:v.fechaVisita, fechaRegistro:v.fechaRegistro, fechaAcceso:v.fechaAcceso||null, codigoSalida:v.codigoSalida||null,
+      fechaSalida:v.fechaSalida||null, minutosEstancia: v.fechaSalida ? Math.round((new Date(v.fechaSalida)-new Date(v.fechaAcceso))/60000) : null,
+      tieneFoto:!!window.__demoFotos[v.id] };
+  }
+
+  // Foto de ejemplo (avatar generado) para las visitas semilla que ya tienen acceso.
+  function avatarEjemplo(iniciales, color){
+    const c = document.createElement('canvas'); c.width=200; c.height=200;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = color; ctx.fillRect(0,0,200,200);
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    ctx.beginPath(); ctx.arc(100,78,42,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(100,210,80,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = color; ctx.font='bold 34px Segoe UI, sans-serif'; ctx.textAlign='center';
+    ctx.fillText(iniciales, 100, 90);
+    return c.toDataURL('image/jpeg',0.85);
+  }
+
+  // ---- Datos semilla: para que Reportes / Mis visitas no salgan vacíos ----
+  function ahoraMenos(mins){ return new Date(Date.now()-mins*60000).toISOString(); }
+  function seed(v){ v.id=++_db.seq; v.uuid=(crypto.randomUUID?crypto.randomUUID():'seed-'+v.id); _db.visitas.push(v); return v; }
+  (function seeds(){
+    const h = hoy();
+    // 1) Pendiente: código de acceso conocido para probar la caseta de inmediato.
+    seed({ codigoAcceso:'123456', nombre:'María', apellidoPaterno:'García', apellidoMaterno:'Ruiz', correo:'maria.garcia@example.com',
+      empresa:'Proveedora del Norte S.A.', idArea:5, motivo:'Reunión comercial', observaciones:'Trae identificación oficial.',
+      anfitrion:'demo', registradoPor:'demo', idUsuario:100, fechaVisita:h, traeAuto:false, marca:'', modelo:'', placas:'',
+      status:'Pendiente', fechaRegistro:ahoraMenos(90), fechaAcceso:null, codigoSalida:'', fechaSalida:null });
+    // 2) Dentro (ya accesó, con foto).
+    const dentro = seed({ codigoAcceso:'654321', nombre:'Carlos', apellidoPaterno:'Hernández', apellidoMaterno:'Díaz', correo:'carlos.h@example.com',
+      empresa:'Servicios TI Integrales', idArea:2, motivo:'Mantenimiento de equipo', observaciones:'',
+      anfitrion:'demo', registradoPor:'demo', idUsuario:100, fechaVisita:h, traeAuto:true, marca:'Nissan', modelo:'Sentra', placas:'JAL-12-34',
+      status:'Accesado', fechaRegistro:ahoraMenos(150), fechaAcceso:ahoraMenos(120), codigoSalida:'778899', fechaSalida:null });
+    window.__demoFotos[dentro.id] = avatarEjemplo('CH', '#3f6fe0');
+    // 3) Salida registrada (visita completa del día).
+    const salio = seed({ codigoAcceso:'246810', nombre:'Ana', apellidoPaterno:'López', apellidoMaterno:'Mora', correo:'ana.lopez@example.com',
+      empresa:'Distribuciones del Centro', idArea:6, motivo:'Entrega de mercancía', observaciones:'',
+      anfitrion:'demo', registradoPor:'demo', idUsuario:100, fechaVisita:h, traeAuto:false, marca:'', modelo:'', placas:'',
+      status:'Accesado', fechaRegistro:ahoraMenos(300), fechaAcceso:ahoraMenos(280), codigoSalida:'112233', fechaSalida:ahoraMenos(60) });
+    window.__demoFotos[salio.id] = avatarEjemplo('AL', '#17a999');
+  })();
+
+  function ok(obj, status){ status=status||200; return Promise.resolve({ ok: status>=200&&status<300, status, json: async()=>obj, text: async()=>JSON.stringify(obj) }); }
+
+  const _orig = (typeof window.fetch==='function') ? window.fetch.bind(window) : null;
+  window.fetch = function(url, opts){
+    const u = String(url);
+    if(u.indexOf(API_BASE_URL)!==0){ return _orig ? _orig(url,opts) : Promise.reject(new Error('offline')); }
+    const path = u.slice(API_BASE_URL.length).split('?')[0];
+    const query = u.indexOf('?')>=0 ? u.slice(u.indexOf('?')+1) : '';
+    const method = ((opts&&opts.method)||'GET').toUpperCase();
+    let body = null; try{ if(opts&&opts.body) body = JSON.parse(opts.body); }catch(e){}
+
+    // --- auth ---
+    if(path==='/api/auth/login' && method==='POST'){
+      const pass = (body&&body.password||'').trim();
+      if(!pass) return ok({ autorizado:false, mensaje:'Ingresa tu contraseña.' });
+      if(pass.toLowerCase()==='activaciones')
+        return ok({ autorizado:true, mensaje:'OK', usuario:'demo', nombre:'DEMO MESA DE CONTROL ACTIVACIONES', usuarioId:777, puedeConfigurar:true });
+      return ok({ autorizado:true, mensaje:'OK', usuario:'demo', nombre:'Usuario de Capacitación', usuarioId:100, puedeConfigurar:true });
+    }
+    // --- áreas ---
+    if(path==='/api/areas' && method==='GET') return ok(_db.areas.map(a=>({id:a.id,nombre:a.nombre})));
+
+    // --- registrar visita ---
+    if(path==='/api/visitas' && method==='POST'){
+      const id=++_db.seq, uuid=(crypto.randomUUID?crypto.randomUUID():'v-'+id);
+      const cod=codigoAccesoUnico(body.fechaVisita);
+      _db.visitas.push({ id, uuid, codigoAcceso:cod, nombre:body.nombre, apellidoPaterno:body.apellidoPaterno, apellidoMaterno:body.apellidoMaterno,
+        correo:body.correo, empresa:body.empresa, idArea:body.idArea, motivo:body.motivo, observaciones:body.observaciones||'',
+        anfitrion:body.anfitrion, registradoPor:body.registradoPor, idUsuario:body.idUsuario||0, fechaVisita:body.fechaVisita,
+        traeAuto:!!body.traeAuto, marca:body.marca||'', modelo:body.modelo||'', placas:body.placas||'',
+        status:'Pendiente', fechaRegistro:new Date().toISOString(), fechaAcceso:null, codigoSalida:'', fechaSalida:null });
+      return ok({ id, uuid, codigoAcceso:cod });
+    }
+    // --- validar acceso ---
+    if(path==='/api/visitas/validar-acceso' && method==='POST'){
+      const cands = _db.visitas.filter(v=>v.codigoAcceso===body.codigoAcceso)
+        .sort((a,b)=> (a.fechaVisita===hoy()?0:1)-(b.fechaVisita===hoy()?0:1) || a.fechaVisita.localeCompare(b.fechaVisita));
+      const v = cands[0];
+      if(!v) return ok({ resultado:'NO_ENCONTRADO' });
+      if(v.status==='Accesado') return ok({ resultado:'YA_UTILIZADO' });
+      if(v.status==='Cancelada') return ok({ resultado:'CANCELADA' });
+      if(v.fechaVisita!==hoy()) return ok({ resultado:'FECHA_NO_COINCIDE', fechaVisita:v.fechaVisita });
+      if(sinAcentos(body.apellidoTecleado)!==sinAcentos(v.apellidoPaterno)) return ok({ resultado:'APELLIDO_NO_COINCIDE' });
+      v.status='Accesado'; v.fechaAcceso=new Date().toISOString(); v.codigoSalida=codigoSalidaUnico();
+      return ok({ resultado:'OK', visita:{ id:v.id, nombre:v.nombre, apellidoPaterno:v.apellidoPaterno, apellidoMaterno:v.apellidoMaterno,
+        empresa:v.empresa, motivo:v.motivo, observaciones:v.observaciones||null, anfitrion:v.anfitrion, area:areaNombre(v.idArea),
+        fechaVisita:v.fechaVisita, codigoSalida:v.codigoSalida, fechaAcceso:v.fechaAcceso } });
+    }
+    // --- guardar foto ---
+    let m;
+    if((m=path.match(/^\/api\/visitas\/(\d+)\/foto$/)) && method==='POST'){
+      window.__demoFotos[Number(m[1])] = body.fotoBase64; return ok({ fotoRuta:'(demo) '+m[1]+'.jpg' });
+    }
+    // --- salida: buscar por código ---
+    if((m=path.match(/^\/api\/visitas\/salida\/(\w+)$/)) && method==='GET'){
+      const v = _db.visitas.find(x=>x.codigoSalida===m[1] && x.status==='Accesado' && !x.fechaSalida && x.fechaAcceso && x.fechaAcceso.slice(0,10)===hoy());
+      if(!v) return ok({}, 404);
+      return ok({ id:v.id, nombre:v.nombre, apellidoPaterno:v.apellidoPaterno, apellidoMaterno:v.apellidoMaterno, empresa:v.empresa,
+        anfitrion:v.anfitrion, fechaAcceso:v.fechaAcceso, tieneFoto:!!window.__demoFotos[v.id] });
+    }
+    // --- salida: confirmar ---
+    if((m=path.match(/^\/api\/visitas\/salida\/(\d+)\/confirmar$/)) && method==='POST'){
+      const v = _db.visitas.find(x=>x.id===Number(m[1]));
+      if(!v) return ok({}, 404);
+      v.fechaSalida=new Date().toISOString();
+      return ok({ nombre:v.nombre, apellidoPaterno:v.apellidoPaterno, apellidoMaterno:v.apellidoMaterno, fechaAcceso:v.fechaAcceso,
+        fechaSalida:v.fechaSalida, minutosEstancia:Math.round((new Date(v.fechaSalida)-new Date(v.fechaAcceso))/60000) });
+    }
+    // --- mis visitas ---
+    if(path==='/api/visitas/mias' && method==='GET'){
+      const reg = decodeURIComponent((query.match(/registradoPor=([^&]*)/)||[])[1]||'');
+      return ok(_db.visitas.filter(v=>v.registradoPor===reg).sort((a,b)=>new Date(b.fechaRegistro)-new Date(a.fechaRegistro)).map(miVisita));
+    }
+    // --- editar / cancelar ---
+    if((m=path.match(/^\/api\/visitas\/(\d+)$/)) && method==='PUT'){
+      const v = _db.visitas.find(x=>x.id===Number(m[1]));
+      if(!v) return ok({ resultado:'NO_ENCONTRADO' });
+      if(v.status!=='Pendiente') return ok({ resultado:'NO_EDITABLE' });
+      Object.assign(v, { nombre:body.nombre, apellidoPaterno:body.apellidoPaterno, apellidoMaterno:body.apellidoMaterno, correo:body.correo,
+        empresa:body.empresa, idArea:body.idArea, motivo:body.motivo, observaciones:body.observaciones||'', anfitrion:body.anfitrion,
+        fechaVisita:body.fechaVisita, traeAuto:!!body.traeAuto, marca:body.marca||'', modelo:body.modelo||'', placas:body.placas||'' });
+      return ok({ resultado:'OK' });
+    }
+    if((m=path.match(/^\/api\/visitas\/(\d+)\/cancelar$/)) && method==='POST'){
+      const v = _db.visitas.find(x=>x.id===Number(m[1]));
+      if(!v) return ok({ resultado:'NO_ENCONTRADO' });
+      if(v.status!=='Pendiente') return ok({ resultado:'NO_CANCELABLE' });
+      v.status='Cancelada'; return ok({ resultado:'OK' });
+    }
+    // --- configuración ---
+    if(path==='/api/configuracion' && method==='GET')
+      return ok(Object.entries(_db.config).map(([clave,valor])=>({clave,valor})));
+    if((m=path.match(/^\/api\/configuracion\/(\w+)$/)) && method==='PUT'){
+      _db.config[m[1]] = body.valor; return ok({ resultado:'OK' });
+    }
+    // --- reportes ---
+    if(path==='/api/reportes' && method==='GET'){
+      const ini = (query.match(/fechaInicio=([^&]*)/)||[])[1];
+      const fin = (query.match(/fechaFin=([^&]*)/)||[])[1];
+      return ok(_db.visitas.filter(v=>{ const f=v.fechaRegistro.slice(0,10); return f>=ini && f<=fin; })
+        .sort((a,b)=>new Date(b.fechaRegistro)-new Date(a.fechaRegistro)).map(reporteFila));
+    }
+
+    return ok({ error:'endpoint no simulado: '+method+' '+path }, 404);
+  };
+})();
+// Devuelve el data URL de la foto en memoria (versión demo); '' si no hay.
+function fotoDemoSrc(id){ return (window.__demoFotos && window.__demoFotos[id]) || ''; }
+
+let session = { username: null, nombre: null, usuarioId: null, puedeConfigurar: false };
+let visits = [];          // bitácora completa
+let pendingVisitId = null;
+let attemptCount = 0;
+
+const AREAS_MENU = [
+  ["✉️","Garantías (WP)"],["🎧","Accesorios"],["📊","CRISTEST (WP)"],["🪪","Dyno"],
+  ["💲","Siscom"],["🚚","Fulfillment"],["📱","TAE"],["€","Finanzas"],
+  ["🏛️","Contraloría Interna"],["📍","Entrega Domicilio"],["🛡️","Mesa de Control"],
+  ["🗄️","Chips"],["⚙️","Herramientas"],["📱","Teléfonos"],["🔖","Documentos RK (WP)"]
+];
+
+function uid(){
+  return (crypto.randomUUID ? crypto.randomUUID() : 'v-'+Date.now()+'-'+Math.random().toString(16).slice(2));
+}
+function normaliza(str){
+  return (str||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function fmtFecha(d){
+  if(!d) return '—';
+  return d.toLocaleString('es-MX',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function fmtFechaVisita(s){
+  if(!s) return '—';
+  const [y,m,d] = s.split('-');
+  return new Date(+y,+m-1,+d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+}
+function hoyISO(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function esUsuarioDemo(){
+  return (session.nombre || session.username || '').trim().toUpperCase() === 'DEMO MESA DE CONTROL ACTIVACIONES';
+}
+
+/* ---------- navegación ---------- */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // el teclado en pantalla solo aplica a pantallas de caseta con campo de
+  // texto real; el resto (home, foto, etiqueta, código de acceso/salida,
+  // confirmar/registrar salida) no tienen ningún <input> de texto al que
+  // el teclado QWERTY pueda escribirle.
+  const kioskScreens = ['screen-validate'];
+  document.getElementById('vkbToggle').style.display = kioskScreens.includes(id) ? 'flex' : 'none';
+  if(!kioskScreens.includes(id)){
+    document.getElementById('vkbPanel').classList.remove('show');
+  }
+}
+
+/* ---------- Enter/Intro avanza al siguiente campo; en el último, dispara el botón ---------- */
+function wireEnterAvanza(fieldIds, accionFinal){
+  fieldIds.forEach((id, idx) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('keydown', e => {
+      if(e.key !== 'Enter') return;
+      e.preventDefault();
+      const siguiente = fieldIds.slice(idx + 1)
+        .map(sid => document.getElementById(sid))
+        .find(sel => sel && !sel.disabled && sel.offsetParent !== null);
+      if(siguiente){
+        siguiente.focus();
+        if(siguiente.select) siguiente.select();
+      }else if(accionFinal){
+        accionFinal();
+      }
+    });
+  });
+}
+
+function buildSidebar(targetId, activeLabel){
+  const el = document.getElementById(targetId);
+  if(!el) return;
+  let html = '';
+  AREAS_MENU.forEach(([icon,label])=>{
+    html += `<div class="side-item"><span class="side-icon">${icon}</span>${label}</div>`;
+  });
+  html += `<div class="side-item new-module ${activeLabel==='visitas'?'active-mod':''}" onclick="showScreen('screen-visitas-home')"><span class="side-icon">🪪</span>Control de Visitas</div>`;
+  el.innerHTML = html;
+}
+
+/* ---------- login empleado ---------- */
+async function doLogin(){
+  const p = document.getElementById('loginPass').value.trim();
+  const err = document.getElementById('loginError');
+  if(!p){ err.textContent = 'Ingresa tu contraseña.'; return; }
+
+  let data;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: p })
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    data = await resp.json();
+  }catch(e){
+    err.textContent = 'No se pudo validar el acceso (¿está corriendo la API?).';
+    return;
+  }
+
+  if(!data.autorizado){
+    err.textContent = data.mensaje || 'Acceso denegado.';
+    return;
+  }
+  err.textContent='';
+  session.username = data.usuario;
+  session.nombre = data.nombre;
+  session.usuarioId = data.usuarioId;
+  session.puedeConfigurar = !!data.puedeConfigurar;
+  document.getElementById('menuUserLabel').textContent = data.nombre || data.usuario;
+  document.getElementById('visitasUserLabel').textContent = data.nombre || data.usuario;
+  document.getElementById('regUserLabel').textContent = data.nombre || data.usuario;
+  document.getElementById('fAnfitrion').value = data.nombre || data.usuario;
+  document.getElementById('configCard').style.display = session.puedeConfigurar ? '' : 'none';
+  buildSidebar('sidebarList','menu');
+  buildSidebar('sidebarList2','visitas');
+  showScreen('screen-menu');
+}
+function doLogout(){
+  session.username = null;
+  session.nombre = null;
+  session.usuarioId = null;
+  session.puedeConfigurar = false;
+  document.getElementById('configCard').style.display = 'none';
+  document.getElementById('loginPass').value='';
+  showScreen('screen-login');
+}
+
+/* ---------- registro de visita ---------- */
+function openRegistro(){
+  document.getElementById('regUserLabel').textContent = session.nombre || session.username || '';
+  const esDemo = esUsuarioDemo();
+  cargarAreas().then(() => {
+    if(esDemo){
+      const areaSelect = document.getElementById('fArea');
+      if(areaSelect.options.length) areaSelect.selectedIndex = 0;
+    }
+  });
+  document.getElementById('fFechaVisita').value = hoyISO();
+  document.getElementById('fAnfitrion').value = session.nombre || session.username || '';
+  document.getElementById('regError').textContent='';
+
+  if(esDemo){
+    // Cuenta de demostración: precarga una visita de ejemplo para agilizar
+    // las demos en vivo (activaciones), en vez de capturar todo a mano.
+    document.getElementById('fNombre').value = 'Juan';
+    document.getElementById('fApP').value = 'Pérez';
+    document.getElementById('fApM').value = 'López';
+    document.getElementById('fCorreo').value = 'juan.perez@example.com';
+    document.getElementById('fEmpresa').value = 'Empresa Demo S.A. de C.V.';
+    document.getElementById('fMotivo').value = 'Demostración del sistema';
+    document.getElementById('fObservaciones').value = '';
+    document.getElementById('fTraeAuto').checked = true;
+    document.getElementById('fMarca').value = 'Nissan';
+    document.getElementById('fModelo').value = 'Versa';
+    document.getElementById('fPlacas').value = 'ABC-123';
+    document.getElementById('autoFields').classList.add('show');
+  }else{
+    // Limpia el formulario por completo para empezar un registro nuevo --
+    // antes solo se limpiaba condicionalmente y quedaban datos de la visita
+    // anterior (nombre, apellidos, correo, empresa, motivo, auto...).
+    document.getElementById('fNombre').value = '';
+    document.getElementById('fApP').value = '';
+    document.getElementById('fApM').value = '';
+    document.getElementById('fCorreo').value = '';
+    document.getElementById('fEmpresa').value = '';
+    document.getElementById('fMotivo').value = '';
+    document.getElementById('fObservaciones').value = '';
+    document.getElementById('fTraeAuto').checked = false;
+    document.getElementById('fMarca').value = '';
+    document.getElementById('fModelo').value = '';
+    document.getElementById('fPlacas').value = '';
+    document.getElementById('autoFields').classList.remove('show');
+  }
+  showScreen('screen-registro');
+}
+function toggleAutoFields(){
+  document.getElementById('autoFields').classList.toggle('show', document.getElementById('fTraeAuto').checked);
+}
+async function cargarAreas(selectId = 'fArea'){
+  const select = document.getElementById(selectId);
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/areas`);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const areas = await resp.json();
+    select.innerHTML = areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
+  }catch(e){
+    select.innerHTML = '<option value="">No se pudieron cargar las áreas (¿está corriendo la API?)</option>';
+  }
+}
+async function generarCodigoAcceso(){
+  const nombre = document.getElementById('fNombre').value.trim();
+  const apP = document.getElementById('fApP').value.trim();
+  const apM = document.getElementById('fApM').value.trim();
+  const correo = document.getElementById('fCorreo').value.trim();
+  const empresa = document.getElementById('fEmpresa').value.trim();
+  const areaSelect = document.getElementById('fArea');
+  const idArea = Number(areaSelect.value);
+  const areaNombre = areaSelect.options[areaSelect.selectedIndex]?.text || '';
+  const motivo = document.getElementById('fMotivo').value.trim();
+  const observaciones = document.getElementById('fObservaciones').value.trim();
+  const fechaVisita = document.getElementById('fFechaVisita').value;
+  const anfitrion = document.getElementById('fAnfitrion').value.trim();
+  const traeAuto = document.getElementById('fTraeAuto').checked;
+  const marca = document.getElementById('fMarca').value.trim();
+  const modelo = document.getElementById('fModelo').value.trim();
+  const placas = document.getElementById('fPlacas').value.trim();
+
+  const err = document.getElementById('regError');
+  if(!nombre || !apP || !apM || !correo || !empresa || !idArea || !motivo || !fechaVisita || !anfitrion){
+    err.textContent = 'Completa todos los campos obligatorios.'; return;
+  }
+  if(traeAuto && (!marca || !modelo || !placas)){
+    err.textContent = 'Indica marca, modelo y placas del vehículo.'; return;
+  }
+  err.textContent='';
+
+  let data;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/visitas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo, observaciones,
+        anfitrion, registradoPor: session.username, idUsuario: session.usuarioId, fechaVisita, traeAuto,
+        marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
+      })
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    data = await resp.json();
+  }catch(e){
+    err.textContent = 'No se pudo registrar la visita (¿está corriendo la API?).';
+    return;
+  }
+
+  const visit = {
+    id: data.uuid, codigoAcceso: data.codigoAcceso, nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area: areaNombre, motivo, observaciones,
+    fechaVisita, anfitrion, registradoPor: session.username, traeAuto, marca, modelo, placas,
+    status:'pendiente', fechaRegistro:new Date(), fechaAcceso:null, foto:null, codigoSalida:null, fechaSalida:null
+  };
+  visits.push(visit);
+  pendingVisitId = visit.id;
+  renderCodigoAcceso(visit);
+  showScreen('screen-codigo-acceso');
+}
+function renderCodigoAcceso(visit){
+  document.getElementById('codigoAccesoValor').textContent = visit.codigoAcceso;
+  document.getElementById('qrSummary').innerHTML =
+    `<b>${visit.nombre} ${visit.apellidoP} ${visit.apellidoM}</b><br>
+     Empresa: <b>${visit.empresa}</b><br>
+     Visita a: <b>${visit.area}</b> — Anfitrión: <b>${visit.anfitrion}</b><br>
+     Motivo: ${visit.motivo}<br>
+     Fecha de visita: <b>${fmtFechaVisita(visit.fechaVisita)}</b><br>
+     ${visit.traeAuto ? `Vehículo: ${visit.marca} ${visit.modelo} — Placas ${visit.placas}` : 'Sin vehículo registrado'}`;
+  document.getElementById('qrMsg').textContent='';
+}
+function copiarCodigoAcceso(){
+  const msg = document.getElementById('qrMsg');
+  const codigo = document.getElementById('codigoAccesoValor').textContent;
+  if(!codigo){ msg.style.color='var(--err)'; msg.textContent='No hay código para copiar.'; return; }
+  navigator.clipboard.writeText(codigo).then(()=>{
+    msg.style.color='var(--ok)';
+    msg.textContent='Código copiado al portapapeles.';
+  }).catch(()=>{
+    msg.style.color='var(--err)';
+    msg.textContent='No se pudo copiar el código. Cópialo manualmente.';
+  });
+}
+function enviarCorreo(){
+  const v = visits.find(x=>x.id===pendingVisitId);
+  if(!v) return;
+  const msg = document.getElementById('qrMsg');
+  msg.style.color='var(--ok)';
+  msg.textContent = `El correo con el código de acceso se enviará automáticamente a ${v.correo}.`;
+}
+
+
+/* ---------- kiosko: código de acceso ---------- */
+function openAccesoCodigo(){
+  pinModo = 'acceso';
+  pinBuffer = '';
+  document.getElementById('accesoMsg').textContent = '';
+  updatePinDisplay();
+  showScreen('screen-acceso-codigo');
+}
+function submitAccesoCodigo(){
+  pendingVisitId = pinBuffer;
+  attemptCount = 0;
+  document.getElementById('validateApP').value = '';
+  document.getElementById('validateMsg').textContent = '';
+  showScreen('screen-validate');
+}
+async function submitValidate(){
+  const msg = document.getElementById('validateMsg');
+  if(!pendingVisitId){ msg.textContent='Sesión perdida, vuelve a intentar.'; return; }
+  const apellidoTecleado = document.getElementById('validateApP').value;
+
+  let data;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/visitas/validar-acceso`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ codigoAcceso: pendingVisitId, apellidoTecleado, fotoRuta: null })
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    data = await resp.json();
+  }catch(e){
+    msg.style.color='#ff9d9d';
+    msg.textContent = 'No se pudo validar el acceso (¿está corriendo la API?).';
+    return;
+  }
+
+  if(data.resultado === 'OK'){
+    const v = data.visita;
+    const idx = visits.findIndex(x=>x.id===pendingVisitId);
+    const visitaAcceso = {
+      id: pendingVisitId, numeroId: v.id, nombre: v.nombre, apellidoP: v.apellidoPaterno, apellidoM: v.apellidoMaterno,
+      empresa: v.empresa, area: v.area, anfitrion: v.anfitrion, motivo: v.motivo, observaciones: v.observaciones,
+      fechaVisita: v.fechaVisita, status: 'accesado', fechaAcceso: new Date(v.fechaAcceso),
+      codigoSalida: v.codigoSalida, foto: null, fechaSalida: null
+    };
+    if(idx >= 0) visits[idx] = { ...visits[idx], ...visitaAcceso }; else visits.push(visitaAcceso);
+    msg.style.color='#8dffb0';
+    openPhotoCapture();
+    return;
+  }
+
+  if(data.resultado === 'APELLIDO_NO_COINCIDE'){
+    attemptCount++;
+    msg.style.color='#ff9d9d';
+    msg.textContent = attemptCount>=3
+      ? 'Apellido no coincide (3 intentos). Solicita apoyo a seguridad / recepción.'
+      : `Apellido no coincide. Intento ${attemptCount} de 3.`;
+    return;
+  }
+
+  const mensajes = {
+    NO_ENCONTRADO: 'Código no reconocido. Verifica que esté bien escrito.',
+    YA_UTILIZADO: 'Este código ya fue utilizado para un acceso.',
+    CANCELADA: 'Esta visita fue cancelada. Solicita apoyo en recepción.',
+    FECHA_NO_COINCIDE: `Esta visita está registrada para el ${fmtFechaVisita(data.fechaVisita)}, no para hoy. No se puede iniciar el acceso.`
+  };
+  openAccesoCodigo();
+  document.getElementById('accesoMsg').textContent = mensajes[data.resultado] || 'No se pudo validar el acceso.';
+}
+function renderBadge(visit){
+  const fotoHtml = visit.foto
+    ? `<img src="${visit.foto}" class="badge-photo" alt="Foto del visitante">`
+    : `<div class="badge-photo badge-photo-placeholder">👤</div>`;
+  document.getElementById('badgeCard').innerHTML = `
+    <div class="badge-photo-wrap">
+      ${fotoHtml}
+      <div class="badge-photo-check">✓</div>
+    </div>
+    <div class="badge-title">ACCESO AUTORIZADO</div>
+    <div class="badge-name">${visit.nombre} ${visit.apellidoP} ${visit.apellidoM}</div>
+    <div style="color:#8b93a3;font-size:13px;margin-bottom:14px;">${visit.empresa}</div>
+    <div class="badge-row"><span>Área que visita</span><span>${visit.area}</span></div>
+    <div class="badge-row"><span>Persona que visita</span><span>${visit.anfitrion}</span></div>
+    <div class="badge-row"><span>Fecha de visita</span><span>${fmtFechaVisita(visit.fechaVisita)}</span></div>
+    <div class="badge-row"><span>Fecha y hora de acceso</span><span>${fmtFecha(visit.fechaAcceso)}</span></div>
+    <div class="exit-code-box">
+      <div class="exit-code-label">CÓDIGO DE SALIDA — CONSÉRVALO</div>
+      <div class="exit-code-value">${visit.codigoSalida}</div>
+    </div>
+  `;
+}
+
+/* ---------- kiosko: foto de la visita ---------- */
+let photoStream = null;
+let capturedPhotoDataUrl = null;
+function openPhotoCapture(){
+  capturedPhotoDataUrl = null;
+  document.getElementById('photoMsg').textContent = '';
+  document.getElementById('photoVideoWrap').style.display = 'block';
+  document.getElementById('photoPreviewWrap').style.display = 'none';
+  document.getElementById('photoActionsCapture').style.display = 'flex';
+  document.getElementById('photoActionsConfirm').style.display = 'none';
+  showScreen('screen-photo');
+  startPhotoCamera();
+}
+function startPhotoCamera(){
+  const video = document.getElementById('photoVideo');
+  const msg = document.getElementById('photoMsg');
+  msg.textContent = '';
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    demoFotoFallback('Cámara no disponible en este modo. Se usa una foto de ejemplo para la demostración.');
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({ video: { facingMode:'user' } }).then(stream=>{
+    photoStream = stream;
+    video.srcObject = stream;
+    video.play();
+  }).catch(()=>{
+    demoFotoFallback('No se pudo acceder a la cámara. Se usa una foto de ejemplo para la demostración.');
+  });
+}
+// Versión DEMO: si no hay cámara (típico al abrir el archivo directo), genera
+// una foto de ejemplo con las iniciales del visitante y pasa a la vista previa,
+// para que el flujo se complete con una imagen visible en la etiqueta.
+function demoFotoFallback(mensaje){
+  const v = visits.find(x=>x.id===pendingVisitId) || {};
+  const ini = ((v.nombre||'V')[0]||'V') + ((v.apellidoP||v.apellidoPaterno||'')[0]||'');
+  const c = document.createElement('canvas'); c.width=320; c.height=320;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#3f6fe0'; ctx.fillRect(0,0,320,320);
+  ctx.fillStyle = 'rgba(255,255,255,.92)';
+  ctx.beginPath(); ctx.arc(160,124,66,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(160,340,128,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#3f6fe0'; ctx.font='bold 56px Segoe UI, sans-serif'; ctx.textAlign='center';
+  ctx.fillText(ini.toUpperCase(), 160, 144);
+  capturedPhotoDataUrl = c.toDataURL('image/jpeg',0.85);
+  document.getElementById('photoPreviewImg').src = capturedPhotoDataUrl;
+  document.getElementById('photoVideoWrap').style.display = 'none';
+  document.getElementById('photoPreviewWrap').style.display = 'block';
+  document.getElementById('photoActionsCapture').style.display = 'none';
+  document.getElementById('photoActionsConfirm').style.display = 'flex';
+  const msg = document.getElementById('photoMsg');
+  msg.style.color = '#8b93a3';
+  msg.textContent = mensaje || '';
+}
+function stopPhotoCamera(){
+  if(photoStream){ photoStream.getTracks().forEach(t=>t.stop()); photoStream=null; }
+}
+function takePhoto(){
+  const video = document.getElementById('photoVideo');
+  const msg = document.getElementById('photoMsg');
+  if(!video.videoWidth){ msg.textContent = 'La cámara aún no está lista, intenta de nuevo.'; return; }
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.translate(canvas.width,0); ctx.scale(-1,1); // corrige el espejo de la vista previa
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  capturedPhotoDataUrl = canvas.toDataURL('image/jpeg',0.85);
+  document.getElementById('photoPreviewImg').src = capturedPhotoDataUrl;
+  document.getElementById('photoVideoWrap').style.display = 'none';
+  document.getElementById('photoPreviewWrap').style.display = 'block';
+  document.getElementById('photoActionsCapture').style.display = 'none';
+  document.getElementById('photoActionsConfirm').style.display = 'flex';
+  stopPhotoCamera();
+}
+function retakePhoto(){
+  capturedPhotoDataUrl = null;
+  document.getElementById('photoPreviewWrap').style.display = 'none';
+  document.getElementById('photoVideoWrap').style.display = 'block';
+  document.getElementById('photoActionsCapture').style.display = 'flex';
+  document.getElementById('photoActionsConfirm').style.display = 'none';
+  startPhotoCamera();
+}
+async function confirmPhotoAndContinue(skip){
+  const visit = visits.find(v=>v.id===pendingVisitId);
+  stopPhotoCamera();
+  if(!visit){ showScreen('screen-kiosk-home'); return; }
+  visit.foto = skip ? null : capturedPhotoDataUrl;
+  if(!skip && capturedPhotoDataUrl && visit.numeroId){
+    try{
+      await fetch(`${API_BASE_URL}/api/visitas/${visit.numeroId}/foto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fotoBase64: capturedPhotoDataUrl })
+      });
+    }catch(e){
+      // No bloquea el flujo: la etiqueta en pantalla ya tiene la foto:
+      // solo no se pudo guardar en disco (ej. la API no está corriendo).
+    }
+  }
+  renderBadge(visit);
+  showScreen('screen-badge');
+}
+
+/* ---------- kiosko: registro de salida (código de 6 dígitos) ---------- */
+function fmtDuracionMinutos(mins){
+  if(mins === null || mins === undefined) return '—';
+  const h = Math.floor(mins/60), m = mins%60;
+  return h > 0 ? `${h} h ${m} min` : `${m} min`;
+}
+
+let pinBuffer = '';
+let pinModo = null; // 'acceso' | 'salida' -- qué pantalla/flujo usa el PIN pad compartido
+let pendingSalidaVisitId = null;
+let pendingSalidaCodigo = null;
+
+function updatePinDisplay(){
+  const displayId = pinModo === 'acceso' ? 'accesoPinDisplay' : 'salidaPinDisplay';
+  const boxes = document.querySelectorAll(`#${displayId} .pin-box`);
+  boxes.forEach((b,i)=>{
+    b.textContent = pinBuffer[i] || '';
+    b.classList.toggle('filled', !!pinBuffer[i]);
+  });
+}
+function pinPress(d){
+  if(pinBuffer.length >= 6) return;
+  document.getElementById(pinModo === 'acceso' ? 'accesoMsg' : 'salidaMsg').textContent = '';
+  pinBuffer += d;
+  updatePinDisplay();
+  if(pinBuffer.length === 6){
+    setTimeout(() => pinModo === 'acceso' ? submitAccesoCodigo() : submitSalidaCodigo(), 150);
+  }
+}
+function pinBackspace(){
+  pinBuffer = pinBuffer.slice(0,-1);
+  updatePinDisplay();
+}
+function pinClear(){
+  pinBuffer = '';
+  updatePinDisplay();
+}
+function openSalidaCodigo(){
+  pinModo = 'salida';
+  pinBuffer = '';
+  updatePinDisplay();
+  document.getElementById('salidaMsg').textContent = '';
+  showScreen('screen-salida-codigo');
+}
+async function submitSalidaCodigo(){
+  const msg = document.getElementById('salidaMsg');
+  const codigo = pinBuffer;
+  let visita;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/visitas/salida/${codigo}`);
+    if(resp.status === 404){
+      msg.textContent = 'Código no válido o ya utilizado. Verifica con recepción.';
+      salidaCodigoBuffer = '';
+      updateSalidaPinDisplay();
+      return;
+    }
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    visita = await resp.json();
+  }catch(e){
+    msg.textContent = 'No se pudo consultar el código (¿está corriendo la API?).';
+    salidaCodigoBuffer = '';
+    updateSalidaPinDisplay();
+    return;
+  }
+  pendingSalidaVisitId = visita.id;
+  pendingSalidaCodigo = codigo;
+  renderSalidaConfirm(visita);
+  showScreen('screen-salida-confirm');
+}
+function renderSalidaConfirm(visita){
+  const fotoHtml = visita.tieneFoto
+    ? `<img src="${fotoDemoSrc(visita.id)}" class="badge-photo" alt="Foto del visitante">`
+    : `<div class="badge-photo badge-photo-placeholder">👤</div>`;
+  document.getElementById('salidaConfirmCard').innerHTML = `
+    <div class="badge-photo-wrap">${fotoHtml}</div>
+    <div class="badge-name">${visita.nombre} ${visita.apellidoPaterno} ${visita.apellidoMaterno}</div>
+    <div style="color:#8b93a3;font-size:13px;margin-bottom:14px;">${visita.empresa}</div>
+    <div class="badge-row"><span>Entrada registrada</span><span>${fmtFecha(new Date(visita.fechaAcceso))}</span></div>
+    <div class="badge-row"><span>Anfitrión</span><span>${visita.anfitrion}</span></div>
+  `;
+}
+function rechazarSalidaConfirm(){
+  pendingSalidaVisitId = null;
+  pendingSalidaCodigo = null;
+  openSalidaCodigo();
+}
+async function confirmarSalida(){
+  if(!pendingSalidaVisitId){ showScreen('screen-kiosk-home'); return; }
+  let resultado;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/visitas/salida/${pendingSalidaVisitId}/confirmar`, { method: 'POST' });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    resultado = await resp.json();
+  }catch(e){
+    document.getElementById('salidaMsg').textContent = 'No se pudo confirmar la salida (¿está corriendo la API?).';
+    showScreen('screen-salida-codigo');
+    return;
+  }
+  // Sincroniza el arreglo local (usado por "Mis visitas") con la salida ya
+  // confirmada en el servidor, si la visita fue registrada en esta sesión.
+  const local = visits.find(v => v.codigoSalida === pendingSalidaCodigo && v.status === 'accesado' && !v.fechaSalida);
+  if(local) local.fechaSalida = new Date(resultado.fechaSalida);
+  renderSalidaDone(resultado);
+  showScreen('screen-salida-done');
+}
+function renderSalidaDone(resultado){
+  document.getElementById('salidaDoneCard').innerHTML = `
+    <div class="badge-check">✓</div>
+    <div class="badge-title">SALIDA REGISTRADA</div>
+    <div class="badge-name">${resultado.nombre} ${resultado.apellidoPaterno} ${resultado.apellidoMaterno}</div>
+    <div class="badge-row"><span>Hora de salida</span><span>${fmtFecha(new Date(resultado.fechaSalida))}</span></div>
+    <div class="badge-row"><span>Tiempo de estancia</span><span>${fmtDuracionMinutos(resultado.minutosEstancia)}</span></div>
+  `;
+}
+
+/* ---------- mis visitas ---------- */
+let editingVisitId = null;
+
+let misVisitasCache = [];
+
+async function openMisVisitas(){
+  const wrap = document.getElementById('misVisitasWrap');
+  wrap.innerHTML = '<div class="empty-note">Cargando…</div>';
+  showScreen('screen-mis-visitas');
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/visitas/mias?registradoPor=${encodeURIComponent(session.username)}`);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    misVisitasCache = await resp.json();
+  }catch(e){
+    wrap.innerHTML = '<div class="empty-note">No se pudieron cargar tus visitas (¿está corriendo la API?).</div>';
+    return;
+  }
+  renderMisVisitas();
+}
+
+function renderMisVisitas(){
+  const wrap = document.getElementById('misVisitasWrap');
+  if(!misVisitasCache.length){
+    wrap.innerHTML = '<div class="empty-note">Aún no has registrado ninguna visita.</div>';
+    return;
+  }
+  const rows = misVisitasCache.map(v => {
+    const estadoClass = ESTADO_CLASE[v.estado] || 'pendiente';
+    return `<tr>
+      <td>${v.tieneFoto ? `<img src="${fotoDemoSrc(v.id)}" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
+      <td><b>${v.nombre} ${v.apellidoPaterno} ${v.apellidoMaterno}</b><br><span style="color:#8b93a3;font-size:12px;">${v.empresa}</span></td>
+      <td>${v.area}</td>
+      <td>${fmtFechaVisita(v.fechaVisita)}</td>
+      <td><span class="status-pill ${estadoClass}">${v.estado}</span></td>
+      <td>${fmtFecha(new Date(v.fechaRegistro))}</td>
+      <td>${v.status !== 'Pendiente'
+        ? `<button class="btn-editar" disabled title="${v.status === 'Cancelada' ? 'Esta visita fue cancelada.' : 'No se puede editar: la visita ya inició su acceso.'}">Editar</button>`
+        : `<button class="btn-editar" onclick="abrirEditar(${v.id})">Editar</button>`}</td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `
+    <div class="mv-table-wrap">
+      <table class="mv-table">
+        <thead><tr><th></th><th>Visitante</th><th>Área</th><th>Fecha visita</th><th>Estado</th><th>Registrada</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+async function abrirEditar(id){
+  const v = misVisitasCache.find(x => x.id === id);
+  if(!v) return;
+  editingVisitId = id;
+  document.getElementById('editUserLabel').textContent = session.nombre || session.username || '';
+  await cargarAreas('eArea');
+  document.getElementById('eNombre').value  = v.nombre;
+  document.getElementById('eApP').value     = v.apellidoPaterno;
+  document.getElementById('eApM').value     = v.apellidoMaterno;
+  document.getElementById('eCorreo').value  = v.correo;
+  document.getElementById('eEmpresa').value = v.empresa;
+  document.getElementById('eArea').value    = v.idArea;
+  document.getElementById('eMotivo').value  = v.motivo;
+  document.getElementById('eObservaciones').value = v.observaciones || '';
+  document.getElementById('eFechaVisita').value = v.fechaVisita || '';
+  document.getElementById('eAnfitrion').value = v.anfitrion;
+  document.getElementById('eTraeAuto').checked = v.traeAuto;
+  document.getElementById('eMarca').value   = v.marca || '';
+  document.getElementById('eModelo').value  = v.modelo || '';
+  document.getElementById('ePlacas').value  = v.placas || '';
+  document.getElementById('editAutoFields').classList.toggle('show', v.traeAuto);
+  document.getElementById('editError').textContent = '';
+  showScreen('screen-editar-visita');
+}
+
+function toggleEditAutoFields(){
+  document.getElementById('editAutoFields').classList.toggle('show', document.getElementById('eTraeAuto').checked);
+}
+
+async function guardarEdicion(){
+  const nombre   = document.getElementById('eNombre').value.trim();
+  const apP      = document.getElementById('eApP').value.trim();
+  const apM      = document.getElementById('eApM').value.trim();
+  const correo   = document.getElementById('eCorreo').value.trim();
+  const empresa  = document.getElementById('eEmpresa').value.trim();
+  const idArea   = Number(document.getElementById('eArea').value);
+  const motivo   = document.getElementById('eMotivo').value.trim();
+  const observaciones = document.getElementById('eObservaciones').value.trim();
+  const fechaVisita = document.getElementById('eFechaVisita').value;
+  const anfitrion= document.getElementById('eAnfitrion').value.trim();
+  const traeAuto = document.getElementById('eTraeAuto').checked;
+  const marca    = document.getElementById('eMarca').value.trim();
+  const modelo   = document.getElementById('eModelo').value.trim();
+  const placas   = document.getElementById('ePlacas').value.trim();
+  const err = document.getElementById('editError');
+  if(!nombre || !apP || !apM || !correo || !empresa || !idArea || !motivo || !fechaVisita || !anfitrion){
+    err.textContent = 'Completa todos los campos obligatorios.'; return;
+  }
+  if(traeAuto && (!marca || !modelo || !placas)){
+    err.textContent = 'Indica marca, modelo y placas del vehículo.'; return;
+  }
+
+  let data;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/visitas/${editingVisitId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo, observaciones,
+        anfitrion, fechaVisita, traeAuto,
+        marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
+      })
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    data = await resp.json();
+  }catch(e){
+    err.textContent = 'No se pudo guardar el cambio (¿está corriendo la API?).';
+    return;
+  }
+
+  if(data.resultado === 'NO_EDITABLE'){
+    err.textContent = 'Esta visita ya inició su acceso y no se puede editar.';
+    return;
+  }
+  if(data.resultado === 'NO_ENCONTRADO'){
+    err.textContent = 'No se encontró la visita.';
+    return;
+  }
+  err.textContent = '';
+  await openMisVisitas();
+}
+
+async function cancelarVisita(){
+  const err = document.getElementById('editError');
+  if(!confirm('¿Seguro que quieres cancelar esta visita? El visitante ya no podrá usar su código de acceso.')) return;
+
+  let data;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/visitas/${editingVisitId}/cancelar`, { method: 'POST' });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    data = await resp.json();
+  }catch(e){
+    err.textContent = 'No se pudo cancelar la visita (¿está corriendo la API?).';
+    return;
+  }
+
+  if(data.resultado === 'NO_CANCELABLE'){
+    err.textContent = 'Esta visita ya inició su acceso y no se puede cancelar.';
+    return;
+  }
+  if(data.resultado === 'NO_ENCONTRADO'){
+    err.textContent = 'No se encontró la visita.';
+    return;
+  }
+  await openMisVisitas();
+}
+
+/* ---------- configuración (solo visible con permiso CV.200.00) ---------- */
+const CONFIG_CAMPOS = { RutaFotos: 'cfgRutaFotos', PrefijoFoto: 'cfgPrefijoFoto', DigitosFoto: 'cfgDigitosFoto' };
+
+async function openConfiguracion(){
+  const msg = document.getElementById('configMsg');
+  msg.textContent = '';
+  Object.values(CONFIG_CAMPOS).forEach(id => document.getElementById(id).value = '');
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/configuracion`);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const items = await resp.json();
+    for(const [clave, campoId] of Object.entries(CONFIG_CAMPOS)){
+      const item = items.find(i => i.clave === clave);
+      if(item) document.getElementById(campoId).value = item.valor;
+    }
+  }catch(e){
+    msg.textContent = 'No se pudo cargar la configuración (¿está corriendo la API?).';
+  }
+  showScreen('screen-configuracion');
+}
+async function guardarConfiguracion(){
+  const msg = document.getElementById('configMsg');
+  const valores = {};
+  for(const [clave, campoId] of Object.entries(CONFIG_CAMPOS)){
+    valores[clave] = document.getElementById(campoId).value.trim();
+  }
+  if(!valores.RutaFotos || !valores.PrefijoFoto || !valores.DigitosFoto){
+    msg.textContent = 'Completa todos los campos.'; return;
+  }
+  if(!/^\d+$/.test(valores.DigitosFoto)){
+    msg.textContent = 'Dígitos del ID debe ser un número.'; return;
+  }
+  try{
+    for(const [clave, valor] of Object.entries(valores)){
+      const resp = await fetch(`${API_BASE_URL}/api/configuracion/${clave}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ valor })
+      });
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    }
+  }catch(e){
+    msg.textContent = 'No se pudo guardar la configuración (¿está corriendo la API?).';
+    return;
+  }
+  msg.style.color = 'var(--ok)';
+  msg.textContent = 'Configuración guardada.';
+}
+
+/* ---------- reportes ---------- */
+function openReportes(){
+  document.getElementById('repDesde').value = hoyISO();
+  document.getElementById('repHasta').value = hoyISO();
+  document.getElementById('reportTableWrap').innerHTML = '<div class="empty-note">Selecciona un rango de fechas y genera el reporte.</div>';
+  showScreen('screen-reportes');
+}
+let ultimoReporte = [];
+const ESTADO_CLASE = { 'Pendiente':'pendiente', 'Dentro':'dentro', 'Salida registrada':'salida', 'Cancelada':'cancelada' };
+
+async function generarReporte(){
+  const desde = document.getElementById('repDesde').value;
+  const hasta = document.getElementById('repHasta').value;
+  const wrap = document.getElementById('reportTableWrap');
+  if(!desde || !hasta){ wrap.innerHTML = '<div class="empty-note">Selecciona un rango de fechas y genera el reporte.</div>'; return; }
+
+  let filas;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/reportes?fechaInicio=${desde}&fechaFin=${hasta}`);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    filas = await resp.json();
+  }catch(e){
+    wrap.innerHTML = '<div class="empty-note">No se pudo generar el reporte (¿está corriendo la API?).</div>';
+    return;
+  }
+
+  ultimoReporte = filas;
+  if(!filas.length){ wrap.innerHTML = '<div class="empty-note">No hay registros en el rango seleccionado.</div>'; return; }
+
+  let rows = filas.map(v => `
+    <tr>
+      <td>${v.tieneFoto ? `<img src="${fotoDemoSrc(v.id)}" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
+      <td>${v.nombre} ${v.apellidoPaterno} ${v.apellidoMaterno}</td>
+      <td>${v.empresa}</td>
+      <td>${v.area}</td>
+      <td>${v.anfitrion}</td>
+      <td>${fmtFechaVisita(v.fechaVisita)}</td>
+      <td><span class="status-pill ${ESTADO_CLASE[v.estado] || 'pendiente'}">${v.estado}</span></td>
+      <td>${fmtFecha(new Date(v.fechaRegistro))}</td>
+      <td>${v.fechaAcceso ? fmtFecha(new Date(v.fechaAcceso)) : '—'}</td>
+      <td>${v.codigoSalida || '—'}</td>
+      <td>${v.fechaSalida ? fmtFecha(new Date(v.fechaSalida)) : '—'}</td>
+      <td>${fmtDuracionMinutos(v.minutosEstancia)}</td>
+    </tr>`).join('');
+  wrap.innerHTML = `
+    <table class="report-table">
+      <thead><tr><th></th><th>Visitante</th><th>Empresa</th><th>Área</th><th>Anfitrión</th><th>Fecha visita</th><th>Estado</th><th>Registro</th><th>Acceso</th><th>Cód. salida</th><th>Salida</th><th>Duración</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+function exportarCSV(){
+  if(!ultimoReporte.length){ alert('No hay datos para exportar. Genera el reporte primero.'); return; }
+  const header = ['Nombre','ApellidoPaterno','ApellidoMaterno','Empresa','Area','Anfitrion','Motivo','FechaVisita','Estado','FechaRegistro','FechaAcceso','CodigoSalida','FechaSalida'];
+  const rows = ultimoReporte.map(v=>[
+    v.nombre,v.apellidoPaterno,v.apellidoMaterno,v.empresa,v.area,v.anfitrion,v.motivo,v.fechaVisita||'',v.estado,
+    v.fechaRegistro||'', v.fechaAcceso||'', v.codigoSalida||'', v.fechaSalida||''
+  ].map(x=>`"${String(x).replace(/"/g,'""')}"`).join(','));
+  const csv = [header.join(','), ...rows].join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'bitacora-visitas-celex.csv';
+  a.click();
+}
+
+/* =========================================================
+   TECLADO VIRTUAL EN PANTALLA (solo pantallas de caseta)
+   ========================================================= */
+const KB_ROWS = [
+  ['1','2','3','4','5','6','7','8','9','0','⌫'],
+  ['q','w','e','r','t','y','u','i','o','p'],
+  ['a','s','d','f','g','h','j','k','l','ñ'],
+  ['z','x','c','v','b','n','m','.','-'],
+  ['espacio']
+];
+let activeInput = null;
+document.addEventListener('focusin', e=>{
+  if(e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA') activeInput = e.target;
+});
+function buildKeyboard(){
+  const keysWrap = document.getElementById('vkbKeys');
+  keysWrap.innerHTML = KB_ROWS.map(row=>{
+    const keys = row.map(k=>{
+      if(k==='espacio') return `<button type="button" class="vkb-key space" onclick="vkbPress(' ')">espacio</button>`;
+      if(k==='⌫') return `<button type="button" class="vkb-key wide" onclick="vkbBackspace()">⌫</button>`;
+      return `<button type="button" class="vkb-key" onclick="vkbPress('${k}')">${k}</button>`;
+    }).join('');
+    return `<div class="vkb-row">${keys}</div>`;
+  }).join('');
+}
+function vkbPress(ch){
+  if(!activeInput) return;
+  const start = activeInput.selectionStart ?? activeInput.value.length;
+  const end = activeInput.selectionEnd ?? activeInput.value.length;
+  activeInput.value = activeInput.value.slice(0,start) + ch + activeInput.value.slice(end);
+  activeInput.setSelectionRange(start+ch.length, start+ch.length);
+  activeInput.focus();
+}
+function vkbBackspace(){
+  if(!activeInput) return;
+  const start = activeInput.selectionStart ?? activeInput.value.length;
+  const end = activeInput.selectionEnd ?? activeInput.value.length;
+  if(start===end && start>0){
+    activeInput.value = activeInput.value.slice(0,start-1) + activeInput.value.slice(end);
+    activeInput.setSelectionRange(start-1,start-1);
+  }else{
+    activeInput.value = activeInput.value.slice(0,start) + activeInput.value.slice(end);
+    activeInput.setSelectionRange(start,start);
+  }
+  activeInput.focus();
+}
+function toggleKeyboard(){
+  const panel = document.getElementById('vkbPanel');
+  panel.classList.toggle('show');
+  if(panel.classList.contains('show')){
+    panel.style.left = (window.innerWidth/2 - panel.offsetWidth/2) + 'px';
+    panel.style.top = (window.innerHeight - panel.offsetHeight - 110) + 'px';
+  }
+}
+/* arrastrar */
+(function(){
+  const header = document.getElementById('vkbHeader');
+  const panel = document.getElementById('vkbPanel');
+  let dragging=false, offX=0, offY=0;
+  function start(x,y){ dragging=true; const r=panel.getBoundingClientRect(); offX=x-r.left; offY=y-r.top; }
+  function move(x,y){
+    if(!dragging) return;
+    let left = x-offX, top = y-offY;
+    left = Math.max(0, Math.min(window.innerWidth-panel.offsetWidth, left));
+    top = Math.max(0, Math.min(window.innerHeight-panel.offsetHeight, top));
+    panel.style.left = left+'px'; panel.style.top = top+'px';
+  }
+  header.addEventListener('mousedown', e=>start(e.clientX,e.clientY));
+  window.addEventListener('mousemove', e=>move(e.clientX,e.clientY));
+  window.addEventListener('mouseup', ()=>dragging=false);
+  header.addEventListener('touchstart', e=>{const t=e.touches[0]; start(t.clientX,t.clientY);}, {passive:true});
+  window.addEventListener('touchmove', e=>{const t=e.touches[0]; move(t.clientX,t.clientY);}, {passive:true});
+  window.addEventListener('touchend', ()=>dragging=false);
+})();
+/* redimensionar */
+(function(){
+  const handle = document.getElementById('vkbResize');
+  const panel = document.getElementById('vkbPanel');
+  let resizing=false;
+  function start(){ resizing=true; }
+  function move(x,y){
+    if(!resizing) return;
+    const r = panel.getBoundingClientRect();
+    const w = Math.max(320, Math.min(900, x-r.left));
+    const h = Math.max(200, Math.min(500, y-r.top));
+    panel.style.width = w+'px';
+    panel.style.height = h+'px';
+    const scale = Math.max(0.75, Math.min(1.5, w/560));
+    document.querySelectorAll('.vkb-key').forEach(k=>k.style.fontSize = (15*scale)+'px');
+  }
+  handle.addEventListener('mousedown', start);
+  window.addEventListener('mousemove', e=>move(e.clientX,e.clientY));
+  window.addEventListener('mouseup', ()=>resizing=false);
+  handle.addEventListener('touchstart', start, {passive:true});
+  window.addEventListener('touchmove', e=>{const t=e.touches[0]; move(t.clientX,t.clientY);}, {passive:true});
+  window.addEventListener('touchend', ()=>resizing=false);
+})();
+
+wireEnterAvanza(['loginPass'], doLogin);
+wireEnterAvanza(['validateApP'], submitValidate);
+wireEnterAvanza(['repDesde','repHasta'], generarReporte);
+wireEnterAvanza(['cfgRutaFotos','cfgPrefijoFoto','cfgDigitosFoto'], guardarConfiguracion);
+wireEnterAvanza(
+  ['fNombre','fApP','fApM','fCorreo','fEmpresa','fArea','fMotivo','fObservaciones','fFechaVisita','fAnfitrion','fMarca','fModelo','fPlacas'],
+  generarCodigoAcceso
+);
+wireEnterAvanza(
+  ['eNombre','eApP','eApM','eCorreo','eEmpresa','eArea','eMotivo','eObservaciones','eFechaVisita','eAnfitrion','eMarca','eModelo','ePlacas'],
+  guardarEdicion
+);
+
+/* =========================================================
+   DATOS DE EJEMPLO (para poder ver el reporte sin capturar
+   nada manualmente al abrir el mockup)
+   ========================================================= */
+(function seed(){
+  const now = Date.now();
+  const v1 = {
+    id: uid(), nombre:'Laura', apellidoP:'Hernández', apellidoM:'Ruiz', correo:'laura.hernandez@proveedor.mx',
+    empresa:'Proveedor Ejemplo SA', area:'Comercial', motivo:'Presentación de catálogo',
+    anfitrion:'jgarcia', registradoPor:'jgarcia', traeAuto:true, marca:'Nissan', modelo:'Versa', placas:'JLA-2231',
+    status:'accesado', fechaRegistro:new Date(now-1000*60*60*26), fechaAcceso:new Date(now-1000*60*60*25), foto:null,
+    codigoSalida:'778241', fechaSalida:new Date(now-1000*60*60*24)
+  };
+  const v2 = {
+    id: uid(), nombre:'Marco', apellidoP:'Salinas', apellidoM:'Torres', correo:'marco.salinas@fedex.com',
+    empresa:'FedEx', area:'Almacén / Logística', motivo:'Revisión de guías',
+    anfitrion:'gcastro', registradoPor:'gcastro', traeAuto:false, marca:'', modelo:'', placas:'',
+    status:'pendiente', fechaRegistro:new Date(now-1000*60*60*3), fechaAcceso:null, foto:null,
+    codigoSalida:null, fechaSalida:null
+  };
+  const v3 = {
+    id: uid(), nombre:'Ana', apellidoP:'Torres', apellidoM:'Méndez', correo:'ana.torres@grupoabc.mx',
+    empresa:'Grupo ABC', area:'Sistemas / TI', motivo:'Soporte de infraestructura',
+    anfitrion:'lramirez', registradoPor:'lramirez', traeAuto:false, marca:'', modelo:'', placas:'',
+    status:'accesado', fechaRegistro:new Date(now-1000*60*20), fechaAcceso:new Date(now-1000*60*18), foto:null,
+    codigoSalida:'123456', fechaSalida:null // visitante "dentro" ahora mismo — prueba Registrar salida con 123456
+  };
+  visits.push(v1, v2, v3);
+  buildKeyboard();
+})();
+</script>
+</body>
+</html>
