@@ -147,8 +147,10 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   etiqueta ⭐ VIP en Mis Visitas y Reportes (además de una columna VIP en el
   CSV). SPs Registrar/Actualizar reciben `@EsVIP`; ValidarAcceso/MisVisitas/
   Reporte lo devuelven.
-- ⚠️ **Falta actualizar `web/demo-capacitacion.html`** con esta funcionalidad
-  (el demo tiene su propio backend simulado; hoy no incluye VIP).
+  El demo de capacitación (`web/demo-capacitacion.html`) ya incluye VIP en su
+  backend simulado: el usuario `demo` (Usuario_ID 100) está en `UsuariosVIP`
+  por defecto para poder mostrar el checkbox, y la visita semilla "María"
+  viene marcada VIP.
 - ⬜ **Pendiente:** despliegue en IIS + SQL Server productivo.
 
 ## Decisiones de diseño ya tomadas (no las reabras sin razón)
