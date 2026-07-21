@@ -131,6 +131,24 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   botón "Cancelar esta visita" en la pantalla de edición (con confirmación),
   separado del botón "Volver sin guardar" (antes decía "Cancelar", ambiguo
   con la nueva acción).
+- ✅ **Visita VIP (marcable solo por usuarios autorizados).** Nueva columna
+  `CV_Visitas.EsVIP BIT NOT NULL DEFAULT(0)`. En la pantalla de registro (y
+  en la edición) aparece un checkbox "⭐ Marcar como visita VIP", **pero solo
+  se muestra a los usuarios autorizados**. La autorización se administra en la
+  pantalla de Configuración con la nueva clave `CV_Configuracion.UsuariosVIP`
+  = lista de `Usuario_ID` (el que devuelve el login de WishPOS) separados por
+  coma (ej. `100,205`); vacío = nadie. El login (`AuthController`) calcula un
+  nuevo booleano `puedeVIP` comparando el `Usuario_ID` contra esa lista y lo
+  regresa en `LoginResponse` (igual patrón que `puedeConfigurar`); el frontend
+  gatea el checkbox con `session.puedeVIP`. Defensa: el front solo manda
+  `esVip=true` si `puedeVIP`, y al editar una visita un usuario sin permiso
+  **conserva** el valor VIP existente en vez de borrarlo. Se muestra como
+  "⭐ VISITA VIP" en la etiqueta de acceso (donde la caseta recibe) y como
+  etiqueta ⭐ VIP en Mis Visitas y Reportes (además de una columna VIP en el
+  CSV). SPs Registrar/Actualizar reciben `@EsVIP`; ValidarAcceso/MisVisitas/
+  Reporte lo devuelven.
+- ⚠️ **Falta actualizar `web/demo-capacitacion.html`** con esta funcionalidad
+  (el demo tiene su propio backend simulado; hoy no incluye VIP).
 - ⬜ **Pendiente:** despliegue en IIS + SQL Server productivo.
 
 ## Decisiones de diseño ya tomadas (no las reabras sin razón)

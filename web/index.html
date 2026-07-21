@@ -248,7 +248,11 @@
   .badge-photo-placeholder{display:flex;align-items:center;justify-content:center;font-size:40px;color:#c3c8d3;}
   .badge-photo-check{position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-radius:50%;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #fff;}
   .badge-title{font-weight:800;color:var(--ok);letter-spacing:1px;font-size:15px;margin-bottom:18px;}
+  .badge-vip{display:inline-block;margin:0 0 14px;padding:5px 16px;border-radius:999px;font-weight:800;font-size:13px;letter-spacing:.06em;
+    color:#7a5200;background:linear-gradient(90deg,#ffe9a8,#f6c948);border:1px solid #e0a92b;}
   .badge-name{font-size:22px;font-weight:700;margin-bottom:4px;}
+  .vip-tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.04em;color:#7a5200;
+    background:#fff3d6;border:1px solid #e8b84b;border-radius:999px;padding:1px 7px;vertical-align:middle;}
   .badge-row{display:flex;justify-content:space-between;font-size:13.5px;padding:8px 0;border-bottom:1px dashed #e4e6ec;text-align:left;}
   .badge-row span:first-child{color:#8b93a3;}
   .badge-row span:last-child{font-weight:600;color:var(--ink);text-align:right;}
@@ -475,9 +479,14 @@
               <label class="required">Dígitos del ID (ceros a la izquierda)</label>
               <input id="cfgDigitosFoto" type="number" min="1" max="20" placeholder="10">
             </div>
+            <div class="field full">
+              <label>Usuarios que pueden marcar visitas VIP</label>
+              <input id="cfgUsuariosVIP" placeholder="ej. 100, 205, 777">
+            </div>
           </div>
           <p style="color:#8b93a3;font-size:12.5px;margin:-6px 0 18px;">
-            Con los valores por defecto, la foto de la visita con ID 1 se guarda como <b>CV0000000001.jpg</b>.
+            Con los valores por defecto, la foto de la visita con ID 1 se guarda como <b>CV0000000001.jpg</b>.<br>
+            <b>Usuarios VIP:</b> lista de IDs de usuario (el que aparece al iniciar sesión) separados por coma. Solo esos usuarios verán la opción "Visita VIP" al registrar. Déjalo vacío si nadie debe marcar VIP.
           </p>
           <div class="login-error" id="configMsg"></div>
           <div class="form-actions">
@@ -516,6 +525,10 @@
             <div class="field"><label class="required">Fecha de visita</label><input id="fFechaVisita" type="date"></div>
             <div class="field"><label class="required">Persona que visita (anfitrión)</label><input id="fAnfitrion"></div>
 
+            <div class="toggle-row" id="fVipRow" style="display:none;">
+              <label class="switch"><input type="checkbox" id="fEsVip"><span class="slider"></span></label>
+              <label>⭐ Marcar como visita VIP</label>
+            </div>
             <div class="toggle-row">
               <label class="switch"><input type="checkbox" id="fTraeAuto" onchange="toggleAutoFields()"><span class="slider"></span></label>
               <label>¿El visitante trae vehículo?</label>
@@ -815,6 +828,10 @@
             <div class="field full"><label>Observaciones (opcional)</label><input id="eObservaciones" placeholder="Comentarios para el personal de vigilancia al recibir la visita"></div>
             <div class="field"><label class="required">Fecha de visita</label><input id="eFechaVisita" type="date"></div>
             <div class="field"><label class="required">Persona que visita (anfitrión)</label><input id="eAnfitrion"></div>
+            <div class="toggle-row" id="eVipRow" style="display:none;">
+              <label class="switch"><input type="checkbox" id="eEsVip"><span class="slider"></span></label>
+              <label>⭐ Marcar como visita VIP</label>
+            </div>
             <div class="toggle-row">
               <label class="switch"><input type="checkbox" id="eTraeAuto" onchange="toggleEditAutoFields()"><span class="slider"></span></label>
               <label>¿El visitante trae vehículo?</label>
@@ -857,7 +874,7 @@
    ========================================================= */
 const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro puerto
 
-let session = { username: null, nombre: null, usuarioId: null, puedeConfigurar: false };
+let session = { username: null, nombre: null, usuarioId: null, puedeConfigurar: false, puedeVIP: false };
 let visits = [];          // bitácora completa
 let pendingVisitId = null;
 let attemptCount = 0;
@@ -967,6 +984,7 @@ async function doLogin(){
   session.nombre = data.nombre;
   session.usuarioId = data.usuarioId;
   session.puedeConfigurar = !!data.puedeConfigurar;
+  session.puedeVIP = !!data.puedeVIP;
   document.getElementById('menuUserLabel').textContent = data.nombre || data.usuario;
   document.getElementById('visitasUserLabel').textContent = data.nombre || data.usuario;
   document.getElementById('regUserLabel').textContent = data.nombre || data.usuario;
@@ -981,6 +999,7 @@ function doLogout(){
   session.nombre = null;
   session.usuarioId = null;
   session.puedeConfigurar = false;
+  session.puedeVIP = false;
   document.getElementById('configCard').style.display = 'none';
   document.getElementById('loginPass').value='';
   showScreen('screen-login');
@@ -999,6 +1018,9 @@ function openRegistro(){
   document.getElementById('fFechaVisita').value = hoyISO();
   document.getElementById('fAnfitrion').value = session.nombre || session.username || '';
   document.getElementById('regError').textContent='';
+  // La opción VIP solo se muestra a los usuarios autorizados (config UsuariosVIP).
+  document.getElementById('fVipRow').style.display = session.puedeVIP ? '' : 'none';
+  document.getElementById('fEsVip').checked = false;
 
   if(esDemo){
     // Cuenta de demostración: precarga una visita de ejemplo para agilizar
@@ -1065,6 +1087,8 @@ async function generarCodigoAcceso(){
   const marca = document.getElementById('fMarca').value.trim();
   const modelo = document.getElementById('fModelo').value.trim();
   const placas = document.getElementById('fPlacas').value.trim();
+  // Solo cuenta si el usuario está autorizado a marcar VIP.
+  const esVip = session.puedeVIP && document.getElementById('fEsVip').checked;
 
   const err = document.getElementById('regError');
   if(!nombre || !apP || !apM || !correo || !empresa || !idArea || !motivo || !fechaVisita || !anfitrion){
@@ -1081,7 +1105,7 @@ async function generarCodigoAcceso(){
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo, observaciones,
+        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo, observaciones, esVip,
         anfitrion, registradoPor: session.username, idUsuario: session.usuarioId, fechaVisita, traeAuto,
         marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
       })
@@ -1094,7 +1118,7 @@ async function generarCodigoAcceso(){
   }
 
   const visit = {
-    id: data.uuid, codigoAcceso: data.codigoAcceso, nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area: areaNombre, motivo, observaciones,
+    id: data.uuid, codigoAcceso: data.codigoAcceso, nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area: areaNombre, motivo, observaciones, esVip,
     fechaVisita, anfitrion, registradoPor: session.username, traeAuto, marca, modelo, placas,
     status:'pendiente', fechaRegistro:new Date(), fechaAcceso:null, foto:null, codigoSalida:null, fechaSalida:null
   };
@@ -1175,7 +1199,7 @@ async function submitValidate(){
     const idx = visits.findIndex(x=>x.id===pendingVisitId);
     const visitaAcceso = {
       id: pendingVisitId, numeroId: v.id, nombre: v.nombre, apellidoP: v.apellidoPaterno, apellidoM: v.apellidoMaterno,
-      empresa: v.empresa, area: v.area, anfitrion: v.anfitrion, motivo: v.motivo, observaciones: v.observaciones,
+      empresa: v.empresa, area: v.area, anfitrion: v.anfitrion, motivo: v.motivo, observaciones: v.observaciones, esVip: v.esVip,
       fechaVisita: v.fechaVisita, status: 'accesado', fechaAcceso: new Date(v.fechaAcceso),
       codigoSalida: v.codigoSalida, foto: null, fechaSalida: null
     };
@@ -1207,12 +1231,14 @@ function renderBadge(visit){
   const fotoHtml = visit.foto
     ? `<img src="${visit.foto}" class="badge-photo" alt="Foto del visitante">`
     : `<div class="badge-photo badge-photo-placeholder">👤</div>`;
+  const vipHtml = visit.esVip ? `<div class="badge-vip">⭐ VISITA VIP</div>` : '';
   document.getElementById('badgeCard').innerHTML = `
     <div class="badge-photo-wrap">
       ${fotoHtml}
       <div class="badge-photo-check">✓</div>
     </div>
     <div class="badge-title">ACCESO AUTORIZADO</div>
+    ${vipHtml}
     <div class="badge-name">${visit.nombre} ${visit.apellidoP} ${visit.apellidoM}</div>
     <div style="color:#8b93a3;font-size:13px;margin-bottom:14px;">${visit.empresa}</div>
     <div class="badge-row"><span>Área que visita</span><span>${visit.area}</span></div>
@@ -1449,7 +1475,7 @@ function renderMisVisitas(){
     const estadoClass = ESTADO_CLASE[v.estado] || 'pendiente';
     return `<tr>
       <td>${v.tieneFoto ? `<img src="${API_BASE_URL}/api/visitas/${v.id}/foto" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
-      <td><b>${v.nombre} ${v.apellidoPaterno} ${v.apellidoMaterno}</b><br><span style="color:#8b93a3;font-size:12px;">${v.empresa}</span></td>
+      <td><b>${v.nombre} ${v.apellidoPaterno} ${v.apellidoMaterno}</b>${v.esVip ? ' <span class="vip-tag">⭐ VIP</span>' : ''}<br><span style="color:#8b93a3;font-size:12px;">${v.empresa}</span></td>
       <td>${v.area}</td>
       <td>${fmtFechaVisita(v.fechaVisita)}</td>
       <td><span class="status-pill ${estadoClass}">${v.estado}</span></td>
@@ -1484,6 +1510,8 @@ async function abrirEditar(id){
   document.getElementById('eObservaciones').value = v.observaciones || '';
   document.getElementById('eFechaVisita').value = v.fechaVisita || '';
   document.getElementById('eAnfitrion').value = v.anfitrion;
+  document.getElementById('eVipRow').style.display = session.puedeVIP ? '' : 'none';
+  document.getElementById('eEsVip').checked = !!v.esVip;
   document.getElementById('eTraeAuto').checked = v.traeAuto;
   document.getElementById('eMarca').value   = v.marca || '';
   document.getElementById('eModelo').value  = v.modelo || '';
@@ -1512,6 +1540,10 @@ async function guardarEdicion(){
   const marca    = document.getElementById('eMarca').value.trim();
   const modelo   = document.getElementById('eModelo').value.trim();
   const placas   = document.getElementById('ePlacas').value.trim();
+  // Si el usuario está autorizado a marcar VIP, toma el checkbox; si no, conserva
+  // el valor actual de la visita (no se muestra el control y no debe borrarse).
+  const orig = misVisitasCache.find(x => x.id === editingVisitId);
+  const esVip = session.puedeVIP ? document.getElementById('eEsVip').checked : !!(orig && orig.esVip);
   const err = document.getElementById('editError');
   if(!nombre || !apP || !apM || !correo || !empresa || !idArea || !motivo || !fechaVisita || !anfitrion){
     err.textContent = 'Completa todos los campos obligatorios.'; return;
@@ -1526,7 +1558,7 @@ async function guardarEdicion(){
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo, observaciones,
+        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo, observaciones, esVip,
         anfitrion, fechaVisita, traeAuto,
         marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
       })
@@ -1576,7 +1608,7 @@ async function cancelarVisita(){
 }
 
 /* ---------- configuración (solo visible con permiso CV.200.00) ---------- */
-const CONFIG_CAMPOS = { RutaFotos: 'cfgRutaFotos', PrefijoFoto: 'cfgPrefijoFoto', DigitosFoto: 'cfgDigitosFoto' };
+const CONFIG_CAMPOS = { RutaFotos: 'cfgRutaFotos', PrefijoFoto: 'cfgPrefijoFoto', DigitosFoto: 'cfgDigitosFoto', UsuariosVIP: 'cfgUsuariosVIP' };
 
 async function openConfiguracion(){
   const msg = document.getElementById('configMsg');
@@ -1602,10 +1634,15 @@ async function guardarConfiguracion(){
     valores[clave] = document.getElementById(campoId).value.trim();
   }
   if(!valores.RutaFotos || !valores.PrefijoFoto || !valores.DigitosFoto){
-    msg.textContent = 'Completa todos los campos.'; return;
+    msg.textContent = 'Completa la ruta, el prefijo y los dígitos de las fotos.'; return;
   }
   if(!/^\d+$/.test(valores.DigitosFoto)){
     msg.textContent = 'Dígitos del ID debe ser un número.'; return;
+  }
+  // Usuarios VIP es opcional; si se llena, debe ser IDs numéricos separados por coma.
+  if(valores.UsuariosVIP && !/^\s*\d+(\s*,\s*\d+)*\s*$/.test(valores.UsuariosVIP)){
+    msg.style.color = 'var(--err)';
+    msg.textContent = 'Usuarios VIP debe ser una lista de IDs numéricos separados por coma (ej. 100, 205).'; return;
   }
   try{
     for(const [clave, valor] of Object.entries(valores)){
@@ -1656,7 +1693,7 @@ async function generarReporte(){
   let rows = filas.map(v => `
     <tr>
       <td>${v.tieneFoto ? `<img src="${API_BASE_URL}/api/visitas/${v.id}/foto" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
-      <td>${v.nombre} ${v.apellidoPaterno} ${v.apellidoMaterno}</td>
+      <td>${v.nombre} ${v.apellidoPaterno} ${v.apellidoMaterno}${v.esVip ? ' <span class="vip-tag">⭐ VIP</span>' : ''}</td>
       <td>${v.empresa}</td>
       <td>${v.area}</td>
       <td>${v.anfitrion}</td>
@@ -1676,9 +1713,9 @@ async function generarReporte(){
 }
 function exportarCSV(){
   if(!ultimoReporte.length){ alert('No hay datos para exportar. Genera el reporte primero.'); return; }
-  const header = ['Nombre','ApellidoPaterno','ApellidoMaterno','Empresa','Area','Anfitrion','Motivo','FechaVisita','Estado','FechaRegistro','FechaAcceso','CodigoSalida','FechaSalida'];
+  const header = ['Nombre','ApellidoPaterno','ApellidoMaterno','Empresa','Area','Anfitrion','Motivo','VIP','FechaVisita','Estado','FechaRegistro','FechaAcceso','CodigoSalida','FechaSalida'];
   const rows = ultimoReporte.map(v=>[
-    v.nombre,v.apellidoPaterno,v.apellidoMaterno,v.empresa,v.area,v.anfitrion,v.motivo,v.fechaVisita||'',v.estado,
+    v.nombre,v.apellidoPaterno,v.apellidoMaterno,v.empresa,v.area,v.anfitrion,v.motivo,v.esVip?'Sí':'No',v.fechaVisita||'',v.estado,
     v.fechaRegistro||'', v.fechaAcceso||'', v.codigoSalida||'', v.fechaSalida||''
   ].map(x=>`"${String(x).replace(/"/g,'""')}"`).join(','));
   const csv = [header.join(','), ...rows].join('\n');
@@ -1790,7 +1827,7 @@ function toggleKeyboard(){
 wireEnterAvanza(['loginPass'], doLogin);
 wireEnterAvanza(['validateApP'], submitValidate);
 wireEnterAvanza(['repDesde','repHasta'], generarReporte);
-wireEnterAvanza(['cfgRutaFotos','cfgPrefijoFoto','cfgDigitosFoto'], guardarConfiguracion);
+wireEnterAvanza(['cfgRutaFotos','cfgPrefijoFoto','cfgDigitosFoto','cfgUsuariosVIP'], guardarConfiguracion);
 wireEnterAvanza(
   ['fNombre','fApP','fApM','fCorreo','fEmpresa','fArea','fMotivo','fObservaciones','fFechaVisita','fAnfitrion','fMarca','fModelo','fPlacas'],
   generarCodigoAcceso
