@@ -11,4 +11,11 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
+  <!-- Copia el frontend (web/index.html) a wwwroot/ antes de compilar y publicar,
+       para servirlo desde el mismo sitio que la API. web/index.html sigue siendo
+       la única fuente de verdad; wwwroot/ es generado (está en .gitignore). -->
+  <Target Name="CopiarFrontend" BeforeTargets="Build;Publish">
+    <Copy SourceFiles="..\web\index.html" DestinationFiles="wwwroot\index.html" SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>

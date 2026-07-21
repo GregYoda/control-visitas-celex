@@ -151,7 +151,22 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   backend simulado: el usuario `demo` (Usuario_ID 100) está en `UsuariosVIP`
   por defecto para poder mostrar el checkbox, y la visita semilla "María"
   viene marcada VIP.
-- ⬜ **Pendiente:** despliegue en IIS + SQL Server productivo.
+- ✅ **Frontend servido desde la propia API (mismo-origen).** La API ahora
+  sirve `web/index.html` como estático (`UseDefaultFiles`/`UseStaticFiles`);
+  un `Target` del `.csproj` copia `web/index.html` a `api/wwwroot/` al
+  compilar/publicar (fuente de verdad sigue siendo `web/index.html`;
+  `api/wwwroot/` es generado y está en `.gitignore`). `API_BASE_URL` en el
+  front se auto-detecta: `''` (relativo) cuando se sirve por http/https, o
+  `http://localhost:5280` si se abre el archivo directo (`file://`) para
+  pruebas. Así en producción no hace falta CORS ni editar la URL. Probado:
+  `GET /` sirve el front y `GET /api/areas` responde en el mismo origen.
+- 🔧 **Despliegue a producción — Fase 1 lista, falta Fase 2 (en el servidor).**
+  Guía completa en `docs/despliegue-iis.md` (Hosting Bundle, `dotnet publish`,
+  App Pool "No Managed Code", cadena de conexión vía
+  `appsettings.Production.json` —hay plantilla `.example.json`—, permisos de la
+  carpeta de fotos, HTTPS obligatorio por la cámara). Falta: DBA corre el
+  script en el SQL productivo (con `-f i:65001` y **sin** crear `WM_Correo`),
+  publicar en IIS y verificar. Luego el kiosko (`docs/checklist-modo-kiosco.md`).
 
 ## Decisiones de diseño ya tomadas (no las reabras sin razón)
 

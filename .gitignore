@@ -9,6 +9,8 @@ bin/
 obj/
 *.user
 appsettings.Production.json
+# wwwroot es generado en compilación (copia de web/index.html) -- ver el .csproj
+api/wwwroot/
 
 # --- Claude Code (config local, no compartir entre máquinas) ---
 .claude/settings.local.json

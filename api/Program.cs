@@ -37,6 +37,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Sirve el frontend (web/index.html) desde el mismo sitio que la API
+// (mismo-origen: no hace falta CORS y el front usa rutas relativas).
+// El archivo se copia a wwwroot/ al compilar -- ver el Target en el .csproj.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseAuthorization();
 
 app.MapControllers();

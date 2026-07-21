@@ -872,7 +872,10 @@
    ESTADO GLOBAL (en memoria — en producción esto vendría de
    una API / SQL Server, similar al resto del stack de Celex)
    ========================================================= */
-const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro puerto
+// En producción el frontend se sirve desde el mismo sitio que la API, así que
+// se usan rutas relativas (mismo-origen, sin CORS). Si el archivo se abre
+// directamente (file://) para pruebas, apunta a la API local en el 5280.
+const API_BASE_URL = location.protocol === 'file:' ? 'http://localhost:5280' : '';
 
 let session = { username: null, nombre: null, usuarioId: null, puedeConfigurar: false, puedeVIP: false };
 let visits = [];          // bitácora completa
