@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Manual de uso — Control de Visitas</title>
+<style>
+  :root{
+    --navy:#1d3f8f; --purple:#6c4fd6; --teal:#0f8f82;
+    --ink:#1f2733; --muted:#5b6784; --line:#dce1ec; --soft:#f4f6fb;
+    --amber-bg:#fff7e6; --amber-bd:#e8b84b; --amber-tx:#7a5200;
+    --teal-bg:#e6f7f4; --teal-bd:#63c7ba; --teal-tx:#0b5e55;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;
+    color:var(--ink); font-size:13.5px; line-height:1.6;
+    background:#fff;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:0 8px;}
+
+  /* Portada */
+  .cover{
+    background:linear-gradient(120deg,#12275c,#1d3f8f 55%,#3f6fe0);
+    color:#fff;border-radius:16px;padding:40px 44px;margin:8px 0 30px;
+    position:relative;overflow:hidden;
+  }
+  .cover::after{content:"";position:absolute;right:-60px;bottom:-80px;width:260px;height:260px;border-radius:50%;
+    background:radial-gradient(circle at 40% 40%,rgba(23,169,153,.5),transparent 70%);}
+  .cover .brand{display:flex;align-items:center;gap:12px;margin-bottom:26px;position:relative;z-index:1;}
+  .cover .badge{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;}
+  .cover .eyebrow{font-size:12px;letter-spacing:.1em;text-transform:uppercase;opacity:.85;}
+  .cover h1{margin:0 0 8px;font-size:34px;line-height:1.1;letter-spacing:-.01em;position:relative;z-index:1;}
+  .cover p{margin:0;font-size:15px;max-width:60ch;opacity:.92;position:relative;z-index:1;}
+
+  h2{font-size:19px;color:var(--navy);margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line);}
+  h2 .n{display:inline-block;min-width:26px;color:var(--purple);font-weight:800;}
+  h3{font-size:14.5px;margin:18px 0 6px;color:var(--ink);}
+  p{margin:8px 0;}
+  ul,ol{margin:8px 0;padding-left:22px;}
+  li{margin:4px 0;}
+  b{color:var(--ink);}
+  a{color:var(--navy);}
+
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12.8px;}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top;}
+  th{background:var(--soft);color:var(--navy);font-weight:700;}
+
+  .chip{display:inline-block;font-family:"Cascadia Mono",Consolas,monospace;font-weight:700;letter-spacing:.14em;
+    background:var(--soft);border:1px dashed var(--line);border-radius:7px;padding:2px 9px;font-size:12.5px;}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;}
+  .p-pend{background:#fff3d6;color:#a1720c;} .p-dentro{background:#e3edff;color:#1d4ed8;}
+  .p-salida{background:#f1e8ff;color:#7b3fe4;} .p-canc{background:#fde2e2;color:#b3261e;}
+  .vip{display:inline-block;font-size:11px;font-weight:800;color:var(--amber-tx);background:#fff3d6;border:1px solid var(--amber-bd);border-radius:999px;padding:1px 8px;}
+
+  .callout{border-radius:10px;padding:11px 15px;margin:12px 0;font-size:12.8px;border:1px solid;}
+  .callout > b:first-child{display:block;margin-bottom:2px;font-size:12px;letter-spacing:.02em;text-transform:uppercase;}
+  .warn{background:var(--amber-bg);border-color:var(--amber-bd);color:var(--amber-tx);}
+  .tip{background:var(--teal-bg);border-color:var(--teal-bd);color:var(--teal-tx);}
+
+  .card{border:1px solid var(--line);border-radius:12px;padding:4px 18px 10px;margin:12px 0;break-inside:avoid;}
+  footer{margin:34px 0 10px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:11.5px;
+    display:flex;justify-content:space-between;gap:12px;}
+
+  @media print{
+    @page{ margin:14mm; }
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .wrap{max-width:none;padding:0;}
+    h2{break-after:avoid;} h3{break-after:avoid;}
+    table,.callout,.card,ol,ul{break-inside:avoid;}
+    .cover{break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="cover">
+    <div class="brand"><div class="badge">C</div><div class="eyebrow">Celex · Distribuidor Autorizado Telcel</div></div>
+    <h1>Manual de uso<br>Control de Visitas</h1>
+    <p>Registro y control de acceso de visitantes: código de acceso, foto en caseta, código de salida y reportes.</p>
+  </div>
+
+  <h2><span class="n">1</span> Conceptos clave (léelo primero)</h2>
+  <ul>
+    <li><b>Código de acceso</b> <span class="chip">482913</span> — se genera al <b>registrar</b> la visita y se le comparte al visitante (también le llega por correo). Lo teclea en la caseta para registrar su llegada. Sirve <b>una sola vez</b> y solo el <b>día</b> para el que se registró.</li>
+    <li><b>Código de salida</b> <span class="chip">207765</span> — es <b>distinto</b> al de acceso. Se genera <b>cuando la visita entra</b> y aparece en su etiqueta. El visitante lo conserva y lo usa al salir.</li>
+  </ul>
+  <p><b>Estados de una visita:</b></p>
+  <p>
+    <span class="pill p-pend">Pendiente</span> registrada, aún no llega &nbsp;·&nbsp;
+    <span class="pill p-dentro">Dentro</span> ya entró, sigue adentro &nbsp;·&nbsp;
+    <span class="pill p-salida">Salida registrada</span> entró y salió &nbsp;·&nbsp;
+    <span class="pill p-canc">Cancelada</span> anulada antes de entrar
+  </p>
+
+  <h2><span class="n">2</span> Iniciar sesión</h2>
+  <ol>
+    <li>Abre el sistema en el navegador.</li>
+    <li>Escribe tu <b>contraseña de WishPOS</b> (no se pide usuario) y presiona <b>Entrar</b>.</li>
+    <li>Entras al <b>Menú</b>; da clic en <b>Control de Visitas</b> para abrir el módulo.</li>
+  </ol>
+  <div class="callout tip"><b>Sugerencia</b>Es la misma contraseña de WishPOS. El sistema no crea usuarios nuevos.</div>
+
+  <h2><span class="n">3</span> El módulo Control de Visitas</h2>
+  <p>Verás hasta cinco tarjetas (la de Configuración solo aparece si tu usuario tiene el permiso correspondiente):</p>
+  <table>
+    <tr><th>Tarjeta</th><th>Para qué sirve</th></tr>
+    <tr><td>📝 <b>Registrar visita</b></td><td>Capturar un visitante y generar su código de acceso.</td></tr>
+    <tr><td>📋 <b>Mis visitas</b></td><td>Consultar, editar o cancelar las visitas que tú registraste.</td></tr>
+    <tr><td>📊 <b>Reportes / Bitácora</b></td><td>Consultar accesos por fechas y exportar a CSV.</td></tr>
+    <tr><td>🛡️ <b>Área de Acceso</b></td><td>Modo caseta/kiosko (registrar llegada y salida).</td></tr>
+    <tr><td>⚙️ <b>Configuración</b></td><td>Parámetros del sistema (solo usuarios autorizados).</td></tr>
+  </table>
+
+  <h2><span class="n">4</span> Registrar una visita</h2>
+  <ol>
+    <li>En el módulo, entra a <b>Registrar visita</b>.</li>
+    <li>Llena los campos (los marcados con * son obligatorios):
+      <ul>
+        <li>Nombre, Apellido paterno, Apellido materno *</li>
+        <li>Correo electrónico * — a esta dirección le llega el código de acceso.</li>
+        <li>Empresa *, Área a visitar *, Motivo de la visita *</li>
+        <li><b>Observaciones</b> (opcional) — comentarios para que <b>vigilancia</b> los tenga en cuenta al recibir a la visita.</li>
+        <li>Fecha de visita * — el acceso solo se permitirá ese día.</li>
+        <li>Persona que visita (anfitrión) *</li>
+        <li><b>⭐ Marcar como visita VIP</b> — <i>solo aparece si tu usuario está autorizado</i> (ver Configuración).</li>
+        <li><b>¿El visitante trae vehículo?</b> — si lo activas, captura Marca, Modelo y Placas.</li>
+      </ul>
+    </li>
+    <li>Presiona <b>Generar código de acceso</b>.</li>
+    <li>La pantalla muestra el <b>código de 6 dígitos</b> y un resumen. El visitante lo recibe <b>automáticamente por correo</b>; también puedes copiarlo para compartirlo por otro medio.</li>
+  </ol>
+  <div class="callout tip"><b>Recuerda</b>El visitante necesita este código <b>el día de su visita</b> para registrar su llegada en la caseta.</div>
+
+  <h2><span class="n">5</span> Mis visitas (consultar / editar / cancelar)</h2>
+  <p>Muestra la lista de lo que tú registraste, con su estado, foto (si ya entró) y etiqueta <span class="vip">⭐ VIP</span> cuando aplica.</p>
+  <ul>
+    <li><b>Editar</b> — solo mientras la visita está <span class="pill p-pend">Pendiente</span>. Cambia lo necesario y <b>Guardar cambios</b>. Una vez que el visitante entró, Editar queda deshabilitado.</li>
+    <li><b>Cancelar esta visita</b> — dentro de la edición (pide confirmación). Solo mientras esté Pendiente; al cancelarla, su código de acceso deja de funcionar.</li>
+    <li><b>Volver sin guardar</b> — sale de la edición sin aplicar cambios.</li>
+  </ul>
+
+  <h2><span class="n">6</span> Modo caseta / Área de Acceso</h2>
+  <p>Para el equipo de la caseta. Entra con <b>Área de Acceso → Entrar al kiosko</b>. Verás dos opciones grandes.</p>
+
+  <div class="card">
+    <h3>6.1 🔑 Registrar acceso (llegada)</h3>
+    <ol>
+      <li>Toca <b>REGISTRAR ACCESO</b>.</li>
+      <li>El visitante teclea su <b>código de acceso de 6 dígitos</b>.</li>
+      <li><b>Confirma identidad</b>: escribe el <b>apellido paterno</b> tal como se registró y presiona <b>Validar</b>.</li>
+      <li><b>Foto</b>: <b>Tomar foto → Usar esta foto</b> (o Repetir). Si no hay cámara, <b>Continuar sin foto</b>.</li>
+      <li>Aparece la <b>etiqueta de acceso</b> con nombre, área, anfitrión, la marca <span class="vip">⭐ VISITA VIP</span> si aplica, y el <b>código de salida</b> a conservar. Se puede <b>Imprimir etiqueta</b>.</li>
+    </ol>
+    <p style="margin:6px 0 2px;"><b>Mensajes posibles al validar:</b></p>
+    <ul>
+      <li><i>Código no reconocido</i> — mal tecleado o no existe.</li>
+      <li><i>Este código ya fue utilizado</i> — ya se registró el acceso.</li>
+      <li><i>Esta visita fue cancelada</i> — solicitar apoyo en recepción.</li>
+      <li><i>Esta visita está registrada para el [fecha], no para hoy</i> — el acceso solo vale el día registrado.</li>
+      <li><i>Apellido no coincide</i> — hasta <b>3 intentos</b>; tras el tercero se pide apoyo a seguridad/recepción.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>6.2 🚪 Registrar salida</h3>
+    <ol>
+      <li>Toca <b>REGISTRAR SALIDA</b>.</li>
+      <li>El visitante teclea su <b>código de salida</b>.</li>
+      <li>Aparece <b>«¿Eres tú?»</b> con su nombre y hora de entrada:
+        <ul>
+          <li><b>✅ Confirmar salida</b> — registra la salida y muestra el tiempo de estancia.</li>
+          <li><b>❌ No soy yo</b> — regresa para volver a teclear.</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+
+  <div class="callout warn"><b>Salir del kiosko</b>El botón «‹ Salir del kiosko» <b>cierra la sesión</b> por completo, para no dejar la cuenta abierta en el equipo de la caseta.</div>
+
+  <h2><span class="n">7</span> Reportes / Bitácora</h2>
+  <ol>
+    <li>Entra a <b>Reportes / Bitácora</b>.</li>
+    <li>Elige el <b>rango de fechas</b> (Desde / Hasta) y presiona <b>Generar</b>.</li>
+    <li>La tabla muestra cada visita: visitante, empresa, área, anfitrión, fecha, <b>estado</b>, registro, acceso, código de salida, salida y duración (y la marca VIP cuando aplica).</li>
+    <li><b>Exportar CSV</b> descarga exactamente lo que ves en pantalla (se abre en Excel).</li>
+  </ol>
+
+  <h2><span class="n">8</span> Configuración (solo usuarios autorizados)</h2>
+  <p>La tarjeta ⚙️ <b>Configuración</b> solo aparece para usuarios con el permiso correspondiente de WishPOS. Permite ajustar:</p>
+  <ul>
+    <li><b>Ruta de fotos</b> — carpeta del servidor donde se guardan las fotos.</li>
+    <li><b>Prefijo</b> y <b>Dígitos del ID</b> — arman el nombre de cada foto (ej. <span class="chip">CV0000000001.jpg</span>).</li>
+    <li><b>Usuarios que pueden marcar visitas VIP</b> — lista de <b>IDs de usuario</b> (el ID que aparece al iniciar sesión) separados por coma (ej. <span class="chip">100, 205</span>). Solo esos usuarios verán el checkbox VIP. Vacío = nadie.</li>
+  </ul>
+  <div class="callout warn"><b>Importante</b>Un cambio en la lista de usuarios VIP surte efecto la <b>próxima vez que esa persona inicie sesión</b>.</div>
+
+  <h2><span class="n">9</span> Preguntas frecuentes</h2>
+  <p><b>¿El visitante puede entrar otro día con el mismo código?</b><br>No. El código de acceso solo funciona el día registrado y una sola vez.</p>
+  <p><b>¿Se puede editar una visita que ya entró?</b><br>No. Solo mientras está <i>Pendiente</i>; después queda como registro histórico.</p>
+  <p><b>No me aparece la opción VIP al registrar.</b><br>Solo la ven los usuarios dados de alta en Configuración → <i>Usuarios que pueden marcar visitas VIP</i>. Pide que agreguen tu ID de usuario y vuelve a iniciar sesión.</p>
+  <p><b>No me aparece la tarjeta de Configuración.</b><br>Requiere un permiso especial de WishPOS; no todos los usuarios lo tienen.</p>
+  <p><b>La cámara no funciona en la caseta.</b><br>La toma de foto requiere que el sistema se abra por <b>HTTPS</b> (sitio seguro). Si no hay cámara, usa <b>Continuar sin foto</b>.</p>
+  <p><b>El visitante no recibió el correo.</b><br>Se envía automáticamente al registrar. Si no llega, verifica que el correo capturado sea correcto y reporta a soporte.</p>
+
+  <footer>
+    <span>Control de Visitas · Celex — Manual de uso</span>
+    <span>Uso interno</span>
+  </footer>
+
+</div>
+</body>
+</html>
