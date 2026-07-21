@@ -21,7 +21,7 @@ public record VisitaRegistroRequest(
 
 public record VisitaRegistroResponse(long Id, Guid Uuid, string CodigoAcceso);
 
-public record ValidarAccesoRequest(string CodigoAcceso, string ApellidoTecleado, string? FotoRuta);
+public record ValidarAccesoRequest(string CodigoAcceso, string ApellidoTecleado);
 
 public record VisitaAccesoInfo(
     long Id,

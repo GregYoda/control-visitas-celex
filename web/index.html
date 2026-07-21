@@ -1184,7 +1184,7 @@ async function submitValidate(){
     const resp = await fetch(`${API_BASE_URL}/api/visitas/validar-acceso`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ codigoAcceso: pendingVisitId, apellidoTecleado, fotoRuta: null })
+      body: JSON.stringify({ codigoAcceso: pendingVisitId, apellidoTecleado })
     });
     if(!resp.ok) throw new Error('HTTP ' + resp.status);
     data = await resp.json();

@@ -68,7 +68,6 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
 
         comando.Parameters.AddWithValue("@CodigoAcceso", datos.CodigoAcceso);
         comando.Parameters.AddWithValue("@ApellidoTecleado", datos.ApellidoTecleado);
-        comando.Parameters.AddWithValue("@FotoRuta", datos.FotoRuta ?? "");
 
         await conexion.OpenAsync();
         await using var lector = await comando.ExecuteReaderAsync();

@@ -305,19 +305,18 @@ GO
 /* -----------------------------------------------------------------------------
    sp_CV_Visitas_ValidarAcceso
    Paso 2: la caseta recibió el código de acceso de 6 dígitos y el visitante
-   tecleó su apellido paterno. Si coincide, marca el acceso, guarda la foto y
-   genera el código de salida.
+   tecleó su apellido paterno. Si coincide, marca el acceso y genera el código
+   de salida. La foto se guarda después, en un paso aparte
+   (sp_CV_Visitas_ActualizarFoto vía POST /api/visitas/{id}/foto).
    Resultado posible: OK | NO_ENCONTRADO | YA_UTILIZADO | CANCELADA |
                       FECHA_NO_COINCIDE | APELLIDO_NO_COINCIDE
    ----------------------------------------------------------------------------- */
 CREATE PROCEDURE dbo.sp_CV_Visitas_ValidarAcceso
     @CodigoAcceso       CHAR(6),
-    @ApellidoTecleado   NVARCHAR(100),
-    @FotoRuta           NVARCHAR(260)   = ''
+    @ApellidoTecleado   NVARCHAR(100)
 AS
 BEGIN
     SET NOCOUNT ON;
-    SET @FotoRuta = ISNULL(@FotoRuta, '');
     DECLARE @ID BIGINT, @ApellidoReal NVARCHAR(100), @Status NVARCHAR(20), @FechaVisita DATE;
 
     -- CodigoAcceso solo es único por FechaVisita (se recicla en otras
@@ -376,7 +375,6 @@ BEGIN
            SET Status = N'Accesado',
                FechaAcceso = GETDATE(),
                CodigoSalida = @Codigo,
-               FotoRuta = @FotoRuta,
                ID_Fecha_Modificacion = GETDATE()
          WHERE ID = @ID;
 
