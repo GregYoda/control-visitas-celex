@@ -97,9 +97,15 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   Importante: el HTML se construye en `NVARCHAR` con literales `N''` y se
   convierte a `VARCHAR` (tipo real de `WM_Correo`) hasta el final —
   concatenar literales sin `N''` corrompe los acentos al pasar por
-  SQL Server. **`WM_Correo` ya existe en producción**; el `CREATE TABLE`
-  en el script es solo para el entorno local de pruebas — al desplegar,
-  apuntar a la tabla real y no correr ese bloque ahí.
+  SQL Server. **`WM_Correo` vive en otra base (la de WishPOS), no en
+  `ControlVisitas_Celex`.** El SP inserta en `dbo.WM_Correo` a través de un
+  **SYNONYM** local (`CREATE SYNONYM dbo.WM_Correo FOR WISH.dbo.WM_Correo`),
+  para no acoplar el SP al nombre físico de la base: solo se reapunta el
+  synonym por entorno. En este equipo la base replicada se llama `WISH`; en
+  producción se reapunta el synonym a la base real de WishPOS (ajustar el
+  nombre si difiere) — nunca se crea una tabla `WM_Correo`. El login/usuario
+  con que se conecta la API debe tener permiso de INSERT sobre esa tabla
+  cross-database.
 - ✅ **Fotos servidas por la API, no por ruta de disco.** `CV_Visitas.FotoRuta`
   guarda una ruta de Windows (ej. `C:\Control de Visitas\Fotos\CV...jpg`), que
   un navegador no puede usar como `<img src>`. Se agregó
@@ -178,8 +184,10 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   App Pool "No Managed Code", cadena de conexión vía
   `appsettings.Production.json` —hay plantilla `.example.json`—, permisos de la
   carpeta de fotos, HTTPS obligatorio por la cámara). Falta: DBA corre el
-  script en el SQL productivo (con `-f i:65001` y **sin** crear `WM_Correo`),
-  publicar en IIS y verificar. Luego el kiosko (`docs/checklist-modo-kiosco.md`).
+  script en el SQL productivo (con `-f i:65001`; el script crea un SYNONYM
+  `dbo.WM_Correo` → base de WishPOS, hay que reapuntarlo al nombre real y dar
+  permiso de INSERT), publicar en IIS y verificar. Luego el kiosko
+  (`docs/checklist-modo-kiosco.md`).
 
 ## Decisiones de diseño ya tomadas (no las reabras sin razón)
 

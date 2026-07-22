@@ -182,27 +182,21 @@ INSERT INTO dbo.CV_Configuracion (Clave, Valor) VALUES
 GO
 
 /* -----------------------------------------------------------------------------
-   5) WM_Correo: cola de correos ya existente en producción -- el SQL Server
-      Agent Job que ya opera revisa esta tabla cada minuto y envía con
-      sp_send_dbmail lo que tenga Enviar='SI' y Enviado='NO'.
-      >>> SOLO PARA PRUEBAS LOCALES. En el servidor real esta tabla ya existe;
-      no correr este bloque ahí -- apuntar sp_CV_Visitas_Registrar a la
-      tabla WM_Correo real.
+   5) WM_Correo: cola de correos que ya existe en otra base (la de WishPOS). El
+      SQL Server Agent Job que ya opera la revisa cada minuto y envía con
+      sp_send_dbmail lo que tenga Enviar='Si' y Enviado='No'.
+
+      NO se crea la tabla aquí: se referencia con un SYNONYM local, para que
+      sp_CV_Visitas_Registrar inserte en `dbo.WM_Correo` sin acoplarse al
+      nombre físico de la base. Solo hay que reapuntar el SYNONYM por entorno.
+
+      >>> Local (este equipo): la base replicada se llama WISH.
+      >>> Producción: reapuntar el SYNONYM a la base real de WishPOS (ajustar el
+          nombre si difiere) -- NO hay que crear ninguna tabla WM_Correo.
    ----------------------------------------------------------------------------- */
-CREATE TABLE dbo.WM_Correo (
-    ID              BIGINT IDENTITY(1,1)   NOT NULL,
-    Asunto          VARCHAR(512)           NOT NULL,
-    Correos         VARCHAR(512)           NOT NULL,
-    Enviado         VARCHAR(2)             NOT NULL,
-    EnviadoFechaHr  SMALLDATETIME          NOT NULL,
-    Enviar          VARCHAR(2)             NOT NULL,
-    HTML            VARCHAR(MAX)           NOT NULL,
-    Usuario_ID      BIGINT                 NOT NULL,
-    ID_UUID         VARCHAR(128)           NOT NULL,
-    IDFecha         SMALLDATETIME          NOT NULL,
-    TipoDocumento   VARCHAR(128)           NOT NULL,
-    CONSTRAINT PK_WM_Correo PRIMARY KEY CLUSTERED (ID)
-);
+IF OBJECT_ID('dbo.WM_Correo', 'SN') IS NOT NULL DROP SYNONYM dbo.WM_Correo;
+GO
+CREATE SYNONYM dbo.WM_Correo FOR WISH.dbo.WM_Correo;
 GO
 
 /* =============================================================================

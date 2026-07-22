@@ -25,22 +25,24 @@ PARTE 1 — BASE DE DATOS (DBA)
 
        sqlcmd -S [SERVIDOR_SQL] -d ControlVisitas_Celex -f i:65001 -i cv-modelo-datos.sql
 
-3. ⚠️ NO crear la tabla `WM_Correo`. Ya existe en producción (es la cola de
-   correos que ya usan otros procesos). En el script hay un bloque
-   `CREATE TABLE dbo.WM_Correo` que es SOLO para el ambiente local de pruebas:
-   por favor omitirlo/eliminarlo antes de correr en el servidor real. El sistema
-   inserta en esa tabla existente para enviar el correo de confirmación al
-   visitante (vía el Job de SQL Server Agent que ya la procesa).
+3. ⚠️ NO crear la tabla `WM_Correo`. Ya existe en la base de WishPOS (es la
+   cola de correos que ya usan otros procesos). El script NO crea la tabla:
+   crea un SYNONYM `dbo.WM_Correo` que apunta a ella
+   (`CREATE SYNONYM dbo.WM_Correo FOR WISH.dbo.WM_Correo`). Por favor
+   **reapuntar ese synonym** al nombre real de la base de WishPOS si difiere de
+   `WISH`. Así el sistema inserta en esa tabla existente (vía el Job de SQL
+   Server Agent que ya la procesa) sin duplicarla.
 
 4. Confirmar que el Job de SQL Server Agent que envía `WM_Correo`
-   (los registros con `Enviar='SI'` y `Enviado='NO'`) esté activo. De él depende
+   (los registros con `Enviar='Si'` y `Enviado='No'`) esté activo. De él depende
    que al visitante le llegue su código de acceso por correo.
 
 5. ⚠️ Acceso de la aplicación a la base. Según cómo prefieran:
    - Opción A (recomendada): autenticación de Windows. Dar de alta la identidad
      del Application Pool de IIS (ej. `IIS AppPool\ControlVisitas`) como login en
      SQL, con permiso para EJECUTAR los stored procedures `sp_CV_*` y
-     leer/escribir las tablas `CV_*` y `WM_Correo`.
+     leer/escribir las tablas `CV_*` de `ControlVisitas_Celex`, **más permiso de
+     INSERT sobre `WM_Correo` en la base de WishPOS** (acceso cross-database).
    - Opción B: crear un login de SQL (usuario/contraseña) dedicado con esos
      mismos permisos; nosotros lo ponemos en la cadena de conexión.
 

@@ -30,12 +30,15 @@ SQL Server. El frontend se sirve **desde el mismo sitio que la API**
    ```
    sqlcmd -S SERVIDOR -d ControlVisitas_Celex -f i:65001 -i cv-modelo-datos.sql
    ```
-3. ⚠️ **NO crear la tabla `WM_Correo`**: ya existe en producción. En el script
-   el `CREATE TABLE dbo.WM_Correo` es **solo para el entorno local de pruebas**
-   — quitar/omitir ese bloque al correr en el servidor real, y confirmar que
-   `sp_CV_Visitas_Registrar` inserta en la tabla `WM_Correo` real.
+3. ⚠️ **`WM_Correo` NO se crea**: ya existe en la base de WishPOS. El script
+   crea un **SYNONYM** `dbo.WM_Correo` que apunta a esa tabla
+   (`CREATE SYNONYM dbo.WM_Correo FOR WISH.dbo.WM_Correo`). En el servidor
+   real, **reapuntar el synonym** al nombre real de la base de WishPOS si
+   difiere de `WISH`, y otorgar al login de la app permiso de **INSERT** sobre
+   esa tabla (acceso cross-database). Así `sp_CV_Visitas_Registrar` inserta en
+   `dbo.WM_Correo` sin acoplarse al nombre físico de la base.
 4. Confirmar que el **SQL Server Agent Job** que envía `WM_Correo`
-   (`Enviar='SI'`, `Enviado='NO'`) está activo — es quien manda el correo de
+   (`Enviar='Si'`, `Enviado='No'`) está activo — es quien manda el correo de
    confirmación al visitante.
 
 ---
@@ -67,7 +70,8 @@ resto de archivos publicados, crear `appsettings.Production.json` a partir de
 - **Opción A — Autenticación de Windows**: `Trusted_Connection=True`. Requiere
   dar de alta la **identidad del App Pool** (ver paso 4) como login en SQL con
   permisos sobre `ControlVisitas_Celex` (ejecutar los SP + leer/escribir las
-  tablas `CV_*` y `WM_Correo`).
+  tablas `CV_*`) **y** permiso de INSERT sobre `WM_Correo` en la base de WishPOS
+  (a la que apunta el synonym).
 - **Opción B — Usuario/contraseña de SQL**: `User Id=...;Password=...;` con un
   login dedicado y los mismos permisos.
 
