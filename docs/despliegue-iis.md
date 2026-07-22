@@ -99,6 +99,25 @@ el `web.config`; si no, agregarlo como variable de entorno del App Pool).
      Crear esa carpeta y dar permiso a la identidad del App Pool (o
      `IIS AppPool\ControlVisitas`).
 
+### Carpeta de fotos en un servidor / recurso compartido (opcional)
+
+`RutaFotos` puede apuntar a una **carpeta de red** en vez de una unidad local:
+
+- Usar la **ruta UNC completa** (`\\servidor\Fotos\ControlVisitas`), **no** una
+  letra de unidad mapeada (`Z:\...`): las unidades mapeadas son por sesión de
+  usuario y el App Pool no las ve.
+- Se captura tal cual desde la pantalla de **Configuración** (vive en
+  `CV_Configuracion`, no en JSON; no hay que escapar backslashes).
+- ⚠️ **Identidad con acceso de red**: `ApplicationPoolIdentity` sale a la red
+  como la cuenta de máquina (`DOMINIO\SERVIDOR$`). Para escribir en un share de
+  otro servidor, lo recomendado es correr el App Pool bajo una **cuenta de
+  servicio de dominio** y darle **lectura/escritura** en el recurso, tanto a
+  nivel **Share** como **NTFS**.
+- Si el recurso de red no está disponible, guardar la foto falla sin bloquear
+  el flujo del kiosko (se maneja el error), pero esa foto quedaría sin guardar.
+  Conviene **probar** el ciclo completo (tomar foto → verla en Mis Visitas /
+  Reportes) en el ambiente real.
+
 ---
 
 ## 5) Configuración post-despliegue
