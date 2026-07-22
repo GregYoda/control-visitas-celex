@@ -158,6 +158,26 @@
   }
   .btn-danger:hover{background:#fdeceb;}
   .login-error{color:var(--err);font-size:13px;margin-top:10px;min-height:16px;}
+  /* Teclado numérico en pantalla del login (lado derecho) */
+  .login-kbd{position:absolute;right:28px;top:90px;display:flex;flex-direction:column;align-items:flex-end;gap:14px;z-index:20;}
+  .login-kbd-toggle{
+    background:#fff;border:1.5px solid #d8dce3;border-radius:30px;
+    padding:12px 20px;font-size:14px;font-weight:600;color:#444a58;
+    display:flex;gap:8px;align-items:center;box-shadow:var(--shadow);cursor:pointer;
+  }
+  .login-kbd-toggle:hover{background:#f4f5f8;}
+  .login-keypad{
+    display:none;grid-template-columns:repeat(3,72px);gap:12px;
+    background:#fff;border:1px solid #e3e7ef;border-radius:16px;padding:16px;box-shadow:var(--shadow);
+  }
+  .login-keypad.show{display:grid;}
+  .login-keypad button{
+    width:72px;height:64px;border-radius:12px;border:1px solid #dce1ec;background:#f7f9fc;
+    font-size:22px;font-weight:700;color:var(--ink);cursor:pointer;
+  }
+  .login-keypad button:hover{background:#eef2f9;}
+  .login-keypad button:active{background:var(--purple-1);color:#fff;border-color:var(--purple-1);}
+  .login-keypad button.fn{font-size:17px;color:#8b93a3;}
 
   /* ---------- Module home cards ---------- */
   .module-card{
@@ -359,6 +379,25 @@
         <div class="field"><label>Contraseña</label><input id="loginPass" type="password" placeholder="••••••••"></div>
         <button class="btn-primary" onclick="doLogin()">Entrar</button>
         <div class="login-error" id="loginError"></div>
+      </div>
+    </div>
+    <!-- Teclado numérico en pantalla (para la terminal táctil sin teclado físico).
+         Oculto por defecto; solo aparece si se oprime el botón. -->
+    <div class="login-kbd">
+      <button class="login-kbd-toggle" onclick="toggleLoginKeypad()">🔢 Teclado</button>
+      <div class="login-keypad" id="loginKeypad">
+        <button type="button" onclick="loginKeypadPress('1')">1</button>
+        <button type="button" onclick="loginKeypadPress('2')">2</button>
+        <button type="button" onclick="loginKeypadPress('3')">3</button>
+        <button type="button" onclick="loginKeypadPress('4')">4</button>
+        <button type="button" onclick="loginKeypadPress('5')">5</button>
+        <button type="button" onclick="loginKeypadPress('6')">6</button>
+        <button type="button" onclick="loginKeypadPress('7')">7</button>
+        <button type="button" onclick="loginKeypadPress('8')">8</button>
+        <button type="button" onclick="loginKeypadPress('9')">9</button>
+        <button type="button" class="fn" onclick="loginKeypadClear()">C</button>
+        <button type="button" onclick="loginKeypadPress('0')">0</button>
+        <button type="button" class="fn" onclick="loginKeypadBackspace()">⌫</button>
       </div>
     </div>
   </div>
@@ -1033,7 +1072,24 @@ function doLogout(){
   session.iniciarEnKiosko = false;
   document.getElementById('configCard').style.display = 'none';
   document.getElementById('loginPass').value='';
+  document.getElementById('loginKeypad').classList.remove('show'); // ocultar teclado numérico
   showScreen('screen-login');
+}
+
+/* ---------- teclado numérico en pantalla del login ---------- */
+function toggleLoginKeypad(){
+  document.getElementById('loginKeypad').classList.toggle('show');
+}
+function loginKeypadPress(d){
+  const inp = document.getElementById('loginPass');
+  inp.value += d;
+}
+function loginKeypadBackspace(){
+  const inp = document.getElementById('loginPass');
+  inp.value = inp.value.slice(0, -1);
+}
+function loginKeypadClear(){
+  document.getElementById('loginPass').value = '';
 }
 
 /* ---------- registro de visita ---------- */

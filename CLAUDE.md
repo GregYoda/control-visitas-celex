@@ -179,9 +179,15 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   funcionalidad estándar del navegador (solo el personal con teclado). Las
   llamadas van con try/catch + `.catch` porque el navegador puede rechazar
   `requestFullscreen` si no hay gesto de usuario (ej. tras el `await` del login
-  directo de un usuario de caseta) — degradación silenciosa, no error. Solo en
-  `index.html` (el demo no lo tiene). En el kiosko físico, además, Chrome se
+  directo de un usuario de caseta) — degradación silenciosa, no error. Está en
+  `index.html` y también en el demo. En el kiosko físico, además, Chrome se
   abre en modo kiosko por los flags del `docs/checklist-modo-kiosco.md`.
+- ✅ **Teclado numérico en pantalla del login.** Botón "🔢 Teclado" en el lado
+  derecho de la pantalla de login (`.login-kbd`, `position:absolute; right`)
+  que, al oprimirse, muestra un teclado **numérico** (`#loginKeypad`, oculto por
+  defecto, `toggleLoginKeypad()`) para escribir la contraseña en la terminal
+  táctil sin teclado físico. Teclas 0-9 + C + ⌫ que escriben en `#loginPass`.
+  Se oculta de nuevo en `doLogout()`. Está en `index.html` y en el demo.
 - ✅ **Frontend servido desde la propia API (mismo-origen).** La API ahora
   sirve `web/index.html` como estático (`UseDefaultFiles`/`UseStaticFiles`);
   un `Target` del `.csproj` copia `web/index.html` a `api/wwwroot/` al
