@@ -86,6 +86,8 @@ El login con que se conecta la API necesita, sobre `ControlVisitas_Celex`:
 ejecutar los `sp_CV_*` y CRUD en las tablas `CV_*`; y sobre la base de WishPOS:
 **INSERT** en `WM_Correo` (cross-database).
 
+### Opción A — Autenticación de Windows (cuenta del App Pool de IIS)
+
 ```sql
 USE ControlVisitas_Celex;
 CREATE USER [dominio\CuentaAppPool] FOR LOGIN [dominio\CuentaAppPool];
@@ -98,8 +100,48 @@ CREATE USER [dominio\CuentaAppPool] FOR LOGIN [dominio\CuentaAppPool];
 GRANT INSERT ON dbo.WM_Correo TO [dominio\CuentaAppPool];
 ```
 
-Ajustar el login: la cuenta del App Pool de IIS (autenticación de Windows) o un
-login SQL dedicado, según la opción elegida en `docs/despliegue-iis.md`.
+### Opción B — Usuario/contraseña de SQL (login dedicado)
+
+Requiere que la instancia tenga habilitada la **autenticación mixta** (*Server
+Properties → Security → SQL Server and Windows Authentication mode*; si se
+cambia, reiniciar el servicio de SQL Server).
+
+```sql
+-- 1) LOGIN a nivel de servidor
+USE master;
+GO
+CREATE LOGIN cv_app
+    WITH PASSWORD = 'CAMBIA_ESTA_CLAVE_Fuerte!2026',
+         CHECK_POLICY = ON;
+GO
+
+-- 2) Permisos en la base del sistema
+USE ControlVisitas_Celex;
+GO
+CREATE USER cv_app FOR LOGIN cv_app;
+ALTER ROLE db_datareader ADD MEMBER cv_app;   -- SELECT en las tablas CV_*
+ALTER ROLE db_datawriter ADD MEMBER cv_app;   -- INSERT/UPDATE/DELETE en CV_*
+GRANT EXECUTE TO cv_app;                       -- ejecutar los sp_CV_*
+GO
+
+-- 3) Permiso de INSERT en WM_Correo (base de WishPOS)
+USE WISH;   -- nombre REAL de la base de WishPOS
+GO
+CREATE USER cv_app FOR LOGIN cv_app;
+GRANT INSERT ON dbo.WM_Correo TO cv_app;
+GO
+```
+
+Cadena de conexión (`appsettings.Production.json`) para la Opción B:
+
+```
+Server=SERVIDOR\INSTANCIA;Database=ControlVisitas_Celex;User Id=cv_app;Password=...;TrustServerCertificate=True;
+```
+
+> El paso 3 (INSERT en `WM_Correo`) es necesario en ambas opciones **aunque** el
+> insert ocurra dentro de `sp_CV_Visitas_Registrar`: al pasar por el synonym a
+> otra base, SQL Server evalúa el permiso como el usuario en la base destino.
+> Ajustar `cv_app`, la contraseña y el nombre `WISH` a los reales.
 
 ## 9. Confirmar el envío de correo
 
