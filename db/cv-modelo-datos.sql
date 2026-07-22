@@ -170,11 +170,15 @@ GO
 -- UsuariosVIP: lista de Usuario_ID (WishPOS, el ID que devuelve el login)
 -- separados por coma, que pueden marcar una visita como VIP (ej. '100,205').
 -- Vacío = nadie puede marcar VIP.
+-- UsuariosKiosko: lista de Usuario_ID (mismo formato) que, al iniciar sesión,
+-- entran DIRECTO al kiosko de ingreso/salida (modo terminal de caseta) en vez
+-- de al menú. Vacío = nadie entra directo al kiosko.
 INSERT INTO dbo.CV_Configuracion (Clave, Valor) VALUES
  (N'RutaFotos', N'C:\Control de Visitas\Fotos'),
  (N'PrefijoFoto', N'CV'),
  (N'DigitosFoto', N'10'),
- (N'UsuariosVIP', N'');
+ (N'UsuariosVIP', N''),
+ (N'UsuariosKiosko', N'');
 GO
 
 /* -----------------------------------------------------------------------------

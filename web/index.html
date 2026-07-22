@@ -483,10 +483,15 @@
               <label>Usuarios que pueden marcar visitas VIP</label>
               <input id="cfgUsuariosVIP" placeholder="ej. 100, 205, 777">
             </div>
+            <div class="field full">
+              <label>Usuarios que entran directo al kiosko (terminal de caseta)</label>
+              <input id="cfgUsuariosKiosko" placeholder="ej. 300, 301">
+            </div>
           </div>
           <p style="color:#8b93a3;font-size:12.5px;margin:-6px 0 18px;">
             Con los valores por defecto, la foto de la visita con ID 1 se guarda como <b>CV0000000001.jpg</b>.<br>
-            <b>Usuarios VIP:</b> lista de IDs de usuario (el que aparece al iniciar sesión) separados por coma. Solo esos usuarios verán la opción "Visita VIP" al registrar. Déjalo vacío si nadie debe marcar VIP.
+            <b>Usuarios VIP:</b> lista de IDs de usuario (el que aparece al iniciar sesión) separados por coma. Solo esos usuarios verán la opción "Visita VIP" al registrar. Déjalo vacío si nadie debe marcar VIP.<br>
+            <b>Usuarios kiosko:</b> lista de IDs de usuario (mismo formato) que, al iniciar sesión, abren directamente el kiosko de ingreso/salida en lugar del menú (para el equipo de la caseta). Al salir del kiosko se cierra la sesión. Vacío = nadie.
           </p>
           <div class="login-error" id="configMsg"></div>
           <div class="form-actions">
@@ -877,7 +882,7 @@
 // directamente (file://) para pruebas, apunta a la API local en el 5280.
 const API_BASE_URL = location.protocol === 'file:' ? 'http://localhost:5280' : '';
 
-let session = { username: null, nombre: null, usuarioId: null, puedeConfigurar: false, puedeVIP: false };
+let session = { username: null, nombre: null, usuarioId: null, puedeConfigurar: false, puedeVIP: false, iniciarEnKiosko: false };
 let visits = [];          // bitácora completa
 let pendingVisitId = null;
 let attemptCount = 0;
@@ -988,6 +993,7 @@ async function doLogin(){
   session.usuarioId = data.usuarioId;
   session.puedeConfigurar = !!data.puedeConfigurar;
   session.puedeVIP = !!data.puedeVIP;
+  session.iniciarEnKiosko = !!data.iniciarEnKiosko;
   document.getElementById('menuUserLabel').textContent = data.nombre || data.usuario;
   document.getElementById('visitasUserLabel').textContent = data.nombre || data.usuario;
   document.getElementById('regUserLabel').textContent = data.nombre || data.usuario;
@@ -995,7 +1001,9 @@ async function doLogin(){
   document.getElementById('configCard').style.display = session.puedeConfigurar ? '' : 'none';
   buildSidebar('sidebarList','menu');
   buildSidebar('sidebarList2','visitas');
-  showScreen('screen-menu');
+  // Usuarios de "terminal de caseta" entran directo al kiosko; al salir del
+  // kiosko se cierra la sesión (‹ Salir del kiosko = doLogout).
+  showScreen(session.iniciarEnKiosko ? 'screen-kiosk-home' : 'screen-menu');
 }
 function doLogout(){
   session.username = null;
@@ -1003,6 +1011,7 @@ function doLogout(){
   session.usuarioId = null;
   session.puedeConfigurar = false;
   session.puedeVIP = false;
+  session.iniciarEnKiosko = false;
   document.getElementById('configCard').style.display = 'none';
   document.getElementById('loginPass').value='';
   showScreen('screen-login');
@@ -1611,7 +1620,7 @@ async function cancelarVisita(){
 }
 
 /* ---------- configuración (solo visible con permiso CV.200.00) ---------- */
-const CONFIG_CAMPOS = { RutaFotos: 'cfgRutaFotos', PrefijoFoto: 'cfgPrefijoFoto', DigitosFoto: 'cfgDigitosFoto', UsuariosVIP: 'cfgUsuariosVIP' };
+const CONFIG_CAMPOS = { RutaFotos: 'cfgRutaFotos', PrefijoFoto: 'cfgPrefijoFoto', DigitosFoto: 'cfgDigitosFoto', UsuariosVIP: 'cfgUsuariosVIP', UsuariosKiosko: 'cfgUsuariosKiosko' };
 
 async function openConfiguracion(){
   const msg = document.getElementById('configMsg');
@@ -1642,10 +1651,16 @@ async function guardarConfiguracion(){
   if(!/^\d+$/.test(valores.DigitosFoto)){
     msg.textContent = 'Dígitos del ID debe ser un número.'; return;
   }
-  // Usuarios VIP es opcional; si se llena, debe ser IDs numéricos separados por coma.
-  if(valores.UsuariosVIP && !/^\s*\d+(\s*,\s*\d+)*\s*$/.test(valores.UsuariosVIP)){
+  // Usuarios VIP / Kiosko son opcionales; si se llenan, deben ser IDs numéricos
+  // separados por coma.
+  const listaIds = /^\s*\d+(\s*,\s*\d+)*\s*$/;
+  if(valores.UsuariosVIP && !listaIds.test(valores.UsuariosVIP)){
     msg.style.color = 'var(--err)';
     msg.textContent = 'Usuarios VIP debe ser una lista de IDs numéricos separados por coma (ej. 100, 205).'; return;
+  }
+  if(valores.UsuariosKiosko && !listaIds.test(valores.UsuariosKiosko)){
+    msg.style.color = 'var(--err)';
+    msg.textContent = 'Usuarios kiosko debe ser una lista de IDs numéricos separados por coma (ej. 300, 301).'; return;
   }
   try{
     for(const [clave, valor] of Object.entries(valores)){
@@ -1830,7 +1845,7 @@ function toggleKeyboard(){
 wireEnterAvanza(['loginPass'], doLogin);
 wireEnterAvanza(['validateApP'], submitValidate);
 wireEnterAvanza(['repDesde','repHasta'], generarReporte);
-wireEnterAvanza(['cfgRutaFotos','cfgPrefijoFoto','cfgDigitosFoto','cfgUsuariosVIP'], guardarConfiguracion);
+wireEnterAvanza(['cfgRutaFotos','cfgPrefijoFoto','cfgDigitosFoto','cfgUsuariosVIP','cfgUsuariosKiosko'], guardarConfiguracion);
 wireEnterAvanza(
   ['fNombre','fApP','fApM','fCorreo','fEmpresa','fArea','fMotivo','fObservaciones','fFechaVisita','fAnfitrion','fMarca','fModelo','fPlacas'],
   generarCodigoAcceso

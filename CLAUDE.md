@@ -151,6 +151,17 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   backend simulado: el usuario `demo` (Usuario_ID 100) está en `UsuariosVIP`
   por defecto para poder mostrar el checkbox, y la visita semilla "María"
   viene marcada VIP.
+- ✅ **Modo "terminal de caseta" (entrar directo al kiosko).** Nueva clave
+  `CV_Configuracion.UsuariosKiosko` = lista de `Usuario_ID` (mismo formato que
+  `UsuariosVIP`, separados por coma; vacío = nadie). Los usuarios de esa lista,
+  al iniciar sesión, abren **directo** `screen-kiosk-home` (kiosko de
+  ingreso/salida) en vez del menú; el botón "‹ Salir del kiosko" ya hace
+  `doLogout()`, así que salen a la pantalla de login (ideal para el equipo de
+  la caseta). El login (`AuthController`) calcula `iniciarEnKiosko` con el mismo
+  helper que `puedeVIP` (`EstaEnListaAsync`) y lo regresa en `LoginResponse`;
+  el frontend enruta con `session.iniciarEnKiosko` al final de `doLogin()`. El
+  campo se administra en la pantalla de Configuración. **Pendiente:** reflejarlo
+  en `web/demo-capacitacion.html` (backend simulado) si se quiere demostrar ahí.
 - ✅ **Frontend servido desde la propia API (mismo-origen).** La API ahora
   sirve `web/index.html` como estático (`UseDefaultFiles`/`UseStaticFiles`);
   un `Target` del `.csproj` copia `web/index.html` a `api/wwwroot/` al
