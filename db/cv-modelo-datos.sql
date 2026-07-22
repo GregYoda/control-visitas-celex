@@ -357,7 +357,10 @@ BEGIN
     BEGIN
         DECLARE @Codigo CHAR(6);
 
-        -- Genera un código de 6 dígitos único entre las visitas "dentro" hoy.
+        -- Genera un código de 6 dígitos único entre las visitas que siguen
+        -- "dentro" y cuyo código todavía es válido para salir (acceso en las
+        -- últimas 48 h). La ventana coincide con la de sp_CV_Visitas_BuscarPorCodigoSalida
+        -- para que nunca haya dos visitas activas con el mismo código.
         -- Nota de producción: bajo concurrencia alta convendría envolver esto
         -- en un retry con manejo de violación de índice; para el volumen
         -- típico de una caseta esto es suficiente.
@@ -367,7 +370,7 @@ BEGIN
             IF NOT EXISTS (
                 SELECT 1 FROM dbo.CV_Visitas
                 WHERE CodigoSalida = @Codigo AND FechaSalida = '1900-01-01'
-                  AND CAST(FechaAcceso AS DATE) = CAST(GETDATE() AS DATE)
+                  AND FechaAcceso >= DATEADD(HOUR, -48, GETDATE())
             ) BREAK;
         END
 
@@ -402,6 +405,8 @@ GO
    sp_CV_Visitas_BuscarPorCodigoSalida
    Paso 3a: el visitante teclea su código de 6 dígitos en el kiosko.
    Regresa los datos para la pantalla "¿Eres tú?" (sin marcar la salida todavía).
+   La salida se permite hasta 48 horas después del registro de entrada
+   (FechaAcceso); pasado ese plazo el código deja de ser válido.
    ----------------------------------------------------------------------------- */
 CREATE PROCEDURE dbo.sp_CV_Visitas_BuscarPorCodigoSalida
     @Codigo CHAR(6)
@@ -413,7 +418,7 @@ BEGIN
     WHERE CodigoSalida = @Codigo
       AND Status = N'Accesado'
       AND FechaSalida = '1900-01-01'
-      AND CAST(FechaAcceso AS DATE) = CAST(GETDATE() AS DATE);
+      AND FechaAcceso >= DATEADD(HOUR, -48, GETDATE());
 END
 GO
 

@@ -184,9 +184,14 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   El campo `UUID` de `CV_Visitas` ya no se usa para el acceso, queda solo
   como identificador interno.
 - El **código de salida** es un número aleatorio de 6 dígitos, único solo entre
-  visitas *activas del mismo día* (no globalmente único para siempre) — así se
-  puede reciclar al día siguiente. Se genera al momento del acceso (no del
-  registro), y se muestra en la etiqueta para que el visitante lo conserve.
+  visitas *activas dentro de una ventana de 48 h* (no globalmente único para
+  siempre) — así se puede reciclar pasado ese plazo. Se genera al momento del
+  acceso (no del registro), y se muestra en la etiqueta para que el visitante
+  lo conserve. **La salida se permite hasta 48 horas después del registro de
+  entrada (`FechaAcceso`)**; antes solo el mismo día. La ventana de 48 h está
+  en dos lugares que deben coincidir: la generación del código (unicidad) en
+  `sp_CV_Visitas_ValidarAcceso` y la búsqueda en
+  `sp_CV_Visitas_BuscarPorCodigoSalida` (`FechaAcceso >= DATEADD(HOUR,-48,GETDATE())`).
 - El registro de salida usa un **teclado numérico tipo PIN** dedicado en pantalla,
   no el teclado QWERTY genérico — es más simple de usar en un kiosko touch.
 - Antes de cerrar la salida se muestra una pantalla de confirmación ("¿Eres tú?"
