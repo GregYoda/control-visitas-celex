@@ -170,6 +170,15 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   (`web/demo-capacitacion.html`) ya lo incluye: la contraseña `3000` entra como
   usuario de caseta (Usuario_ID 300, en `UsuariosKiosko` por defecto) y abre
   directo el kiosko; también refleja la ventana de salida de 48 h en su mock.
+- ✅ **Pantalla completa en modo kiosko.** `showScreen()` pone el navegador en
+  pantalla completa (Fullscreen API) al entrar a cualquier pantalla de caseta
+  (`PANTALLAS_KIOSKO`) y la desactiva al volver a una pantalla que no es de
+  caseta (menú/login). Las llamadas van con try/catch + `.catch` porque el
+  navegador puede rechazar `requestFullscreen` si no hay gesto de usuario
+  (ej. tras el `await` del login directo de un usuario de caseta) — es
+  degradación silenciosa, no error. Solo en `index.html` (el demo no lo tiene).
+  En el kiosko físico, además, Chrome se abre en modo kiosko por los flags del
+  `docs/checklist-modo-kiosco.md`.
 - ✅ **Frontend servido desde la propia API (mismo-origen).** La API ahora
   sirve `web/index.html` como estático (`UseDefaultFiles`/`UseStaticFiles`);
   un `Target` del `.csproj` copia `web/index.html` a `api/wwwroot/` al

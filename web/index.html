@@ -917,10 +917,33 @@ function esUsuarioDemo(){
   return (session.nombre || session.username || '').trim().toUpperCase() === 'DEMO MESA DE CONTROL ACTIVACIONES';
 }
 
+/* ---------- pantalla completa en modo kiosko ---------- */
+// Todas las pantallas del flujo de caseta. Al entrar a cualquiera se pone el
+// navegador en pantalla completa; al salir a una pantalla que no es de caseta
+// (menú, login, etc.) se sale de pantalla completa.
+const PANTALLAS_KIOSKO = ['screen-kiosk-home','screen-acceso-codigo','screen-validate',
+  'screen-photo','screen-badge','screen-salida-codigo','screen-salida-confirm','screen-salida-done'];
+function entrarPantallaCompleta(){
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+  if(req && !document.fullscreenElement){
+    try{ Promise.resolve(req.call(el)).catch(()=>{}); }catch(e){}
+  }
+}
+function salirPantallaCompleta(){
+  const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+  if(exit && document.fullscreenElement){
+    try{ Promise.resolve(exit.call(document)).catch(()=>{}); }catch(e){}
+  }
+}
+
 /* ---------- navegación ---------- */
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  // Modo kiosko: pantalla completa mientras se está en pantallas de caseta.
+  if(PANTALLAS_KIOSKO.includes(id)) entrarPantallaCompleta();
+  else salirPantallaCompleta();
   // el teclado en pantalla solo aplica a pantallas de caseta con campo de
   // texto real; el resto (home, foto, etiqueta, código de acceso/salida,
   // confirmar/registrar salida) no tienen ningún <input> de texto al que
