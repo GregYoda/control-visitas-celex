@@ -372,7 +372,7 @@
         <div class="login-error" id="loginError"></div>
         <div class="demo-note">
           <b>Modo demostración</b> — no se conecta a ningún servidor; los datos son de ejemplo y se reinician al recargar la página.<br>
-          Contraseña para entrar: <code>2000</code> (usuario normal). Usa <code>1000</code> para el usuario con datos de registro precargados.
+          Contraseñas: <code>2000</code> usuario normal (ve VIP) · <code>1000</code> usuario con datos de registro precargados · <code>3000</code> terminal de caseta (entra directo al kiosko).
         </div>
       </div>
     </div>
@@ -498,10 +498,15 @@
               <label>Usuarios que pueden marcar visitas VIP</label>
               <input id="cfgUsuariosVIP" placeholder="ej. 100, 205, 777">
             </div>
+            <div class="field full">
+              <label>Usuarios que entran directo al kiosko (terminal de caseta)</label>
+              <input id="cfgUsuariosKiosko" placeholder="ej. 300, 301">
+            </div>
           </div>
           <p style="color:#8b93a3;font-size:12.5px;margin:-6px 0 18px;">
             Con los valores por defecto, la foto de la visita con ID 1 se guarda como <b>CV0000000001.jpg</b>.<br>
-            <b>Usuarios VIP:</b> lista de IDs de usuario (el que aparece al iniciar sesión) separados por coma. Solo esos usuarios verán la opción "Visita VIP" al registrar. Déjalo vacío si nadie debe marcar VIP.
+            <b>Usuarios VIP:</b> lista de IDs de usuario (el que aparece al iniciar sesión) separados por coma. Solo esos usuarios verán la opción "Visita VIP" al registrar. Déjalo vacío si nadie debe marcar VIP.<br>
+            <b>Usuarios kiosko:</b> lista de IDs de usuario (mismo formato) que, al iniciar sesión, abren directamente el kiosko de ingreso/salida en lugar del menú (para el equipo de la caseta). Al salir del kiosko se cierra la sesión. Vacío = nadie.
           </p>
           <div class="login-error" id="configMsg"></div>
           <div class="form-actions">
@@ -907,9 +912,11 @@ const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro
       {id:7,nombre:'Contraloría Interna'},{id:8,nombre:'Otro'}
     ],
     visitas: [],
-    // UsuariosVIP: en el demo se deja al usuario 100 (el que entra con "demo")
+    // UsuariosVIP: en el demo se deja al usuario 100 (el que entra con "2000")
     // para poder mostrar el checkbox VIP de una vez.
-    config: { RutaFotos:'C\\Control de Visitas\\Fotos', PrefijoFoto:'CV', DigitosFoto:'10', UsuariosVIP:'100' }
+    // UsuariosKiosko: el usuario 300 (el que entra con "3000") arranca directo
+    // en el kiosko, para demostrar el modo terminal de caseta.
+    config: { RutaFotos:'C\\Control de Visitas\\Fotos', PrefijoFoto:'CV', DigitosFoto:'10', UsuariosVIP:'100', UsuariosKiosko:'300' }
   };
   window.__demoFotos = {};                 // idNumérico -> data URL de la foto
 
@@ -918,7 +925,9 @@ const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro
   function areaNombre(id){ const a=_db.areas.find(x=>x.id===Number(id)); return a?a.nombre:''; }
   function codigo6(){ return String(Math.floor(Math.random()*1000000)).padStart(6,'0'); }
   function codigoAccesoUnico(fecha){ let c; do{ c=codigo6(); }while(_db.visitas.some(v=>v.codigoAcceso===c && v.fechaVisita===fecha)); return c; }
-  function codigoSalidaUnico(){ let c; do{ c=codigo6(); }while(_db.visitas.some(v=>v.codigoSalida===c && !v.fechaSalida && v.status==='Accesado' && v.fechaAcceso && v.fechaAcceso.slice(0,10)===hoy())); return c; }
+  // La salida se permite hasta 48 h después del acceso (igual que el sistema real).
+  function dentro48h(iso){ return iso && (new Date(iso).getTime() >= Date.now() - 48*3600*1000); }
+  function codigoSalidaUnico(){ let c; do{ c=codigo6(); }while(_db.visitas.some(v=>v.codigoSalida===c && !v.fechaSalida && v.status==='Accesado' && dentro48h(v.fechaAcceso))); return c; }
   function estadoDe(v){
     if(v.status==='Cancelada') return 'Cancelada';
     if(v.status==='Pendiente') return 'Pendiente';
@@ -990,11 +999,14 @@ const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro
     if(path==='/api/auth/login' && method==='POST'){
       const pass = (body&&body.password||'').trim();
       if(!pass) return ok({ autorizado:false, mensaje:'Ingresa tu contraseña.' });
-      // puedeVIP = el Usuario_ID está en la lista UsuariosVIP de la configuración.
-      const vip = (id) => _db.config.UsuariosVIP.split(',').map(s=>s.trim()).filter(Boolean).some(x=>Number(x)===id);
-      if(pass==='1000')
-        return ok({ autorizado:true, mensaje:'OK', usuario:'demo', nombre:'DEMO MESA DE CONTROL ACTIVACIONES', usuarioId:777, puedeConfigurar:true, puedeVIP:vip(777) });
-      return ok({ autorizado:true, mensaje:'OK', usuario:'demo', nombre:'Usuario de Capacitación', usuarioId:100, puedeConfigurar:true, puedeVIP:vip(100) });
+      // puedeVIP / iniciarEnKiosko = el Usuario_ID está en la lista respectiva
+      // de la configuración (UsuariosVIP / UsuariosKiosko).
+      const enLista = (clave, id) => _db.config[clave].split(',').map(s=>s.trim()).filter(Boolean).some(x=>Number(x)===id);
+      const resp = (usuarioId, nombre) => ok({ autorizado:true, mensaje:'OK', usuario:'demo', nombre, usuarioId,
+        puedeConfigurar:true, puedeVIP:enLista('UsuariosVIP', usuarioId), iniciarEnKiosko:enLista('UsuariosKiosko', usuarioId) });
+      if(pass==='1000') return resp(777, 'DEMO MESA DE CONTROL ACTIVACIONES');
+      if(pass==='3000') return resp(300, 'Caseta / Vigilancia');
+      return resp(100, 'Usuario de Capacitación');
     }
     // --- áreas ---
     if(path==='/api/areas' && method==='GET') return ok(_db.areas.map(a=>({id:a.id,nombre:a.nombre})));
@@ -1032,7 +1044,7 @@ const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro
     }
     // --- salida: buscar por código ---
     if((m=path.match(/^\/api\/visitas\/salida\/(\w+)$/)) && method==='GET'){
-      const v = _db.visitas.find(x=>x.codigoSalida===m[1] && x.status==='Accesado' && !x.fechaSalida && x.fechaAcceso && x.fechaAcceso.slice(0,10)===hoy());
+      const v = _db.visitas.find(x=>x.codigoSalida===m[1] && x.status==='Accesado' && !x.fechaSalida && dentro48h(x.fechaAcceso));
       if(!v) return ok({}, 404);
       return ok({ id:v.id, nombre:v.nombre, apellidoPaterno:v.apellidoPaterno, apellidoMaterno:v.apellidoMaterno, empresa:v.empresa,
         anfitrion:v.anfitrion, fechaAcceso:v.fechaAcceso, tieneFoto:!!window.__demoFotos[v.id] });
@@ -1086,7 +1098,7 @@ const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro
 // Devuelve el data URL de la foto en memoria (versión demo); '' si no hay.
 function fotoDemoSrc(id){ return (window.__demoFotos && window.__demoFotos[id]) || ''; }
 
-let session = { username: null, nombre: null, usuarioId: null, puedeConfigurar: false, puedeVIP: false };
+let session = { username: null, nombre: null, usuarioId: null, puedeConfigurar: false, puedeVIP: false, iniciarEnKiosko: false };
 let visits = [];          // bitácora completa
 let pendingVisitId = null;
 let attemptCount = 0;
@@ -1197,6 +1209,7 @@ async function doLogin(){
   session.usuarioId = data.usuarioId;
   session.puedeConfigurar = !!data.puedeConfigurar;
   session.puedeVIP = !!data.puedeVIP;
+  session.iniciarEnKiosko = !!data.iniciarEnKiosko;
   document.getElementById('menuUserLabel').textContent = data.nombre || data.usuario;
   document.getElementById('visitasUserLabel').textContent = data.nombre || data.usuario;
   document.getElementById('regUserLabel').textContent = data.nombre || data.usuario;
@@ -1204,7 +1217,9 @@ async function doLogin(){
   document.getElementById('configCard').style.display = session.puedeConfigurar ? '' : 'none';
   buildSidebar('sidebarList','menu');
   buildSidebar('sidebarList2','visitas');
-  showScreen('screen-menu');
+  // Usuarios de "terminal de caseta" entran directo al kiosko; al salir del
+  // kiosko se cierra la sesión (‹ Salir del kiosko = doLogout).
+  showScreen(session.iniciarEnKiosko ? 'screen-kiosk-home' : 'screen-menu');
 }
 function doLogout(){
   session.username = null;
@@ -1212,6 +1227,7 @@ function doLogout(){
   session.usuarioId = null;
   session.puedeConfigurar = false;
   session.puedeVIP = false;
+  session.iniciarEnKiosko = false;
   document.getElementById('configCard').style.display = 'none';
   document.getElementById('loginPass').value='';
   showScreen('screen-login');
@@ -1844,7 +1860,7 @@ async function cancelarVisita(){
 }
 
 /* ---------- configuración (solo visible con permiso CV.200.00) ---------- */
-const CONFIG_CAMPOS = { RutaFotos: 'cfgRutaFotos', PrefijoFoto: 'cfgPrefijoFoto', DigitosFoto: 'cfgDigitosFoto', UsuariosVIP: 'cfgUsuariosVIP' };
+const CONFIG_CAMPOS = { RutaFotos: 'cfgRutaFotos', PrefijoFoto: 'cfgPrefijoFoto', DigitosFoto: 'cfgDigitosFoto', UsuariosVIP: 'cfgUsuariosVIP', UsuariosKiosko: 'cfgUsuariosKiosko' };
 
 async function openConfiguracion(){
   const msg = document.getElementById('configMsg');
@@ -1875,10 +1891,16 @@ async function guardarConfiguracion(){
   if(!/^\d+$/.test(valores.DigitosFoto)){
     msg.textContent = 'Dígitos del ID debe ser un número.'; return;
   }
-  // Usuarios VIP es opcional; si se llena, debe ser IDs numéricos separados por coma.
-  if(valores.UsuariosVIP && !/^\s*\d+(\s*,\s*\d+)*\s*$/.test(valores.UsuariosVIP)){
+  // Usuarios VIP / Kiosko son opcionales; si se llenan, deben ser IDs numéricos
+  // separados por coma.
+  const listaIds = /^\s*\d+(\s*,\s*\d+)*\s*$/;
+  if(valores.UsuariosVIP && !listaIds.test(valores.UsuariosVIP)){
     msg.style.color = 'var(--err)';
     msg.textContent = 'Usuarios VIP debe ser una lista de IDs numéricos separados por coma (ej. 100, 205).'; return;
+  }
+  if(valores.UsuariosKiosko && !listaIds.test(valores.UsuariosKiosko)){
+    msg.style.color = 'var(--err)';
+    msg.textContent = 'Usuarios kiosko debe ser una lista de IDs numéricos separados por coma (ej. 300, 301).'; return;
   }
   try{
     for(const [clave, valor] of Object.entries(valores)){
@@ -2063,7 +2085,7 @@ function toggleKeyboard(){
 wireEnterAvanza(['loginPass'], doLogin);
 wireEnterAvanza(['validateApP'], submitValidate);
 wireEnterAvanza(['repDesde','repHasta'], generarReporte);
-wireEnterAvanza(['cfgRutaFotos','cfgPrefijoFoto','cfgDigitosFoto','cfgUsuariosVIP'], guardarConfiguracion);
+wireEnterAvanza(['cfgRutaFotos','cfgPrefijoFoto','cfgDigitosFoto','cfgUsuariosVIP','cfgUsuariosKiosko'], guardarConfiguracion);
 wireEnterAvanza(
   ['fNombre','fApP','fApM','fCorreo','fEmpresa','fArea','fMotivo','fObservaciones','fFechaVisita','fAnfitrion','fMarca','fModelo','fPlacas'],
   generarCodigoAcceso

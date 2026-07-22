@@ -160,8 +160,10 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   la caseta). El login (`AuthController`) calcula `iniciarEnKiosko` con el mismo
   helper que `puedeVIP` (`EstaEnListaAsync`) y lo regresa en `LoginResponse`;
   el frontend enruta con `session.iniciarEnKiosko` al final de `doLogin()`. El
-  campo se administra en la pantalla de Configuración. **Pendiente:** reflejarlo
-  en `web/demo-capacitacion.html` (backend simulado) si se quiere demostrar ahí.
+  campo se administra en la pantalla de Configuración. El demo de capacitación
+  (`web/demo-capacitacion.html`) ya lo incluye: la contraseña `3000` entra como
+  usuario de caseta (Usuario_ID 300, en `UsuariosKiosko` por defecto) y abre
+  directo el kiosko; también refleja la ventana de salida de 48 h en su mock.
 - ✅ **Frontend servido desde la propia API (mismo-origen).** La API ahora
   sirve `web/index.html` como estático (`UseDefaultFiles`/`UseStaticFiles`);
   un `Target` del `.csproj` copia `web/index.html` a `api/wwwroot/` al
