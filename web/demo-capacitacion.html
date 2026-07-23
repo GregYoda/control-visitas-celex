@@ -393,7 +393,7 @@
         <div class="login-error" id="loginError"></div>
         <div class="demo-note">
           <b>Modo demostración</b> — no se conecta a ningún servidor; los datos son de ejemplo y se reinician al recargar la página.<br>
-          Contraseñas: <code>2000</code> usuario normal (ve VIP) · <code>1000</code> usuario con datos de registro precargados · <code>3000</code> terminal de caseta (entra directo al kiosko).
+          Contraseñas: <code>2000</code> usuario normal (ve VIP) · <code>1000</code> usuario con datos de registro precargados · <code>3000</code> terminal de caseta (entra directo al kiosko) · <code>4000</code> reclutamiento (marca "Visita tipo Entrevista").
         </div>
       </div>
     </div>
@@ -984,10 +984,10 @@ const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro
     // para poder mostrar el checkbox VIP de una vez.
     // UsuariosKiosko: el usuario 300 (el que entra con "3000") arranca directo
     // en el kiosko, para demostrar el modo terminal de caseta.
-    // UsuariosReclutadores: el usuario 100 (contraseña 2000) puede marcar
+    // UsuariosReclutadores: el usuario 400 (contraseña 4000) puede marcar
     // "Entrevista"; los valores Entrevista* son los que se prellenan.
     config: { RutaFotos:'C\\Control de Visitas\\Fotos', PrefijoFoto:'CV', DigitosFoto:'10', UsuariosVIP:'100', UsuariosKiosko:'300',
-      UsuariosReclutadores:'100', EntrevistaEmpresa:'Entrevista', EntrevistaIdArea:'4', EntrevistaMotivo:'Entrevista', EntrevistaFechaModo:'dia', EntrevistaAnfitrion:'Recepción' }
+      UsuariosReclutadores:'400', EntrevistaEmpresa:'Entrevista', EntrevistaIdArea:'4', EntrevistaMotivo:'Entrevista', EntrevistaFechaModo:'dia', EntrevistaAnfitrion:'Recepción' }
   };
   window.__demoFotos = {};                 // idNumérico -> data URL de la foto
 
@@ -1078,6 +1078,7 @@ const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro
         esReclutador:enLista('UsuariosReclutadores', usuarioId) });
       if(pass==='1000') return resp(777, 'DEMO MESA DE CONTROL ACTIVACIONES');
       if(pass==='3000') return resp(300, 'Caseta / Vigilancia');
+      if(pass==='4000') return resp(400, 'Reclutamiento');
       return resp(100, 'Usuario de Capacitación');
     }
     // --- áreas ---
