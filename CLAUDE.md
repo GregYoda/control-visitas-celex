@@ -400,7 +400,10 @@ control-visitas-celex/
 Existe `CHANGELOG.md` (bitácora, más reciente arriba, agrupada por fecha, en
 español para el equipo). **En cada commit/push hay que actualizarla** con una
 o más líneas de lo que cambió, en lenguaje de usuario (no técnico). Agrupar las
-entradas del mismo día bajo su encabezado de fecha.
+entradas del mismo día bajo su encabezado de fecha. **Cada entrada termina con
+`(quién lo hizo)`** — el nombre de quien solicitó el cambio; si no se indica al
+pedirlo, preguntarlo. Las entradas históricas quedaron atribuidas a
+`(G. Ramírez)`.
 
 ## Versión del demo de capacitación
 
