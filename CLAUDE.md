@@ -395,6 +395,13 @@ control-visitas-celex/
    SQL Server Agent Job que ya opera en producción, sin Graph API.
 8. Seguir `docs/checklist-modo-kiosco.md` para el despliegue en la caseta.
 
+## Versión del demo de capacitación
+
+`web/demo-capacitacion.html` lleva un número de versión visible en la etiqueta
+del login (`.demo-tag`, ej. "VERSIÓN DEMO · CAPACITACIÓN · v0.15"). **Subir esa
+versión en cada cambio del demo** (v0.15, v0.16, …) para que capacitación
+identifique qué build tiene. Versión actual: **v0.15**.
+
 ## Idioma y tono
 
 Todo el copy de la interfaz, comentarios de código y commits deben ir en
