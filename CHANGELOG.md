@@ -7,6 +7,7 @@ quién solicitó el cambio.
 ---
 
 ## 2026-07-23
+- **Script de migración de base de datos** (`db/migraciones/2026-07-23-migracion-acumulada.sql`): actualiza una base ya instalada a la versión actual sin recrearla (idempotente); agrega columnas/config/SYNONYM faltantes y refresca funciones y SPs. Probado sobre un baseline simulado y corriéndolo dos veces. (G. Ramírez)
 - **Empresa opcional**: el campo Empresa ya no es obligatorio al registrar o editar una visita. (G. Ramírez)
 - **Visita tipo Entrevista** (para Reclutamiento): en Configuración se define la lista de usuarios reclutadores y los valores por defecto (Empresa, Área, Motivo, Fecha = día siguiente/semana siguiente, Persona a quien visita). A esos usuarios les aparece un check "Visita tipo Entrevista" al registrar que prellena esos campos (editables). (G. Ramírez)
 - **Fotos organizadas en carpetas** `RutaFotos/Año/Mes/Tipo/` (ej. `...\2026\07\Entrevista\` o `...\2026\07\Visita\`). (G. Ramírez)
