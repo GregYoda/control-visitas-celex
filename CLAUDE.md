@@ -395,6 +395,13 @@ control-visitas-celex/
    SQL Server Agent Job que ya opera en producción, sin Graph API.
 8. Seguir `docs/checklist-modo-kiosco.md` para el despliegue en la caseta.
 
+## Bitácora de cambios
+
+Existe `CHANGELOG.md` (bitácora, más reciente arriba, agrupada por fecha, en
+español para el equipo). **En cada commit/push hay que actualizarla** con una
+o más líneas de lo que cambió, en lenguaje de usuario (no técnico). Agrupar las
+entradas del mismo día bajo su encabezado de fecha.
+
 ## Versión del demo de capacitación
 
 `web/demo-capacitacion.html` lleva un número de versión visible en la etiqueta
