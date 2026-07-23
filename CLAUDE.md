@@ -405,12 +405,17 @@ entradas del mismo día bajo su encabezado de fecha. **Cada entrada termina con
 pedirlo, preguntarlo. Las entradas históricas quedaron atribuidas a
 `(G. Ramírez)`.
 
-## Versión del demo de capacitación
+## Versión (productiva y demo)
 
-`web/demo-capacitacion.html` lleva un número de versión visible en la etiqueta
-del login (`.demo-tag`, ej. "VERSIÓN DEMO · CAPACITACIÓN · v0.15"). **Subir esa
-versión en cada cambio del demo** (v0.15, v0.16, …) para que capacitación
-identifique qué build tiene. Versión actual: **v0.15**.
+Ambos frontends muestran un número de versión en el login:
+- **Producción** (`web/index.html`): chip `.app-version` en el topbar del login
+  ("Control de Visitas · v0.15").
+- **Capacitación** (`web/demo-capacitacion.html`): etiqueta `.demo-tag`
+  ("VERSIÓN DEMO · CAPACITACIÓN · v0.15").
+
+**Subir la versión en cada cambio** del archivo correspondiente (v0.15, v0.16,
+…) para identificar el build. Van alineadas: versión actual **v0.15** en ambas
+(cuando un cambio afecte a las dos, subirlas juntas al mismo número).
 
 ## Idioma y tono
 
