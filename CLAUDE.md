@@ -206,8 +206,9 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   **No** se agregó columna a `CV_Visitas` — la visita se guarda normal (el
   prellenado es solo conveniencia). La pantalla de Configuración administra la
   lista de reclutadores y los valores por defecto (el Área es un `<select>` del
-  catálogo). Falta reflejarlo en `web/demo-capacitacion.html` si se quiere
-  demostrar ahí.
+  catálogo). El demo (`web/demo-capacitacion.html`) también lo incluye: el
+  usuario `100` (contraseña `2000`) es reclutador por defecto y los valores
+  `Entrevista*` vienen sembrados en su mock.
 - ✅ **Frontend servido desde la propia API (mismo-origen).** La API ahora
   sirve `web/index.html` como estático (`UseDefaultFiles`/`UseStaticFiles`);
   un `Target` del `.csproj` copia `web/index.html` a `api/wwwroot/` al
