@@ -19,13 +19,15 @@ public class AuthController(IWishPosAuthService authService, IConfiguracionRepos
         // configuración local (no de WishPOS), por eso se resuelven aquí:
         //  - UsuariosVIP: pueden marcar una visita como VIP.
         //  - UsuariosKiosko: al entrar van directo al kiosko (modo caseta).
-        // Ambas son listas de IDs separados por comas.
+        //  - UsuariosReclutadores: ven el check "Visita tipo Entrevista".
+        // Todas son listas de IDs separados por comas.
         if (resultado.Autorizado && resultado.UsuarioId is int usuarioId)
         {
             resultado = resultado with
             {
                 PuedeVIP = await EstaEnListaAsync("UsuariosVIP", usuarioId),
-                IniciarEnKiosko = await EstaEnListaAsync("UsuariosKiosko", usuarioId)
+                IniciarEnKiosko = await EstaEnListaAsync("UsuariosKiosko", usuarioId),
+                EsReclutador = await EstaEnListaAsync("UsuariosReclutadores", usuarioId)
             };
         }
 

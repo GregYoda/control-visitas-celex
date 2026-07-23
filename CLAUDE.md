@@ -188,6 +188,26 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   defecto, `toggleLoginKeypad()`) para escribir la contraseña en la terminal
   táctil sin teclado físico. Teclas 0-9 + C + ⌫ que escriben en `#loginPass`.
   Se oculta de nuevo en `doLogout()`. Está en `index.html` y en el demo.
+- ✅ **Empresa opcional** en el registro y la edición de visitas. Columna
+  `CV_Visitas.Empresa` ahora `NOT NULL DEFAULT('')`; SPs Registrar/Actualizar
+  con `@Empresa = ''` + ISNULL; `VisitaRegistroRequest`/`VisitaActualizarRequest`
+  con `string? Empresa` y `?? ""` en el repositorio; el frontend quitó el
+  asterisco y la validación de obligatorio.
+- ✅ **Check "Visita tipo Entrevista" (para reclutadores).** Nueva clave
+  `CV_Configuracion.UsuariosReclutadores` (lista de `Usuario_ID`, mismo patrón
+  que VIP/Kiosko). El login (`AuthController`) calcula `esReclutador` y lo
+  regresa en `LoginResponse`; el frontend muestra un check arriba del Nombre en
+  *Registrar visita* solo a reclutadores (`session.esReclutador`). Al activarlo
+  se **prellenan** (editables) los campos configurados en Configuración con las
+  claves `Entrevista*`: `EntrevistaEmpresa`, `EntrevistaIdArea` (ID de área o
+  vacío), `EntrevistaMotivo`, `EntrevistaFechaModo` (`''` | `dia` = +1 día |
+  `semana` = +7 días) y `EntrevistaAnfitrion`. Valor vacío = ese campo no se
+  prellena; al desactivar el check, esos campos vuelven a su estado normal.
+  **No** se agregó columna a `CV_Visitas` — la visita se guarda normal (el
+  prellenado es solo conveniencia). La pantalla de Configuración administra la
+  lista de reclutadores y los valores por defecto (el Área es un `<select>` del
+  catálogo). Falta reflejarlo en `web/demo-capacitacion.html` si se quiere
+  demostrar ahí.
 - ✅ **Frontend servido desde la propia API (mismo-origen).** La API ahora
   sirve `web/index.html` como estático (`UseDefaultFiles`/`UseStaticFiles`);
   un `Target` del `.csproj` copia `web/index.html` a `api/wwwroot/` al

@@ -38,7 +38,7 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
         comando.Parameters.AddWithValue("@ApellidoPaterno", datos.ApellidoPaterno);
         comando.Parameters.AddWithValue("@ApellidoMaterno", datos.ApellidoMaterno);
         comando.Parameters.AddWithValue("@Correo", datos.Correo);
-        comando.Parameters.AddWithValue("@Empresa", datos.Empresa);
+        comando.Parameters.AddWithValue("@Empresa", datos.Empresa ?? "");
         comando.Parameters.AddWithValue("@ID_Area", datos.IdArea);
         comando.Parameters.AddWithValue("@Motivo", datos.Motivo);
         comando.Parameters.AddWithValue("@Observaciones", datos.Observaciones ?? "");
@@ -228,7 +228,7 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
         comando.Parameters.AddWithValue("@ApellidoPaterno", datos.ApellidoPaterno);
         comando.Parameters.AddWithValue("@ApellidoMaterno", datos.ApellidoMaterno);
         comando.Parameters.AddWithValue("@Correo", datos.Correo);
-        comando.Parameters.AddWithValue("@Empresa", datos.Empresa);
+        comando.Parameters.AddWithValue("@Empresa", datos.Empresa ?? "");
         comando.Parameters.AddWithValue("@ID_Area", datos.IdArea);
         comando.Parameters.AddWithValue("@Motivo", datos.Motivo);
         comando.Parameters.AddWithValue("@Observaciones", datos.Observaciones ?? "");

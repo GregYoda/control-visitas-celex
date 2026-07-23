@@ -135,6 +135,7 @@
   .field{margin-bottom:18px;}
   .field label{display:block;font-size:12.5px;color:#5a6070;margin-bottom:6px;font-weight:600;letter-spacing:.3px;}
   .field label.required::after{content:' *';color:var(--err);}
+  .field label .opt{color:#8b93a3;font-weight:600;font-size:11px;letter-spacing:0;}
   .field input,.field select,.field textarea{
     width:100%;padding:11px 13px;border:1.5px solid #dfe3ea;border-radius:9px;font-size:14.5px;
     background:#fbfcfe;
@@ -526,11 +527,35 @@
               <label>Usuarios que entran directo al kiosko (terminal de caseta)</label>
               <input id="cfgUsuariosKiosko" placeholder="ej. 300, 301">
             </div>
+            <div class="field full">
+              <label>Usuarios reclutadores (ven el check "Visita tipo Entrevista")</label>
+              <input id="cfgUsuariosReclutadores" placeholder="ej. 120, 145">
+            </div>
           </div>
-          <p style="color:#8b93a3;font-size:12.5px;margin:-6px 0 18px;">
+
+          <div class="content-title" style="font-size:15px;margin:22px 0 4px;">Valores por defecto de una visita tipo Entrevista</div>
+          <p style="color:#8b93a3;font-size:12.5px;margin:0 0 14px;">
+            Se prellenan al activar el check "Visita tipo Entrevista" al registrar. Deja un campo vacío (o "No prellenar" en la fecha) para que no se prellene. Siguen siendo editables por quien registra.
+          </p>
+          <div class="form-grid">
+            <div class="field"><label>Empresa</label><input id="cfgEntrevistaEmpresa" placeholder="ej. Entrevista"></div>
+            <div class="field"><label>Área a visitar</label>
+              <select id="cfgEntrevistaArea"><option value="">— No prellenar —</option></select>
+            </div>
+            <div class="field full"><label>Motivo de la visita</label><input id="cfgEntrevistaMotivo" placeholder="ej. Entrevista"></div>
+            <div class="field"><label>Fecha de visita</label>
+              <select id="cfgEntrevistaFecha">
+                <option value="">— No prellenar —</option>
+                <option value="dia">Día siguiente (+1 día)</option>
+                <option value="semana">Semana siguiente (+7 días)</option>
+              </select>
+            </div>
+            <div class="field"><label>Persona que visita (anfitrión)</label><input id="cfgEntrevistaAnfitrion" placeholder="ej. Recepción"></div>
+          </div>
+
+          <p style="color:#8b93a3;font-size:12.5px;margin:14px 0 18px;">
             Con los valores por defecto, la foto de la visita con ID 1 se guarda como <b>CV0000000001.jpg</b>.<br>
-            <b>Usuarios VIP:</b> lista de IDs de usuario (el que aparece al iniciar sesión) separados por coma. Solo esos usuarios verán la opción "Visita VIP" al registrar. Déjalo vacío si nadie debe marcar VIP.<br>
-            <b>Usuarios kiosko:</b> lista de IDs de usuario (mismo formato) que, al iniciar sesión, abren directamente el kiosko de ingreso/salida en lugar del menú (para el equipo de la caseta). Al salir del kiosko se cierra la sesión. Vacío = nadie.
+            <b>Usuarios VIP / kiosko / reclutadores:</b> listas de IDs de usuario (el que aparece al iniciar sesión) separados por coma; vacío = nadie.
           </p>
           <div class="login-error" id="configMsg"></div>
           <div class="form-actions">
@@ -556,11 +581,15 @@
         <div class="content-title" style="max-width:640px;">Registrar visita</div>
         <div class="form-card">
           <div class="form-grid">
+            <div class="toggle-row" id="fEntrevistaRow" style="display:none;">
+              <label class="switch"><input type="checkbox" id="fEsEntrevista" onchange="toggleEntrevista()"><span class="slider"></span></label>
+              <label>🗓️ Visita tipo Entrevista</label>
+            </div>
             <div class="field"><label class="required">Nombre</label><input id="fNombre"></div>
             <div class="field"><label class="required">Apellido paterno</label><input id="fApP"></div>
             <div class="field"><label class="required">Apellido materno</label><input id="fApM"></div>
             <div class="field"><label class="required">Correo electrónico</label><input id="fCorreo" type="email"></div>
-            <div class="field"><label class="required">Empresa</label><input id="fEmpresa"></div>
+            <div class="field"><label>Empresa <span class="opt">(opcional)</span></label><input id="fEmpresa"></div>
             <div class="field"><label class="required">Área a visitar</label>
               <select id="fArea"><option value="">Cargando áreas…</option></select>
             </div>
@@ -864,7 +893,7 @@
             <div class="field"><label class="required">Apellido paterno</label><input id="eApP"></div>
             <div class="field"><label class="required">Apellido materno</label><input id="eApM"></div>
             <div class="field"><label class="required">Correo electrónico</label><input id="eCorreo" type="email"></div>
-            <div class="field"><label class="required">Empresa</label><input id="eEmpresa"></div>
+            <div class="field"><label>Empresa <span class="opt">(opcional)</span></label><input id="eEmpresa"></div>
             <div class="field"><label class="required">Área a visitar</label>
               <select id="eArea"><option value="">Cargando áreas…</option></select>
             </div>
@@ -921,7 +950,8 @@
 // directamente (file://) para pruebas, apunta a la API local en el 5280.
 const API_BASE_URL = location.protocol === 'file:' ? 'http://localhost:5280' : '';
 
-let session = { username: null, nombre: null, usuarioId: null, puedeConfigurar: false, puedeVIP: false, iniciarEnKiosko: false };
+let session = { username: null, nombre: null, usuarioId: null, puedeConfigurar: false, puedeVIP: false, iniciarEnKiosko: false, esReclutador: false };
+let entrevistaDefaults = null;   // valores de config para prellenar visitas tipo Entrevista
 let visits = [];          // bitácora completa
 let pendingVisitId = null;
 let attemptCount = 0;
@@ -1052,6 +1082,7 @@ async function doLogin(){
   session.puedeConfigurar = !!data.puedeConfigurar;
   session.puedeVIP = !!data.puedeVIP;
   session.iniciarEnKiosko = !!data.iniciarEnKiosko;
+  session.esReclutador = !!data.esReclutador;
   document.getElementById('menuUserLabel').textContent = data.nombre || data.usuario;
   document.getElementById('visitasUserLabel').textContent = data.nombre || data.usuario;
   document.getElementById('regUserLabel').textContent = data.nombre || data.usuario;
@@ -1070,6 +1101,8 @@ function doLogout(){
   session.puedeConfigurar = false;
   session.puedeVIP = false;
   session.iniciarEnKiosko = false;
+  session.esReclutador = false;
+  entrevistaDefaults = null;
   document.getElementById('configCard').style.display = 'none';
   document.getElementById('loginPass').value='';
   document.getElementById('loginKeypad').classList.remove('show'); // ocultar teclado numérico
@@ -1108,6 +1141,10 @@ function openRegistro(){
   // La opción VIP solo se muestra a los usuarios autorizados (config UsuariosVIP).
   document.getElementById('fVipRow').style.display = session.puedeVIP ? '' : 'none';
   document.getElementById('fEsVip').checked = false;
+  // El check "Visita tipo Entrevista" solo para reclutadores (config UsuariosReclutadores).
+  document.getElementById('fEntrevistaRow').style.display = session.esReclutador ? '' : 'none';
+  document.getElementById('fEsEntrevista').checked = false;
+  if(session.esReclutador) cargarEntrevistaDefaults();
 
   if(esDemo){
     // Cuenta de demostración: precarga una visita de ejemplo para agilizar
@@ -1146,6 +1183,46 @@ function openRegistro(){
 function toggleAutoFields(){
   document.getElementById('autoFields').classList.toggle('show', document.getElementById('fTraeAuto').checked);
 }
+// Lee de Configuración los valores por defecto de una visita tipo Entrevista.
+async function cargarEntrevistaDefaults(){
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/configuracion`);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const items = await resp.json();
+    const val = c => (items.find(i => i.clave === c) || {}).valor || '';
+    entrevistaDefaults = {
+      empresa:   val('EntrevistaEmpresa'),
+      idArea:    val('EntrevistaIdArea'),
+      motivo:    val('EntrevistaMotivo'),
+      fechaModo: val('EntrevistaFechaModo'),   // '' | 'dia' | 'semana'
+      anfitrion: val('EntrevistaAnfitrion')
+    };
+  }catch(e){ entrevistaDefaults = null; }
+}
+// Prellena (o limpia) los campos configurados al activar/desactivar el check.
+function toggleEntrevista(){
+  const on = document.getElementById('fEsEntrevista').checked;
+  const d = entrevistaDefaults || {};
+  if(on){
+    if(d.empresa)   document.getElementById('fEmpresa').value = d.empresa;
+    if(d.motivo)    document.getElementById('fMotivo').value = d.motivo;
+    if(d.anfitrion) document.getElementById('fAnfitrion').value = d.anfitrion;
+    if(d.idArea)    document.getElementById('fArea').value = d.idArea;
+    if(d.fechaModo === 'dia' || d.fechaModo === 'semana'){
+      const base = new Date();
+      base.setDate(base.getDate() + (d.fechaModo === 'semana' ? 7 : 1));
+      document.getElementById('fFechaVisita').value =
+        `${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}-${String(base.getDate()).padStart(2,'0')}`;
+    }
+  }else{
+    // Al desactivar, vuelve los campos prellenables a su estado normal.
+    document.getElementById('fEmpresa').value = '';
+    document.getElementById('fMotivo').value = '';
+    document.getElementById('fAnfitrion').value = session.nombre || session.username || '';
+    document.getElementById('fArea').selectedIndex = 0;
+    document.getElementById('fFechaVisita').value = hoyISO();
+  }
+}
 async function cargarAreas(selectId = 'fArea'){
   const select = document.getElementById(selectId);
   try{
@@ -1178,7 +1255,7 @@ async function generarCodigoAcceso(){
   const esVip = session.puedeVIP && document.getElementById('fEsVip').checked;
 
   const err = document.getElementById('regError');
-  if(!nombre || !apP || !apM || !correo || !empresa || !idArea || !motivo || !fechaVisita || !anfitrion){
+  if(!nombre || !apP || !apM || !correo || !idArea || !motivo || !fechaVisita || !anfitrion){
     err.textContent = 'Completa todos los campos obligatorios.'; return;
   }
   if(traeAuto && (!marca || !modelo || !placas)){
@@ -1632,7 +1709,7 @@ async function guardarEdicion(){
   const orig = misVisitasCache.find(x => x.id === editingVisitId);
   const esVip = session.puedeVIP ? document.getElementById('eEsVip').checked : !!(orig && orig.esVip);
   const err = document.getElementById('editError');
-  if(!nombre || !apP || !apM || !correo || !empresa || !idArea || !motivo || !fechaVisita || !anfitrion){
+  if(!nombre || !apP || !apM || !correo || !idArea || !motivo || !fechaVisita || !anfitrion){
     err.textContent = 'Completa todos los campos obligatorios.'; return;
   }
   if(traeAuto && (!marca || !modelo || !placas)){
@@ -1695,12 +1772,21 @@ async function cancelarVisita(){
 }
 
 /* ---------- configuración (solo visible con permiso CV.200.00) ---------- */
-const CONFIG_CAMPOS = { RutaFotos: 'cfgRutaFotos', PrefijoFoto: 'cfgPrefijoFoto', DigitosFoto: 'cfgDigitosFoto', UsuariosVIP: 'cfgUsuariosVIP', UsuariosKiosko: 'cfgUsuariosKiosko' };
+const CONFIG_CAMPOS = {
+  RutaFotos: 'cfgRutaFotos', PrefijoFoto: 'cfgPrefijoFoto', DigitosFoto: 'cfgDigitosFoto',
+  UsuariosVIP: 'cfgUsuariosVIP', UsuariosKiosko: 'cfgUsuariosKiosko', UsuariosReclutadores: 'cfgUsuariosReclutadores',
+  EntrevistaEmpresa: 'cfgEntrevistaEmpresa', EntrevistaIdArea: 'cfgEntrevistaArea', EntrevistaMotivo: 'cfgEntrevistaMotivo',
+  EntrevistaFechaModo: 'cfgEntrevistaFecha', EntrevistaAnfitrion: 'cfgEntrevistaAnfitrion'
+};
 
 async function openConfiguracion(){
   const msg = document.getElementById('configMsg');
   msg.textContent = '';
   Object.values(CONFIG_CAMPOS).forEach(id => document.getElementById(id).value = '');
+  // Cargar el catálogo de áreas en el select de "Entrevista → Área" (conservando
+  // la opción "No prellenar"), para que luego se pueda seleccionar el valor guardado.
+  await cargarAreas('cfgEntrevistaArea');
+  document.getElementById('cfgEntrevistaArea').insertAdjacentHTML('afterbegin', '<option value="">— No prellenar —</option>');
   try{
     const resp = await fetch(`${API_BASE_URL}/api/configuracion`);
     if(!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -1736,6 +1822,10 @@ async function guardarConfiguracion(){
   if(valores.UsuariosKiosko && !listaIds.test(valores.UsuariosKiosko)){
     msg.style.color = 'var(--err)';
     msg.textContent = 'Usuarios kiosko debe ser una lista de IDs numéricos separados por coma (ej. 300, 301).'; return;
+  }
+  if(valores.UsuariosReclutadores && !listaIds.test(valores.UsuariosReclutadores)){
+    msg.style.color = 'var(--err)';
+    msg.textContent = 'Usuarios reclutadores debe ser una lista de IDs numéricos separados por coma (ej. 120, 145).'; return;
   }
   try{
     for(const [clave, valor] of Object.entries(valores)){

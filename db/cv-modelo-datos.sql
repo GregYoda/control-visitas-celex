@@ -82,7 +82,7 @@ CREATE TABLE dbo.CV_Visitas (
     ApellidoPaterno         NVARCHAR(100)   NOT NULL,
     ApellidoMaterno         NVARCHAR(100)   NOT NULL,
     Correo                  NVARCHAR(150)   NOT NULL,
-    Empresa                 NVARCHAR(150)   NOT NULL,
+    Empresa                 NVARCHAR(150)   NOT NULL DEFAULT (''),   -- opcional
     ID_Area                 INT             NOT NULL,
     Motivo                  NVARCHAR(300)   NOT NULL,
     Observaciones           NVARCHAR(500)   NOT NULL DEFAULT (''),  -- comentarios libres para que vigilancia los considere al recibir la visita
@@ -173,12 +173,24 @@ GO
 -- UsuariosKiosko: lista de Usuario_ID (mismo formato) que, al iniciar sesión,
 -- entran DIRECTO al kiosko de ingreso/salida (modo terminal de caseta) en vez
 -- de al menú. Vacío = nadie entra directo al kiosko.
+-- UsuariosReclutadores: lista de Usuario_ID (mismo formato) que ven el check
+-- "Visita tipo Entrevista" al registrar. Vacío = nadie.
+-- Entrevista*: valores por defecto que se prellenan al activar ese check.
+-- Un valor vacío = ese campo NO se prellena. EntrevistaFechaModo: '' | 'dia'
+-- (día siguiente, +1) | 'semana' (semana siguiente, +7). EntrevistaIdArea: ID
+-- de CV_Areas (numérico) o vacío.
 INSERT INTO dbo.CV_Configuracion (Clave, Valor) VALUES
  (N'RutaFotos', N'C:\Control de Visitas\Fotos'),
  (N'PrefijoFoto', N'CV'),
  (N'DigitosFoto', N'10'),
  (N'UsuariosVIP', N''),
- (N'UsuariosKiosko', N'');
+ (N'UsuariosKiosko', N''),
+ (N'UsuariosReclutadores', N''),
+ (N'EntrevistaEmpresa', N'Entrevista'),
+ (N'EntrevistaIdArea', N''),
+ (N'EntrevistaMotivo', N'Entrevista'),
+ (N'EntrevistaFechaModo', N'dia'),
+ (N'EntrevistaAnfitrion', N'Recepción');
 GO
 
 /* -----------------------------------------------------------------------------
@@ -213,7 +225,7 @@ CREATE PROCEDURE dbo.sp_CV_Visitas_Registrar
     @ApellidoPaterno    NVARCHAR(100),
     @ApellidoMaterno    NVARCHAR(100),
     @Correo             NVARCHAR(150),
-    @Empresa            NVARCHAR(150),
+    @Empresa            NVARCHAR(150)   = '',   -- opcional
     @ID_Area            INT,
     @Motivo             NVARCHAR(300),
     @Observaciones      NVARCHAR(500)   = '',
@@ -232,6 +244,7 @@ BEGIN
     DECLARE @NuevoUUID UNIQUEIDENTIFIER = NEWID();
     -- Defensivo: nunca guardar NULL aunque el llamador lo mande explícito.
     SET @ID_Usuario = ISNULL(@ID_Usuario, 0);
+    SET @Empresa = ISNULL(@Empresa, '');
     SET @Observaciones = ISNULL(@Observaciones, '');
     SET @EsVIP = ISNULL(@EsVIP, 0);
     SET @Marca  = ISNULL(@Marca, '');
@@ -511,7 +524,7 @@ CREATE PROCEDURE dbo.sp_CV_Visitas_Actualizar
     @ApellidoPaterno    NVARCHAR(100),
     @ApellidoMaterno    NVARCHAR(100),
     @Correo             NVARCHAR(150),
-    @Empresa            NVARCHAR(150),
+    @Empresa            NVARCHAR(150)   = '',   -- opcional
     @ID_Area            INT,
     @Motivo             NVARCHAR(300),
     @Observaciones      NVARCHAR(500)   = '',
@@ -525,6 +538,7 @@ CREATE PROCEDURE dbo.sp_CV_Visitas_Actualizar
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET @Empresa = ISNULL(@Empresa, '');
     SET @Observaciones = ISNULL(@Observaciones, '');
     SET @EsVIP = ISNULL(@EsVIP, 0);
     SET @Marca  = ISNULL(@Marca, '');
