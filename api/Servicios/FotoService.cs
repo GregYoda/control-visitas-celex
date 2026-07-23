@@ -8,7 +8,7 @@ public interface IFotoService
     Task<string?> ObtenerRutaFisicaAsync(long id);
 }
 
-public class FotoService(IConfiguracionRepositorio configuracionRepositorio) : IFotoService
+public class FotoService(IConfiguracionRepositorio configuracionRepositorio, IVisitasRepositorio visitasRepositorio) : IFotoService
 {
     private const string RutaPorDefecto = @"C:\Control de Visitas\Fotos";
     private const string PrefijoPorDefecto = "CV";
@@ -16,7 +16,9 @@ public class FotoService(IConfiguracionRepositorio configuracionRepositorio) : I
 
     public async Task<string> GuardarAsync(long id, string fotoBase64)
     {
-        var rutaCompleta = await ConstruirRutaAsync(id);
+        var info = await visitasRepositorio.ObtenerInfoFotoAsync(id)
+            ?? throw new InvalidOperationException($"No existe la visita {id} para guardar su foto.");
+        var rutaCompleta = await ConstruirRutaAsync(id, info);
         Directory.CreateDirectory(Path.GetDirectoryName(rutaCompleta)!);
 
         var indiceComa = fotoBase64.IndexOf(',');
@@ -27,25 +29,31 @@ public class FotoService(IConfiguracionRepositorio configuracionRepositorio) : I
         return rutaCompleta;
     }
 
-    // Usado por el endpoint GET .../foto: recalcula la ruta con la configuración
-    // actual (RutaFotos puede cambiar desde la pantalla de Configuración) en vez
-    // de depender de la ruta cruda de disco que quedó guardada en CV_Visitas.
+    // Usado por el endpoint GET .../foto: sirve la foto desde la ruta que quedó
+    // guardada en CV_Visitas (su ubicación real), para no depender de recalcular
+    // si la configuración cambió después de guardarla.
     public async Task<string?> ObtenerRutaFisicaAsync(long id)
     {
-        var rutaCompleta = await ConstruirRutaAsync(id);
-        return File.Exists(rutaCompleta) ? rutaCompleta : null;
+        var info = await visitasRepositorio.ObtenerInfoFotoAsync(id);
+        var ruta = info?.FotoRuta;
+        return !string.IsNullOrEmpty(ruta) && File.Exists(ruta) ? ruta : null;
     }
 
-    private async Task<string> ConstruirRutaAsync(long id)
+    // Ruta: <RutaFotos>/<Año>/<Mes>/<Tipo>/<Prefijo><ID>.jpg
+    //   Año/Mes: de la fecha de visita.  Tipo: "Entrevista" o "Visita".
+    //   ej. C:\Control de Visitas\Fotos\2026\07\Entrevista\CV0000000001.jpg
+    private async Task<string> ConstruirRutaAsync(long id, VisitaInfoFoto info)
     {
         var ruta = await configuracionRepositorio.ObtenerValorAsync("RutaFotos", RutaPorDefecto);
         var prefijo = await configuracionRepositorio.ObtenerValorAsync("PrefijoFoto", PrefijoPorDefecto);
         var digitosTexto = await configuracionRepositorio.ObtenerValorAsync("DigitosFoto", DigitosPorDefecto);
         var digitos = int.TryParse(digitosTexto, out var valor) ? valor : int.Parse(DigitosPorDefecto);
 
-        // <PrefijoFoto> + ID con ceros a la izquierda a <DigitosFoto> dígitos,
-        // ej. CV0000000001.jpg con los valores por defecto.
+        var anio = info.FechaVisita.Year.ToString("D4");
+        var mes = info.FechaVisita.Month.ToString("D2");
+        var tipo = info.EsEntrevista ? "Entrevista" : "Visita";
+
         var nombreArchivo = $"{prefijo}{id.ToString("D" + digitos)}.jpg";
-        return Path.Combine(ruta, nombreArchivo);
+        return Path.Combine(ruta, anio, mes, tipo, nombreArchivo);
     }
 }

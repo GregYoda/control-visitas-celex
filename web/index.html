@@ -1253,6 +1253,7 @@ async function generarCodigoAcceso(){
   const placas = document.getElementById('fPlacas').value.trim();
   // Solo cuenta si el usuario está autorizado a marcar VIP.
   const esVip = session.puedeVIP && document.getElementById('fEsVip').checked;
+  const esEntrevista = session.esReclutador && document.getElementById('fEsEntrevista').checked;
 
   const err = document.getElementById('regError');
   if(!nombre || !apP || !apM || !correo || !idArea || !motivo || !fechaVisita || !anfitrion){
@@ -1269,7 +1270,7 @@ async function generarCodigoAcceso(){
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo, observaciones, esVip,
+        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo, observaciones, esVip, esEntrevista,
         anfitrion, registradoPor: session.username, idUsuario: session.usuarioId, fechaVisita, traeAuto,
         marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
       })

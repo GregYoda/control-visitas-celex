@@ -10,6 +10,7 @@ public record VisitaRegistroRequest(
     string Motivo,
     string? Observaciones,
     bool EsVip,
+    bool EsEntrevista,
     string Anfitrion,
     string RegistradoPor,
     int? IdUsuario,

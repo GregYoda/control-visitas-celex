@@ -87,6 +87,7 @@ CREATE TABLE dbo.CV_Visitas (
     Motivo                  NVARCHAR(300)   NOT NULL,
     Observaciones           NVARCHAR(500)   NOT NULL DEFAULT (''),  -- comentarios libres para que vigilancia los considere al recibir la visita
     EsVIP                   BIT             NOT NULL DEFAULT (0),   -- visita VIP; solo la marcan usuarios autorizados (ver CV_Configuracion.UsuariosVIP)
+    EsEntrevista            BIT             NOT NULL DEFAULT (0),   -- visita tipo Entrevista (la marcan los reclutadores); define la carpeta Tipo de la foto
     Anfitrion               NVARCHAR(100)   NOT NULL,   -- usuario WishPOS de la persona visitada
     RegistradoPor           NVARCHAR(100)   NOT NULL,   -- usuario WishPOS que capturó el registro
     ID_Usuario              INT             NOT NULL DEFAULT (0),  -- Usuario_ID (WishPOS) de quien capturó el registro
@@ -237,7 +238,8 @@ CREATE PROCEDURE dbo.sp_CV_Visitas_Registrar
     @Marca              NVARCHAR(50)    = '',
     @Modelo             NVARCHAR(50)    = '',
     @Placas             NVARCHAR(20)    = '',
-    @EsVIP              BIT             = 0
+    @EsVIP              BIT             = 0,
+    @EsEntrevista       BIT             = 0
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -247,6 +249,7 @@ BEGIN
     SET @Empresa = ISNULL(@Empresa, '');
     SET @Observaciones = ISNULL(@Observaciones, '');
     SET @EsVIP = ISNULL(@EsVIP, 0);
+    SET @EsEntrevista = ISNULL(@EsEntrevista, 0);
     SET @Marca  = ISNULL(@Marca, '');
     SET @Modelo = ISNULL(@Modelo, '');
     SET @Placas = ISNULL(@Placas, '');
@@ -264,11 +267,16 @@ BEGIN
     END
 
     INSERT INTO dbo.CV_Visitas
-        (UUID, CodigoAcceso, Nombre, ApellidoPaterno, ApellidoMaterno, Correo, Empresa, ID_Area, Motivo, Observaciones, EsVIP,
+        (UUID, CodigoAcceso, Nombre, ApellidoPaterno, ApellidoMaterno, Correo, Empresa, ID_Area, Motivo, Observaciones, EsVIP, EsEntrevista,
          Anfitrion, RegistradoPor, ID_Usuario, FechaVisita, TraeAuto, Marca, Modelo, Placas)
     VALUES
-        (@NuevoUUID, @CodigoAcceso, @Nombre, @ApellidoPaterno, @ApellidoMaterno, @Correo, @Empresa, @ID_Area, @Motivo, @Observaciones, @EsVIP,
+        (@NuevoUUID, @CodigoAcceso, @Nombre, @ApellidoPaterno, @ApellidoMaterno, @Correo, @Empresa, @ID_Area, @Motivo, @Observaciones, @EsVIP, @EsEntrevista,
          @Anfitrion, @RegistradoPor, @ID_Usuario, @FechaVisita, @TraeAuto, @Marca, @Modelo, @Placas);
+
+    -- Capturar el ID de la visita AQUÍ, antes del INSERT a WM_Correo. Si se
+    -- deja el SCOPE_IDENTITY() para el final, devolvería el ID de WM_Correo
+    -- (el último insert del scope), no el de la visita.
+    DECLARE @NuevoId BIGINT = SCOPE_IDENTITY();
 
     -- Correo de confirmación al visitante: se encola en WM_Correo, el
     -- SQL Server Agent Job existente lo envía (revisa cada minuto).
@@ -309,7 +317,7 @@ BEGIN
         (N'Confirmación de tu visita a Celex', @Correo, 'No', '1900-01-01 00:00:00', 'Si', @HTML, @ID_Usuario,
          CAST(@NuevoUUID AS VARCHAR(128)), GETDATE(), 'Visita');
 
-    SELECT SCOPE_IDENTITY() AS ID, @NuevoUUID AS UUID, @CodigoAcceso AS CodigoAcceso;
+    SELECT @NuevoId AS ID, @NuevoUUID AS UUID, @CodigoAcceso AS CodigoAcceso;
 END
 GO
 
@@ -622,6 +630,21 @@ BEGIN
        SET FotoRuta = ISNULL(@FotoRuta, ''),
            ID_Fecha_Modificacion = GETDATE()
      WHERE ID = @ID;
+END
+GO
+
+/* -----------------------------------------------------------------------------
+   sp_CV_Visitas_ObtenerInfoFoto
+   Datos que necesita FotoService para armar/localizar la ruta de la foto:
+   la fecha de visita (define carpeta Año/Mes), si es Entrevista (define carpeta
+   Tipo) y la ruta ya guardada (para servir la foto).
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Visitas_ObtenerInfoFoto
+    @ID BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT FechaVisita, EsEntrevista, FotoRuta FROM dbo.CV_Visitas WHERE ID = @ID;
 END
 GO
 

@@ -15,7 +15,11 @@ public interface IVisitasRepositorio
     Task<ActualizarResultado> ActualizarAsync(long id, VisitaActualizarRequest datos);
     Task<ActualizarResultado> CancelarAsync(long id);
     Task ActualizarFotoRutaAsync(long id, string fotoRuta);
+    Task<VisitaInfoFoto?> ObtenerInfoFotoAsync(long id);
 }
+
+// Datos que FotoService necesita para armar/localizar la ruta de la foto.
+public record VisitaInfoFoto(DateOnly FechaVisita, bool EsEntrevista, string? FotoRuta);
 
 public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisitasRepositorio
 {
@@ -43,6 +47,7 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
         comando.Parameters.AddWithValue("@Motivo", datos.Motivo);
         comando.Parameters.AddWithValue("@Observaciones", datos.Observaciones ?? "");
         comando.Parameters.AddWithValue("@EsVIP", datos.EsVip);
+        comando.Parameters.AddWithValue("@EsEntrevista", datos.EsEntrevista);
         comando.Parameters.AddWithValue("@Anfitrion", datos.Anfitrion);
         comando.Parameters.AddWithValue("@RegistradoPor", datos.RegistradoPor);
         comando.Parameters.AddWithValue("@ID_Usuario", datos.IdUsuario ?? 0);
@@ -267,5 +272,21 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
 
         await conexion.OpenAsync();
         await comando.ExecuteNonQueryAsync();
+    }
+
+    public async Task<VisitaInfoFoto?> ObtenerInfoFotoAsync(long id)
+    {
+        await using var conexion = conexionFactory.Crear();
+        await using var comando = new SqlCommand("dbo.sp_CV_Visitas_ObtenerInfoFoto", conexion) { CommandType = CommandType.StoredProcedure };
+        comando.Parameters.AddWithValue("@ID", id);
+
+        await conexion.OpenAsync();
+        await using var lector = await comando.ExecuteReaderAsync();
+        if (!await lector.ReadAsync()) return null;
+
+        return new VisitaInfoFoto(
+            DateOnly.FromDateTime(lector.GetDateTime(lector.GetOrdinal("FechaVisita"))),
+            lector.GetBoolean(lector.GetOrdinal("EsEntrevista")),
+            NullSiVacia(lector.GetString(lector.GetOrdinal("FotoRuta"))));
     }
 }

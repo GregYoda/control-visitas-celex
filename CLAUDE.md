@@ -109,9 +109,8 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
 - ✅ **Fotos servidas por la API, no por ruta de disco.** `CV_Visitas.FotoRuta`
   guarda una ruta de Windows (ej. `C:\Control de Visitas\Fotos\CV...jpg`), que
   un navegador no puede usar como `<img src>`. Se agregó
-  `GET /api/visitas/{id}/foto` (`FotoService.ObtenerRutaFisicaAsync` recalcula
-  la ruta con los valores *actuales* de `RutaFotos`/`PrefijoFoto`/`DigitosFoto`,
-  no depende del `FotoRuta` guardado). La API ya no le manda la ruta cruda al
+  `GET /api/visitas/{id}/foto` (`FotoService.ObtenerRutaFisicaAsync` sirve la
+  foto desde la ruta guardada en `CV_Visitas.FotoRuta`). La API ya no le manda la ruta cruda al
   frontend: `SalidaInfo`, `ReporteFila` y `MiVisita` cambiaron su campo
   `FotoRuta` por `TieneFoto` (booleano); el frontend arma la URL como
   `${API_BASE_URL}/api/visitas/{id}/foto`. Se evaluó servir las fotos
@@ -122,6 +121,23 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   tres pantallas nunca mostraban la foto real, solo el ícono de placeholder
   (la etiqueta de acceso justo después de tomar la foto sí funcionaba, porque
   usa el `data:` URL en memoria de la misma sesión, no `FotoRuta`).
+- ✅ **Fotos organizadas en `RutaFotos/Año/Mes/Tipo/`.** La foto se guarda en
+  `<RutaFotos>\<Año>\<Mes>\<Tipo>\<Prefijo><ID>.jpg` (ej.
+  `...\2026\07\Entrevista\CV0000000001.jpg`). Año/Mes salen de la `FechaVisita`;
+  Tipo = `Entrevista` o `Visita`. Para saber el tipo se agregó la columna
+  `CV_Visitas.EsEntrevista BIT` (se guarda al registrar cuando el reclutador
+  marcó el check; `sp_CV_Visitas_Registrar` recibe `@EsEntrevista`, el frontend
+  manda `esEntrevista`). `FotoService` consulta `sp_CV_Visitas_ObtenerInfoFoto`
+  (regresa `FechaVisita`, `EsEntrevista`, `FotoRuta`) para armar la ruta al
+  guardar y para localizar el archivo al servir; por eso ahora depende de
+  `IVisitasRepositorio`.
+- 🐞 **Bug corregido en `sp_CV_Visitas_Registrar`:** hacía
+  `SELECT SCOPE_IDENTITY()` al final, *después* del INSERT a `WM_Correo`, así
+  que devolvía el `ID` de `WM_Correo`, no el de la visita. No rompía el flujo
+  real (el frontend usa el `UUID` y el `ID` numérico que regresa validar-acceso,
+  no el del registro), pero el `id` de `VisitaRegistroResponse` era incorrecto.
+  Ahora captura `@NuevoId = SCOPE_IDENTITY()` justo tras el INSERT de la visita
+  y lo devuelve.
 - ✅ **Teclado en pantalla quitado de "etiqueta de acceso" y "salida
   registrada"** (`screen-badge`, `screen-salida-done`) — ninguna de las dos
   tiene un `<input>` de texto real, el botón no hacía nada ahí. `kioskScreens`
