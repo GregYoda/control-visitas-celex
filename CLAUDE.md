@@ -257,7 +257,15 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   hay una tarjeta **"Reporte de asistencia"** (`screen-reportes-asistencia`) que
   lista las marcas por rango de fechas (Fecha, Núm. empleado, Nombre, Tipo,
   Entrada, Salida a comer, Regreso, Salida) con export a CSV, igual patrón que
-  el reporte de visitas. El código de asistencia se teclea en
+  el reporte de visitas. También hay una **pantalla de administración de
+  empleados** (`screen-admin-empleados` / `screen-editar-empleado`, tarjeta
+  "Empleados" gateada con el mismo permiso `CV.200.00` que Configuración):
+  lista el padrón, da de alta/edita (código de 4 dígitos, valida duplicado
+  server-side), y activa/inactiva (con toggle "Mostrar inactivos"). **Las
+  respuestas de la API mandan `Cache-Control: no-store`** (middleware en
+  `Program.cs` para rutas `/api`) para evitar que el navegador sirva datos
+  viejos tras un cambio; y las recargas de lista tras guardar usan `await` (un
+  `openAdminEmpleados()` sin await mostraba la lista "un paso atrás"). El código de asistencia se teclea en
   un **pad propio** de 4 dígitos (`asisPin*`), independiente del pad de 6
   dígitos de visitas. Hay un mockup autónomo previo en
   `web/mockup-asistencia.html` (cámara emulada) usado para revisar el diseño.
@@ -439,14 +447,14 @@ pedirlo, preguntarlo. Las entradas históricas quedaron atribuidas a
 
 Ambos frontends muestran un número de versión en el login:
 - **Producción** (`web/index.html`): chip `.app-version` en el topbar del login
-  ("Control de Visitas · v0.17").
+  ("Control de Visitas · v0.18").
 - **Capacitación** (`web/demo-capacitacion.html`): etiqueta `.demo-tag`
   ("VERSIÓN DEMO · CAPACITACIÓN · v0.15").
 
 **Subir la versión en cada cambio** del archivo correspondiente (v0.15, v0.16,
-…) para identificar el build. Producción va en **v0.17** (registro de asistencia
-+ su reporte); el demo de capacitación sigue en **v0.15** porque aún no incluye
-asistencia (se alinea cuando se le agregue esa funcionalidad).
+…) para identificar el build. Producción va en **v0.18** (registro de asistencia
++ reporte + administración de empleados); el demo de capacitación sigue en
+**v0.15** porque aún no incluye asistencia (se alinea cuando se le agregue).
 
 ## Idioma y tono
 

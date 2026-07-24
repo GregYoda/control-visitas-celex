@@ -46,6 +46,20 @@ app.UseStaticFiles();
 
 app.UseAuthorization();
 
+// Las respuestas de la API no deben cachearse en el navegador: si no, un GET
+// (ej. el padrón de empleados o el estado de asistencia) puede servir datos
+// viejos justo después de un POST que los cambió (read-after-write). El
+// frontend estático (index.html) sí puede cachearse normal.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/api"))
+    {
+        context.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
+        context.Response.Headers.Pragma = "no-cache";
+    }
+    await next();
+});
+
 app.MapControllers();
 
 app.Run();

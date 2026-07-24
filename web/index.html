@@ -410,7 +410,7 @@
   <div class="login-wrap">
     <div class="login-topbar">
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
-      <span class="app-version">Control de Visitas · v0.17</span>
+      <span class="app-version">Control de Visitas · v0.18</span>
     </div>
     <div class="login-center">
       <div class="login-card">
@@ -531,6 +531,12 @@
             <h3>Configuración</h3>
             <p>Parámetros del sistema, como la ruta donde se guardan las fotos.</p>
             <button onclick="openConfiguracion()">Configurar</button>
+          </div>
+          <div class="module-card" id="adminEmpCard" style="display:none;">
+            <div class="card-icon" style="background:radial-gradient(circle at 35% 30%,#2bb3a3,#0f6a6b);">👥</div>
+            <h3>Empleados</h3>
+            <p>Da de alta y administra el padrón de empleados y mensajeros (código de asistencia).</p>
+            <button onclick="openAdminEmpleados()">Administrar</button>
           </div>
         </div>
       </div>
@@ -1007,6 +1013,70 @@
   </div>
 </section>
 
+<!-- =================== ADMINISTRACIÓN DE EMPLEADOS =================== -->
+<section class="screen" id="screen-admin-empleados">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right"><button class="btn-logout" onclick="doLogout()">Cerrar sesión</button></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;overflow:auto;">
+        <button class="breadcrumb-back" onclick="showScreen('screen-visitas-home')">‹ Volver</button>
+        <div class="content-title">Empleados</div>
+        <div class="filters-row">
+          <button class="btn-primary" style="width:auto;padding:11px 22px;" onclick="abrirNuevoEmpleado()">＋ Nuevo empleado</button>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#5a6070;">
+            <input type="checkbox" id="admEmpInactivos" onchange="openAdminEmpleados()"> Mostrar inactivos
+          </label>
+        </div>
+        <div id="adminEmpTableWrap"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== ALTA / EDICIÓN DE EMPLEADO =================== -->
+<section class="screen" id="screen-editar-empleado">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right"><button class="btn-logout" onclick="doLogout()">Cerrar sesión</button></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;overflow:auto;">
+        <button class="breadcrumb-back" onclick="showScreen('screen-admin-empleados')">‹ Volver a empleados</button>
+        <div class="content-title" style="max-width:640px;" id="empFormTitulo">Nuevo empleado</div>
+        <div class="form-card" style="max-width:640px;">
+          <div class="form-grid">
+            <div class="field full"><label class="required">Nombre completo</label><input id="empNombre" placeholder="Nombre y apellidos"></div>
+            <div class="field"><label class="required">Número de empleado</label><input id="empNumero" placeholder="ej. 1024"></div>
+            <div class="field"><label>Número de WishPOS <span class="opt">(opcional)</span></label><input id="empWishpos" placeholder="ej. 305"></div>
+            <div class="field"><label class="required">Tipo</label>
+              <select id="empTipo">
+                <option value="Empleado">Empleado</option>
+                <option value="Mensajero">Mensajero</option>
+              </select>
+            </div>
+            <div class="field"><label class="required">Código de asistencia (4 dígitos)</label>
+              <input id="empCodigo" inputmode="numeric" maxlength="4" placeholder="ej. 4830">
+            </div>
+            <div class="toggle-row">
+              <label class="switch"><input type="checkbox" id="empActivo" checked><span class="slider"></span></label>
+              <label>Activo</label>
+            </div>
+          </div>
+          <div class="login-error" id="empError"></div>
+          <div class="form-actions">
+            <button class="btn-primary" onclick="guardarEmpleado()">Guardar</button>
+            <button class="btn-secondary" onclick="showScreen('screen-admin-empleados')">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- =================== MIS VISITAS =================== -->
 <section class="screen" id="screen-mis-visitas">
   <div class="app-shell">
@@ -1237,6 +1307,7 @@ async function doLogin(){
   document.getElementById('regUserLabel').textContent = data.nombre || data.usuario;
   document.getElementById('fAnfitrion').value = data.nombre || data.usuario;
   document.getElementById('configCard').style.display = session.puedeConfigurar ? '' : 'none';
+  document.getElementById('adminEmpCard').style.display = session.puedeConfigurar ? '' : 'none';
   buildSidebar('sidebarList','menu');
   buildSidebar('sidebarList2','visitas');
   // Usuarios de "terminal de caseta" entran directo al kiosko; al salir del
@@ -1253,6 +1324,7 @@ function doLogout(){
   session.esReclutador = false;
   entrevistaDefaults = null;
   document.getElementById('configCard').style.display = 'none';
+  document.getElementById('adminEmpCard').style.display = 'none';
   document.getElementById('loginPass').value='';
   document.getElementById('loginKeypad').classList.remove('show'); // ocultar teclado numérico
   showScreen('screen-login');
@@ -1681,7 +1753,7 @@ async function validarAsisCodigo(){
   const msg = document.getElementById('asisPadMsg');
   let data;
   try{
-    const resp = await fetch(`${API_BASE_URL}/api/asistencia/empleado/${encodeURIComponent(asisBuffer)}`);
+    const resp = await fetch(`${API_BASE_URL}/api/asistencia/empleado/${encodeURIComponent(asisBuffer)}`, { cache: 'no-store' });
     if(!resp.ok) throw new Error('HTTP ' + resp.status);
     data = await resp.json();
   }catch(e){
@@ -2264,7 +2336,7 @@ async function generarReporteAsistencia(){
 
   let filas;
   try{
-    const resp = await fetch(`${API_BASE_URL}/api/asistencia/reporte?desde=${desde}&hasta=${hasta}`);
+    const resp = await fetch(`${API_BASE_URL}/api/asistencia/reporte?desde=${desde}&hasta=${hasta}`, { cache: 'no-store' });
     if(!resp.ok) throw new Error('HTTP ' + resp.status);
     filas = await resp.json();
   }catch(e){
@@ -2312,6 +2384,107 @@ function exportarCSVAsistencia(){
   a.href = URL.createObjectURL(blob);
   a.download = 'reporte-asistencia-celex.csv';
   a.click();
+}
+
+/* ---------- administración de empleados (padrón) ---------- */
+let empList = [];
+async function openAdminEmpleados(){
+  const wrap = document.getElementById('adminEmpTableWrap');
+  const soloActivos = !document.getElementById('admEmpInactivos').checked;
+  showScreen('screen-admin-empleados');
+  wrap.innerHTML = '<div class="empty-note">Cargando…</div>';
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/empleados?soloActivos=${soloActivos}`, { cache: 'no-store' });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    empList = await resp.json();
+  }catch(e){
+    wrap.innerHTML = '<div class="empty-note">No se pudo cargar el padrón (¿está corriendo la API?).</div>';
+    return;
+  }
+  if(!empList.length){ wrap.innerHTML = '<div class="empty-note">Aún no hay empleados. Usa “＋ Nuevo empleado”.</div>'; return; }
+
+  const rows = empList.map(e => {
+    const tipoTag = e.tipo === 'Mensajero'
+      ? '<span class="tipo-pill tipo-men">MENSAJERO</span>'
+      : '<span class="tipo-pill tipo-emp">EMPLEADO</span>';
+    const activo = e.activo
+      ? '<span class="status-pill accesado">Activo</span>'
+      : '<span class="status-pill cancelada">Inactivo</span>';
+    return `
+    <tr>
+      <td>${e.nombreCompleto}</td>
+      <td>${e.numeroEmpleado || '—'}</td>
+      <td>${e.numeroWishPos || '—'}</td>
+      <td>${tipoTag}</td>
+      <td><b>${e.codigoAcceso}</b></td>
+      <td>${activo}</td>
+      <td><button class="btn-secondary" style="width:auto;padding:6px 14px;margin-top:0;" onclick="abrirEditarEmpleado(${e.id})">Editar</button></td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `
+    <table class="report-table">
+      <thead><tr><th>Nombre</th><th>Núm. empleado</th><th>WishPOS</th><th>Tipo</th><th>Código</th><th>Estado</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+let editingEmpId = 0;
+function llenarFormEmpleado(e){
+  document.getElementById('empError').textContent = '';
+  document.getElementById('empNombre').value = e ? e.nombreCompleto : '';
+  document.getElementById('empNumero').value = e ? e.numeroEmpleado : '';
+  document.getElementById('empWishpos').value = e ? e.numeroWishPos : '';
+  document.getElementById('empTipo').value = e ? e.tipo : 'Empleado';
+  document.getElementById('empCodigo').value = e ? e.codigoAcceso : '';
+  document.getElementById('empActivo').checked = e ? e.activo : true;
+}
+function abrirNuevoEmpleado(){
+  editingEmpId = 0;
+  document.getElementById('empFormTitulo').textContent = 'Nuevo empleado';
+  llenarFormEmpleado(null);
+  showScreen('screen-editar-empleado');
+}
+function abrirEditarEmpleado(id){
+  const e = empList.find(x => x.id === id);
+  if(!e) return;
+  editingEmpId = id;
+  document.getElementById('empFormTitulo').textContent = 'Editar empleado';
+  llenarFormEmpleado(e);
+  showScreen('screen-editar-empleado');
+}
+async function guardarEmpleado(){
+  const err = document.getElementById('empError');
+  const nombre = document.getElementById('empNombre').value.trim();
+  const numero = document.getElementById('empNumero').value.trim();
+  const codigo = document.getElementById('empCodigo').value.trim();
+  const tipo = document.getElementById('empTipo').value;
+  if(!nombre){ err.textContent = 'El nombre completo es obligatorio.'; return; }
+  if(!numero){ err.textContent = 'El número de empleado es obligatorio.'; return; }
+  if(!/^\d{4}$/.test(codigo)){ err.textContent = 'El código de asistencia debe ser de 4 dígitos.'; return; }
+
+  const body = {
+    id: editingEmpId,
+    numeroEmpleado: numero,
+    numeroWishPos: document.getElementById('empWishpos').value.trim(),
+    nombreCompleto: nombre,
+    tipo,
+    codigoAcceso: codigo,
+    activo: document.getElementById('empActivo').checked
+  };
+  let r;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/empleados`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    r = await resp.json();
+  }catch(e){ err.textContent = 'No se pudo guardar (¿está corriendo la API?).'; return; }
+
+  if(r.resultado === 'CODIGO_DUPLICADO'){ err.textContent = 'Ese código de asistencia ya lo usa otro empleado activo. Usa uno distinto.'; return; }
+  if(r.resultado === 'NO_ENCONTRADO'){ err.textContent = 'El empleado ya no existe.'; return; }
+  if(r.resultado !== 'OK'){ err.textContent = 'No se pudo guardar el empleado.'; return; }
+  await openAdminEmpleados();
 }
 
 /* =========================================================
