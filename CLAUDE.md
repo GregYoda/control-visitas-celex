@@ -234,6 +234,32 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   `http://localhost:5280` si se abre el archivo directo (`file://`) para
   pruebas. Así en producción no hace falta CORS ni editar la URL. Probado:
   `GET /` sirve el front y `GET /api/areas` responde en el mismo origen.
+- ✅ **Registro de asistencia de empleados y mensajeros (checador en el kiosko).**
+  El kiosko (`screen-kiosk-home`) ahora agrupa los botones en dos bloques:
+  **Visitantes** (Registrar acceso / salida) y **Personal Celex** (Registro
+  asistencia), para que el visitante no se confunda de botón. El flujo de
+  asistencia: pad numérico (código personal de 4 dígitos) → valida contra el
+  padrón `CV_Empleados` → si no tiene entrada del día, pide foto (reutiliza
+  `screen-photo` con `fotoContexto='asistencia'`) y registra la Entrada → si ya
+  tiene entrada, los **empleados** ven un panel con la línea de tiempo del día y
+  los botones válidos (Salida a comer → Regreso de comida → Salida, en orden,
+  con **salida anticipada** siempre disponible); los **mensajeros** solo
+  registran Entrada (nada más). La secuencia se valida server-side en
+  `sp_CV_Asistencia_Registrar` (no solo en el front). Tablas: `CV_Empleados`
+  (padrón: número de empleado, número de WishPOS, tipo, código único entre
+  activos vía índice filtrado) y `CV_Asistencia` (una fila por empleado por día,
+  estilo checador, con `Entrada`/`SalidaComer`/`RegresoComida`/`Salida` +
+  `FotoRuta`). API: `GET /api/asistencia/empleado/{codigo}`,
+  `POST /api/asistencia/registrar` (guarda la foto de entrada en
+  `RutaFotos/Año/Mes/Asistencia/` sin bloquear el registro si falla),
+  `GET /api/asistencia/reporte`, y `GET/POST /api/empleados` (padrón, base para
+  una pantalla de administración a futuro). El código de asistencia se teclea en
+  un **pad propio** de 4 dígitos (`asisPin*`), independiente del pad de 6
+  dígitos de visitas. Hay un mockup autónomo previo en
+  `web/mockup-asistencia.html` (cámara emulada) usado para revisar el diseño.
+  **Ojo (DBA):** el DML sobre `CV_Empleados` requiere `SET QUOTED_IDENTIFIER ON`
+  por el índice filtrado del código único; la API ya lo cumple (Microsoft.Data.
+  SqlClient lo activa por conexión), solo aplica a scripts sueltos de `sqlcmd -Q`.
 - 🔧 **Despliegue a producción — Fase 1 lista, falta Fase 2 (en el servidor).**
   Guía completa en `docs/despliegue-iis.md` (Hosting Bundle, `dotnet publish`,
   App Pool "No Managed Code", cadena de conexión vía
@@ -409,13 +435,14 @@ pedirlo, preguntarlo. Las entradas históricas quedaron atribuidas a
 
 Ambos frontends muestran un número de versión en el login:
 - **Producción** (`web/index.html`): chip `.app-version` en el topbar del login
-  ("Control de Visitas · v0.15").
+  ("Control de Visitas · v0.16").
 - **Capacitación** (`web/demo-capacitacion.html`): etiqueta `.demo-tag`
   ("VERSIÓN DEMO · CAPACITACIÓN · v0.15").
 
 **Subir la versión en cada cambio** del archivo correspondiente (v0.15, v0.16,
-…) para identificar el build. Van alineadas: versión actual **v0.15** en ambas
-(cuando un cambio afecte a las dos, subirlas juntas al mismo número).
+…) para identificar el build. Producción va en **v0.16** (agregó el registro de
+asistencia); el demo de capacitación sigue en **v0.15** porque aún no incluye
+asistencia (se alinea cuando se le agregue esa funcionalidad).
 
 ## Idioma y tono
 

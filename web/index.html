@@ -246,6 +246,39 @@
     padding:16px 32px;border-radius:14px;font-size:15px;font-weight:600;min-height:56px;
   }
   .btn-kiosk-secondary:hover{background:rgba(255,255,255,.16);}
+  /* ---- Kiosko: home agrupado (Visitantes | Personal) + asistencia ---- */
+  .home-groups{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;max-width:640px;}
+  .home-group{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:18px 24px 24px;display:flex;flex-direction:column;gap:16px;align-items:center;width:100%;}
+  .group-label{font-size:14px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:6px 16px;border-radius:999px;}
+  .group-visit{color:#cfe0ff;background:rgba(63,111,224,.18);border:1px solid rgba(120,160,255,.4);}
+  .group-staff{color:#d5fff8;background:rgba(43,179,163,.18);border:1px solid rgba(43,179,163,.5);}
+  .group-buttons{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;}
+  .home-divider{display:flex;align-items:center;justify-content:center;}
+  .home-divider span{color:#7fa0a0;font-size:13px;font-weight:600;border:1px solid rgba(255,255,255,.14);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:#0a2324;}
+  .home-group .btn-kiosk-main{display:flex;flex-direction:column;align-items:center;gap:6px;padding:24px 30px;min-width:230px;font-size:19px;letter-spacing:normal;}
+  .home-group .btn-kiosk-main small{font-weight:500;font-size:12.5px;color:#d7efef;}
+  .btn-kiosk-main.asistencia{background:linear-gradient(90deg,#2bb3a3,#178f81);}
+  /* ---- Kiosko: panel del empleado (asistencia) ---- */
+  .emp-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:26px 30px;max-width:520px;width:100%;text-align:left;}
+  .emp-head{display:flex;align-items:center;gap:16px;margin-bottom:6px;}
+  .emp-avatar{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;border:2px solid rgba(255,255,255,.3);flex:0 0 auto;}
+  .emp-name{font-size:21px;font-weight:700;}
+  .emp-meta{font-size:12.5px;color:#bcd9d9;margin-top:2px;}
+  .tipo-pill{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;border-radius:999px;padding:2px 10px;vertical-align:middle;}
+  .tipo-emp{color:#063e39;background:#9ef0e4;}
+  .tipo-men{color:#5a3d00;background:#ffd98a;}
+  .timeline{list-style:none;padding:0;margin:16px 0 4px;}
+  .timeline li{display:flex;justify-content:space-between;padding:9px 12px;border-radius:10px;font-size:14px;margin-bottom:6px;background:rgba(255,255,255,.05);border-left:3px solid transparent;}
+  .timeline li.done{border-left-color:var(--ok);}
+  .timeline li.pend{opacity:.45;}
+  .timeline li .t-time{font-weight:700;font-variant-numeric:tabular-nums;color:#8dffb0;}
+  .timeline li.pend .t-time{color:#9fb3b3;font-weight:500;}
+  .emp-actions{display:flex;flex-direction:column;gap:12px;margin-top:14px;}
+  .btn-mov{border:none;border-radius:14px;padding:18px;font-size:17px;font-weight:700;color:#fff;background:linear-gradient(90deg,#2bb3a3,#178f81);display:flex;justify-content:center;align-items:center;gap:10px;}
+  .btn-mov.final{background:linear-gradient(90deg,#d99a2c,#b3790f);}
+  .btn-mov:hover{filter:brightness(1.08);}
+  .badge-mov{display:inline-block;margin:8px 0 4px;padding:7px 18px;border-radius:999px;font-weight:800;font-size:16px;background:#e5f8f2;color:#0a6b52;border:1px solid #9fe0cd;font-variant-numeric:tabular-nums;}
+  .badge-note{font-size:13px;color:#8b93a3;margin-top:6px;}
   .kiosk-card-box{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:36px 44px;max-width:560px;width:100%;}
   .kiosk-video-wrap{position:relative;width:340px;height:340px;max-width:80vw;max-height:80vw;border-radius:20px;overflow:hidden;border:3px solid rgba(255,255,255,.3);background:#000;margin:0 auto;}
   .kiosk-video-wrap video{width:100%;height:100%;object-fit:cover;}
@@ -377,7 +410,7 @@
   <div class="login-wrap">
     <div class="login-topbar">
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
-      <span class="app-version">Control de Visitas · v0.15</span>
+      <span class="app-version">Control de Visitas · v0.16</span>
     </div>
     <div class="login-center">
       <div class="login-card">
@@ -664,11 +697,23 @@
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
     </div>
     <div class="kiosk-body">
-      <h1>Bienvenido al control de accesos</h1>
-      <p class="sub">Toca el botón para registrar la llegada o salida de un visitante</p>
-      <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;">
-        <button class="btn-kiosk-main" onclick="openAccesoCodigo()">🔑 REGISTRAR ACCESO</button>
-        <button class="btn-kiosk-main salida" onclick="openSalidaCodigo()">🚪 REGISTRAR SALIDA</button>
+      <h1>Kiosko de accesos</h1>
+      <p class="sub">Selecciona la operación que deseas registrar</p>
+      <div class="home-groups">
+        <div class="home-group">
+          <div class="group-label group-visit">👤 Visitantes</div>
+          <div class="group-buttons">
+            <button class="btn-kiosk-main" onclick="openAccesoCodigo()">🔑 Registrar acceso<small>Visitante</small></button>
+            <button class="btn-kiosk-main salida" onclick="openSalidaCodigo()">🚪 Registrar salida<small>Visitante</small></button>
+          </div>
+        </div>
+        <div class="home-divider"><span>o</span></div>
+        <div class="home-group">
+          <div class="group-label group-staff">🪪 Personal Celex</div>
+          <div class="group-buttons">
+            <button class="btn-kiosk-main asistencia" onclick="openAsisPad()">🕘 Registro asistencia<small>Empleados y mensajeros</small></button>
+          </div>
+        </div>
       </div>
       <button class="btn-kiosk-secondary" onclick="doLogout()">‹ Salir del kiosko</button>
     </div>
@@ -734,8 +779,8 @@
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
     </div>
     <div class="kiosk-body">
-      <h1 style="font-size:24px;">Foto de la visita</h1>
-      <p class="sub">Para la credencial de acceso, toma una fotografía del visitante</p>
+      <h1 style="font-size:24px;" id="photoTitulo">Foto de la visita</h1>
+      <p class="sub" id="photoSub">Para la credencial de acceso, toma una fotografía del visitante</p>
 
       <div class="kiosk-video-wrap" id="photoVideoWrap">
         <video id="photoVideo" muted playsinline autoplay></video>
@@ -838,6 +883,74 @@
     <div class="kiosk-body">
       <div class="badge-card" id="salidaDoneCard" style="max-width:380px;"><!-- filled by JS --></div>
       <button class="btn-kiosk-main" style="padding:16px 30px;font-size:15px;" onclick="showScreen('screen-kiosk-home')">Finalizar</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== ASISTENCIA: CÓDIGO DE EMPLEADO =================== -->
+<section class="screen" id="screen-asis-pad">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ASISTENCIA</div></div>
+    </div>
+    <div class="kiosk-body">
+      <h1 style="font-size:24px;">Ingresa tu código</h1>
+      <p class="sub">Escribe tu código personal de 4 dígitos para registrar tu movimiento</p>
+      <div class="pin-display" id="asisPinDisplay">
+        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
+      </div>
+      <div class="kiosk-msg err" id="asisPadMsg"></div>
+      <div class="pin-pad">
+        <button class="pin-key" onclick="asisPinPress('1')">1</button>
+        <button class="pin-key" onclick="asisPinPress('2')">2</button>
+        <button class="pin-key" onclick="asisPinPress('3')">3</button>
+        <button class="pin-key" onclick="asisPinPress('4')">4</button>
+        <button class="pin-key" onclick="asisPinPress('5')">5</button>
+        <button class="pin-key" onclick="asisPinPress('6')">6</button>
+        <button class="pin-key" onclick="asisPinPress('7')">7</button>
+        <button class="pin-key" onclick="asisPinPress('8')">8</button>
+        <button class="pin-key" onclick="asisPinPress('9')">9</button>
+        <button class="pin-key pin-key-fn" onclick="asisPinClear()">C</button>
+        <button class="pin-key" onclick="asisPinPress('0')">0</button>
+        <button class="pin-key pin-key-fn" onclick="asisPinBackspace()">⌫</button>
+      </div>
+      <button class="btn-kiosk-secondary" onclick="showScreen('screen-kiosk-home')">‹ Cancelar</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== ASISTENCIA: PANEL DEL EMPLEADO =================== -->
+<section class="screen" id="screen-asis-panel">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ASISTENCIA</div></div>
+    </div>
+    <div class="kiosk-body">
+      <div class="emp-card">
+        <div class="emp-head">
+          <div class="emp-avatar" id="asisAvatar">?</div>
+          <div>
+            <div class="emp-name" id="asisName">—</div>
+            <div class="emp-meta" id="asisMeta">—</div>
+          </div>
+        </div>
+        <ul class="timeline" id="asisTimeline"></ul>
+        <div class="emp-actions" id="asisActions"></div>
+      </div>
+      <button class="btn-kiosk-secondary" onclick="showScreen('screen-kiosk-home')">‹ Volver</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== ASISTENCIA: CONFIRMACIÓN =================== -->
+<section class="screen" id="screen-asis-done">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ASISTENCIA</div></div>
+    </div>
+    <div class="kiosk-body">
+      <div class="badge-card" id="asisDoneCard" style="max-width:400px;"><!-- filled by JS --></div>
+      <button class="btn-kiosk-main asistencia" style="padding:16px 30px;font-size:15px;" onclick="showScreen('screen-kiosk-home')">Listo</button>
     </div>
   </div>
 </section>
@@ -999,7 +1112,8 @@ function esUsuarioDemo(){
 // (Esc / F11, comportamiento estándar del navegador) — así un visitante no
 // puede "escapar" del kiosko, solo el personal con teclado.
 const PANTALLAS_KIOSKO = ['screen-kiosk-home','screen-acceso-codigo','screen-validate',
-  'screen-photo','screen-badge','screen-salida-codigo','screen-salida-confirm','screen-salida-done'];
+  'screen-photo','screen-badge','screen-salida-codigo','screen-salida-confirm','screen-salida-done',
+  'screen-asis-pad','screen-asis-panel','screen-asis-done'];
 function entrarPantallaCompleta(){
   const el = document.documentElement;
   const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
@@ -1426,7 +1540,11 @@ function renderBadge(visit){
 /* ---------- kiosko: foto de la visita ---------- */
 let photoStream = null;
 let capturedPhotoDataUrl = null;
+let fotoContexto = 'visita'; // 'visita' | 'asistencia' -- qué hacer al confirmar la foto
 function openPhotoCapture(){
+  fotoContexto = 'visita';
+  document.getElementById('photoTitulo').textContent = 'Foto de la visita';
+  document.getElementById('photoSub').textContent = 'Para la credencial de acceso, toma una fotografía del visitante';
   capturedPhotoDataUrl = null;
   document.getElementById('photoMsg').textContent = '';
   document.getElementById('photoVideoWrap').style.display = 'block';
@@ -1481,6 +1599,7 @@ function retakePhoto(){
   startPhotoCamera();
 }
 async function confirmPhotoAndContinue(skip){
+  if(fotoContexto === 'asistencia'){ await confirmarEntradaAsistencia(skip); return; }
   const visit = visits.find(v=>v.id===pendingVisitId);
   stopPhotoCamera();
   if(!visit){ showScreen('screen-kiosk-home'); return; }
@@ -1499,6 +1618,190 @@ async function confirmPhotoAndContinue(skip){
   }
   renderBadge(visit);
   showScreen('screen-badge');
+}
+
+/* ===================== ASISTENCIA DE EMPLEADOS (kiosko) ===================== */
+const ASIS_SEC = ['Entrada','SalidaComer','RegresoComida','Salida'];
+const ASIS_LABEL = { Entrada:'Entrada', SalidaComer:'Salida a comer', RegresoComida:'Regreso de comida', Salida:'Salida' };
+const ASIS_ICONO = { Entrada:'🟢', SalidaComer:'🍽️', RegresoComida:'🔙', Salida:'🔴' };
+let asisBuffer = '';
+let asisEmpActual = null; // estado devuelto por la API (empleado + marcas del día)
+
+function openAsisPad(){
+  asisBuffer = '';
+  asisEmpActual = null;
+  document.getElementById('asisPadMsg').textContent = '';
+  renderAsisPin();
+  showScreen('screen-asis-pad');
+}
+function renderAsisPin(){
+  const boxes = document.querySelectorAll('#asisPinDisplay .pin-box');
+  boxes.forEach((b,i)=>{ b.textContent = asisBuffer[i] ? '•' : ''; b.classList.toggle('filled', !!asisBuffer[i]); });
+}
+function asisPinPress(d){
+  if(asisBuffer.length >= 4) return;
+  document.getElementById('asisPadMsg').textContent = '';
+  asisBuffer += d;
+  renderAsisPin();
+  if(asisBuffer.length === 4) setTimeout(validarAsisCodigo, 150);
+}
+function asisPinClear(){ asisBuffer = ''; document.getElementById('asisPadMsg').textContent = ''; renderAsisPin(); }
+function asisPinBackspace(){ asisBuffer = asisBuffer.slice(0,-1); renderAsisPin(); }
+
+async function validarAsisCodigo(){
+  const msg = document.getElementById('asisPadMsg');
+  let data;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/asistencia/empleado/${encodeURIComponent(asisBuffer)}`);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    data = await resp.json();
+  }catch(e){
+    msg.textContent = 'No se pudo validar el código (¿está corriendo la API?).';
+    asisBuffer = ''; renderAsisPin();
+    return;
+  }
+  if(data.resultado !== 'OK'){
+    msg.textContent = 'Código no encontrado. Verifica e intenta de nuevo.';
+    asisBuffer = ''; renderAsisPin();
+    return;
+  }
+
+  asisEmpActual = data;
+  if(!data.entrada){
+    // Primera marca del día -> ENTRADA (con foto, igual que las visitas)
+    openFotoAsistencia();
+    return;
+  }
+  if(data.tipo === 'Mensajero'){
+    mostrarAsisDone('Entrada ya registrada', data.nombreCompleto, fmtHoraCorta(data.entrada),
+                    'Los mensajeros solo registran entrada. ¡Buen día!', null);
+    return;
+  }
+  if(data.salida){
+    mostrarAsisDone('Jornada cerrada', data.nombreCompleto, fmtHoraCorta(data.salida),
+                    'Ya registraste tu salida hoy. ¡Buen día!', null);
+    return;
+  }
+  renderPanelAsis(data);
+}
+
+function renderPanelAsis(estado){
+  document.getElementById('asisAvatar').textContent = inicialesAsis(estado.nombreCompleto);
+  document.getElementById('asisName').textContent = estado.nombreCompleto;
+  const pill = estado.tipo === 'Mensajero'
+    ? '<span class="tipo-pill tipo-men">MENSAJERO</span>'
+    : '<span class="tipo-pill tipo-emp">EMPLEADO</span>';
+  document.getElementById('asisMeta').innerHTML =
+    `${pill} &nbsp; Núm. ${estado.numeroEmpleado}${estado.numeroWishPos ? ' · WishPOS ' + estado.numeroWishPos : ''}`;
+
+  const horas = {
+    Entrada: estado.entrada, SalidaComer: estado.salidaComer,
+    RegresoComida: estado.regresoComida, Salida: estado.salida
+  };
+  document.getElementById('asisTimeline').innerHTML = ASIS_SEC.map(paso=>{
+    const h = horas[paso];
+    return `<li class="${h ? 'done' : 'pend'}"><span>${ASIS_ICONO[paso]} ${ASIS_LABEL[paso]}</span>`
+         + `<span class="t-time">${h ? fmtHoraCorta(h) : '— — : — —'}</span></li>`;
+  }).join('');
+
+  const hechos = ASIS_SEC.filter(p=>horas[p]);
+  const acciones = [];
+  const siguiente = ASIS_SEC.slice(1).find(p=>!hechos.includes(p));
+  if(siguiente && siguiente !== 'Salida') acciones.push(siguiente);
+  if(!hechos.includes('Salida')) acciones.push('Salida'); // salida anticipada siempre disponible
+
+  document.getElementById('asisActions').innerHTML = acciones.map(a=>{
+    const final = a === 'Salida';
+    return `<button class="btn-mov ${final ? 'final' : ''}" onclick="hacerMovAsis('${a}')">`
+         + `${ASIS_ICONO[a]} Registrar ${ASIS_LABEL[a].toLowerCase()}</button>`;
+  }).join('');
+
+  showScreen('screen-asis-panel');
+}
+
+async function registrarMovAsis(tipoMovimiento, fotoBase64){
+  const body = { idEmpleado: asisEmpActual.idEmpleado, tipoMovimiento };
+  if(fotoBase64) body.fotoBase64 = fotoBase64;
+  const resp = await fetch(`${API_BASE_URL}/api/asistencia/registrar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if(!resp.ok) throw new Error('HTTP ' + resp.status);
+  return await resp.json();
+}
+
+async function hacerMovAsis(tipo){
+  if(!asisEmpActual) return showScreen('screen-kiosk-home');
+  let r;
+  try{ r = await registrarMovAsis(tipo, null); }
+  catch(e){ alert('No se pudo registrar el movimiento (¿está corriendo la API?).'); return; }
+  if(r.resultado !== 'OK'){ alert(traducirAsisResultado(r.resultado)); return; }
+  const nota = tipo === 'Salida' ? 'Salida registrada. ¡Hasta pronto!'
+             : (tipo === 'SalidaComer' ? 'Disfruta tu comida.' : 'Bienvenido de vuelta.');
+  mostrarAsisDone(ASIS_LABEL[tipo] + ' registrada', asisEmpActual.nombreCompleto, fmtHoraCorta(r.horaMovimiento), nota, null);
+}
+
+/* Entrada con foto: reutiliza la pantalla de foto en modo asistencia */
+function openFotoAsistencia(){
+  fotoContexto = 'asistencia';
+  const nombre = asisEmpActual.nombreCompleto.split(' ')[0];
+  document.getElementById('photoTitulo').textContent = 'Foto de entrada';
+  document.getElementById('photoSub').textContent = `Hola ${nombre}, toma tu foto para registrar la entrada`;
+  capturedPhotoDataUrl = null;
+  document.getElementById('photoMsg').textContent = '';
+  document.getElementById('photoVideoWrap').style.display = 'block';
+  document.getElementById('photoPreviewWrap').style.display = 'none';
+  document.getElementById('photoActionsCapture').style.display = 'flex';
+  document.getElementById('photoActionsConfirm').style.display = 'none';
+  showScreen('screen-photo');
+  startPhotoCamera();
+}
+async function confirmarEntradaAsistencia(skip){
+  stopPhotoCamera();
+  if(!asisEmpActual){ showScreen('screen-kiosk-home'); return; }
+  const foto = skip ? null : capturedPhotoDataUrl;
+  let r;
+  try{ r = await registrarMovAsis('Entrada', foto); }
+  catch(e){ alert('No se pudo registrar la entrada (¿está corriendo la API?).'); return; }
+  if(r.resultado !== 'OK'){ alert(traducirAsisResultado(r.resultado)); showScreen('screen-kiosk-home'); return; }
+  const nota = asisEmpActual.tipo === 'Mensajero'
+    ? 'Entrada de mensajero registrada. Registro completo.'
+    : 'Entrada registrada. Recuerda marcar tu comida y salida.';
+  mostrarAsisDone('Entrada registrada', asisEmpActual.nombreCompleto, fmtHoraCorta(r.horaMovimiento), nota, foto);
+}
+
+function mostrarAsisDone(titulo, nombre, hora, nota, fotoUrl){
+  const foto = fotoUrl
+    ? `<img class="badge-photo" src="${fotoUrl}" alt="foto" style="margin:0 auto 12px;">`
+    : `<div class="badge-check">✓</div>`;
+  document.getElementById('asisDoneCard').innerHTML =
+    `${foto}
+     <div class="badge-title" style="color:var(--ok);">${titulo.toUpperCase()}</div>
+     <div class="badge-name">${nombre}</div>
+     <div class="badge-mov">🕘 ${hora}</div>
+     <div class="badge-note">${nota || ''}</div>`;
+  showScreen('screen-asis-done');
+}
+
+function traducirAsisResultado(r){
+  const m = {
+    NO_ENCONTRADO: 'Empleado no encontrado.',
+    MENSAJERO_SOLO_ENTRADA: 'Los mensajeros solo registran entrada.',
+    YA_REGISTRADO: 'Ese movimiento ya estaba registrado.',
+    FUERA_DE_SECUENCIA: 'No se puede registrar ese movimiento en este momento.',
+    JORNADA_CERRADA: 'La jornada de hoy ya está cerrada.',
+    MOVIMIENTO_INVALIDO: 'Movimiento no válido.'
+  };
+  return m[r] || 'No se pudo registrar el movimiento.';
+}
+function fmtHoraCorta(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+function inicialesAsis(nombre){
+  return nombre.split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase();
 }
 
 /* ---------- kiosko: registro de salida (código de 6 dígitos) ---------- */
