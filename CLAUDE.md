@@ -253,7 +253,11 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   `POST /api/asistencia/registrar` (guarda la foto de entrada en
   `RutaFotos/Año/Mes/Asistencia/` sin bloquear el registro si falla),
   `GET /api/asistencia/reporte`, y `GET/POST /api/empleados` (padrón, base para
-  una pantalla de administración a futuro). El código de asistencia se teclea en
+  una pantalla de administración a futuro). En el módulo de Control de Visitas
+  hay una tarjeta **"Reporte de asistencia"** (`screen-reportes-asistencia`) que
+  lista las marcas por rango de fechas (Fecha, Núm. empleado, Nombre, Tipo,
+  Entrada, Salida a comer, Regreso, Salida) con export a CSV, igual patrón que
+  el reporte de visitas. El código de asistencia se teclea en
   un **pad propio** de 4 dígitos (`asisPin*`), independiente del pad de 6
   dígitos de visitas. Hay un mockup autónomo previo en
   `web/mockup-asistencia.html` (cámara emulada) usado para revisar el diseño.
@@ -435,13 +439,13 @@ pedirlo, preguntarlo. Las entradas históricas quedaron atribuidas a
 
 Ambos frontends muestran un número de versión en el login:
 - **Producción** (`web/index.html`): chip `.app-version` en el topbar del login
-  ("Control de Visitas · v0.16").
+  ("Control de Visitas · v0.17").
 - **Capacitación** (`web/demo-capacitacion.html`): etiqueta `.demo-tag`
   ("VERSIÓN DEMO · CAPACITACIÓN · v0.15").
 
 **Subir la versión en cada cambio** del archivo correspondiente (v0.15, v0.16,
-…) para identificar el build. Producción va en **v0.16** (agregó el registro de
-asistencia); el demo de capacitación sigue en **v0.15** porque aún no incluye
+…) para identificar el build. Producción va en **v0.17** (registro de asistencia
++ su reporte); el demo de capacitación sigue en **v0.15** porque aún no incluye
 asistencia (se alinea cuando se le agregue esa funcionalidad).
 
 ## Idioma y tono

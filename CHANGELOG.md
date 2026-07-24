@@ -7,6 +7,7 @@ quién solicitó el cambio.
 ---
 
 ## 2026-07-24
+- **Reporte de asistencia (v0.17)**: nueva tarjeta en Control de Visitas que lista las marcas del personal por rango de fechas (entrada, salida a comer, regreso y salida) con exportación a CSV. Probado end-to-end. (G. Ramírez)
 - **Registro de asistencia en el sistema real (v0.16)**: el kiosko ya integra el registro de asistencia contra la base y la API. Los botones del kiosko quedaron agrupados en Visitantes / Personal Celex para no confundir. Empleados: entrada con foto y luego salida a comer, regreso y salida (en orden, con salida anticipada); mensajeros: solo entrada. Probado end-to-end contra la API local. (G. Ramírez)
 - **API de asistencia**: endpoints para buscar empleado por código, registrar movimiento (con validación de secuencia y guardado de la foto de entrada), reporte por rango de fechas, y listar/guardar empleados del padrón. Probado end-to-end contra la base local. (G. Ramírez)
 - **Registro de asistencia de empleados (mockup)**: nuevo mockup funcional del kiosko con "Registro asistencia", separado visualmente de los botones de visitante (bloques Visitantes / Personal Celex). Flujo: código personal en pad numérico → validación contra el padrón de empleados → entrada con foto → panel de movimientos del empleado (comida y salida). Cámara emulada en el mockup. (G. Ramírez)

@@ -410,7 +410,7 @@
   <div class="login-wrap">
     <div class="login-topbar">
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
-      <span class="app-version">Control de Visitas · v0.16</span>
+      <span class="app-version">Control de Visitas · v0.17</span>
     </div>
     <div class="login-center">
       <div class="login-card">
@@ -507,6 +507,12 @@
             <h3>Reportes / Bitácora</h3>
             <p>Consulta accesos por rango de fechas y exporta el reporte.</p>
             <button onclick="openReportes()">Ver reportes</button>
+          </div>
+          <div class="module-card">
+            <div class="card-icon" style="background:radial-gradient(circle at 35% 30%,#2bb3a3,#0f6a6b);">🕘</div>
+            <h3>Reporte de asistencia</h3>
+            <p>Entradas, comidas y salidas del personal por rango de fechas.</p>
+            <button onclick="openReporteAsistencia()">Ver asistencia</button>
           </div>
           <div class="module-card kiosk-card">
             <div class="card-icon">🛡️</div>
@@ -973,6 +979,29 @@
           <button class="btn-secondary" style="width:auto;padding:11px 22px;margin-top:0;" onclick="exportarCSV()">⬇️ Exportar CSV</button>
         </div>
         <div id="reportTableWrap"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== REPORTE DE ASISTENCIA =================== -->
+<section class="screen" id="screen-reportes-asistencia">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right"><button class="btn-logout" onclick="doLogout()">Cerrar sesión</button></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;overflow:auto;">
+        <button class="breadcrumb-back" onclick="showScreen('screen-visitas-home')">‹ Volver</button>
+        <div class="content-title">Reporte de asistencia</div>
+        <div class="filters-row">
+          <div class="field"><label>Fecha inicio</label><input type="date" id="repAsisDesde"></div>
+          <div class="field"><label>Fecha fin</label><input type="date" id="repAsisHasta"></div>
+          <button class="btn-primary" style="width:auto;padding:11px 22px;" onclick="generarReporteAsistencia()">Generar reporte</button>
+          <button class="btn-secondary" style="width:auto;padding:11px 22px;margin-top:0;" onclick="exportarCSVAsistencia()">⬇️ Exportar CSV</button>
+        </div>
+        <div id="reportAsisTableWrap"></div>
       </div>
     </div>
   </div>
@@ -2219,6 +2248,72 @@ function exportarCSV(){
   a.click();
 }
 
+/* ---------- reporte de asistencia ---------- */
+let ultimoReporteAsis = [];
+function openReporteAsistencia(){
+  document.getElementById('repAsisDesde').value = hoyISO();
+  document.getElementById('repAsisHasta').value = hoyISO();
+  document.getElementById('reportAsisTableWrap').innerHTML = '<div class="empty-note">Selecciona un rango de fechas y genera el reporte.</div>';
+  showScreen('screen-reportes-asistencia');
+}
+async function generarReporteAsistencia(){
+  const desde = document.getElementById('repAsisDesde').value;
+  const hasta = document.getElementById('repAsisHasta').value;
+  const wrap = document.getElementById('reportAsisTableWrap');
+  if(!desde || !hasta){ wrap.innerHTML = '<div class="empty-note">Selecciona un rango de fechas y genera el reporte.</div>'; return; }
+
+  let filas;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/asistencia/reporte?desde=${desde}&hasta=${hasta}`);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    filas = await resp.json();
+  }catch(e){
+    wrap.innerHTML = '<div class="empty-note">No se pudo generar el reporte (¿está corriendo la API?).</div>';
+    return;
+  }
+
+  ultimoReporteAsis = filas;
+  if(!filas.length){ wrap.innerHTML = '<div class="empty-note">No hay registros en el rango seleccionado.</div>'; return; }
+
+  const guion = '—';
+  const rows = filas.map(a => {
+    const tipoTag = a.tipoEmpleado === 'Mensajero'
+      ? '<span class="tipo-pill tipo-men">MENSAJERO</span>'
+      : '<span class="tipo-pill tipo-emp">EMPLEADO</span>';
+    return `
+    <tr>
+      <td>${fmtFechaVisita(a.fecha)}</td>
+      <td>${a.numeroEmpleado || guion}</td>
+      <td>${a.nombreCompleto}</td>
+      <td>${tipoTag}</td>
+      <td>${a.entrada ? fmtHoraCorta(a.entrada) : guion}</td>
+      <td>${a.salidaComer ? fmtHoraCorta(a.salidaComer) : guion}</td>
+      <td>${a.regresoComida ? fmtHoraCorta(a.regresoComida) : guion}</td>
+      <td>${a.salida ? fmtHoraCorta(a.salida) : guion}</td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `
+    <table class="report-table">
+      <thead><tr><th>Fecha</th><th>Núm. empleado</th><th>Nombre</th><th>Tipo</th><th>Entrada</th><th>Salida a comer</th><th>Regreso de comida</th><th>Salida</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+function exportarCSVAsistencia(){
+  if(!ultimoReporteAsis.length){ alert('No hay datos para exportar. Genera el reporte primero.'); return; }
+  const header = ['Fecha','NumeroEmpleado','Nombre','Tipo','Entrada','SalidaAComer','RegresoDeComida','Salida'];
+  const rows = ultimoReporteAsis.map(a=>[
+    a.fecha||'', a.numeroEmpleado||'', a.nombreCompleto, a.tipoEmpleado,
+    a.entrada ? fmtHoraCorta(a.entrada) : '', a.salidaComer ? fmtHoraCorta(a.salidaComer) : '',
+    a.regresoComida ? fmtHoraCorta(a.regresoComida) : '', a.salida ? fmtHoraCorta(a.salida) : ''
+  ].map(x=>`"${String(x).replace(/"/g,'""')}"`).join(','));
+  const csv = [header.join(','), ...rows].join('\n');
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'reporte-asistencia-celex.csv';
+  a.click();
+}
+
 /* =========================================================
    TECLADO VIRTUAL EN PANTALLA (solo pantallas de caseta)
    ========================================================= */
@@ -2320,6 +2415,7 @@ function toggleKeyboard(){
 wireEnterAvanza(['loginPass'], doLogin);
 wireEnterAvanza(['validateApP'], submitValidate);
 wireEnterAvanza(['repDesde','repHasta'], generarReporte);
+wireEnterAvanza(['repAsisDesde','repAsisHasta'], generarReporteAsistencia);
 wireEnterAvanza(['cfgRutaFotos','cfgPrefijoFoto','cfgDigitosFoto','cfgUsuariosVIP','cfgUsuariosKiosko'], guardarConfiguracion);
 wireEnterAvanza(
   ['fNombre','fApP','fApM','fCorreo','fEmpresa','fArea','fMotivo','fObservaciones','fFechaVisita','fAnfitrion','fMarca','fModelo','fPlacas'],
