@@ -14,6 +14,7 @@ builder.Services.AddScoped<ISqlConnectionFactory, SqlConnectionFactory>();
 builder.Services.AddScoped<IAreasRepositorio, AreasRepositorio>();
 builder.Services.AddScoped<IVisitasRepositorio, VisitasRepositorio>();
 builder.Services.AddScoped<IConfiguracionRepositorio, ConfiguracionRepositorio>();
+builder.Services.AddScoped<IAsistenciaRepositorio, AsistenciaRepositorio>();
 builder.Services.AddScoped<IFotoService, FotoService>();
 builder.Services.AddHttpClient<IWishPosAuthService, WishPosAuthService>();
 

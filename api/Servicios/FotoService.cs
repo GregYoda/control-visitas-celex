@@ -6,6 +6,7 @@ public interface IFotoService
 {
     Task<string> GuardarAsync(long id, string fotoBase64);
     Task<string?> ObtenerRutaFisicaAsync(long id);
+    Task<string> GuardarAsistenciaAsync(int idEmpleado, DateOnly fecha, string fotoBase64);
 }
 
 public class FotoService(IConfiguracionRepositorio configuracionRepositorio, IVisitasRepositorio visitasRepositorio) : IFotoService
@@ -21,12 +22,33 @@ public class FotoService(IConfiguracionRepositorio configuracionRepositorio, IVi
         var rutaCompleta = await ConstruirRutaAsync(id, info);
         Directory.CreateDirectory(Path.GetDirectoryName(rutaCompleta)!);
 
+        await File.WriteAllBytesAsync(rutaCompleta, DecodificarBase64(fotoBase64));
+        return rutaCompleta;
+    }
+
+    // Foto tomada al registrar la ENTRADA de un empleado en el kiosko de
+    // asistencia. Ruta: <RutaFotos>/<Año>/<Mes>/Asistencia/<Prefijo>ASIS_<idEmpleado>_<yyyyMMdd>.jpg
+    // (una foto por empleado por día, igual que la fila de CV_Asistencia).
+    public async Task<string> GuardarAsistenciaAsync(int idEmpleado, DateOnly fecha, string fotoBase64)
+    {
+        var ruta = await configuracionRepositorio.ObtenerValorAsync("RutaFotos", RutaPorDefecto);
+        var prefijo = await configuracionRepositorio.ObtenerValorAsync("PrefijoFoto", PrefijoPorDefecto);
+
+        var anio = fecha.Year.ToString("D4");
+        var mes = fecha.Month.ToString("D2");
+        var nombreArchivo = $"{prefijo}ASIS_{idEmpleado}_{fecha:yyyyMMdd}.jpg";
+        var rutaCompleta = Path.Combine(ruta, anio, mes, "Asistencia", nombreArchivo);
+
+        Directory.CreateDirectory(Path.GetDirectoryName(rutaCompleta)!);
+        await File.WriteAllBytesAsync(rutaCompleta, DecodificarBase64(fotoBase64));
+        return rutaCompleta;
+    }
+
+    private static byte[] DecodificarBase64(string fotoBase64)
+    {
         var indiceComa = fotoBase64.IndexOf(',');
         var base64Limpio = indiceComa >= 0 ? fotoBase64[(indiceComa + 1)..] : fotoBase64;
-        var bytes = Convert.FromBase64String(base64Limpio);
-        await File.WriteAllBytesAsync(rutaCompleta, bytes);
-
-        return rutaCompleta;
+        return Convert.FromBase64String(base64Limpio);
     }
 
     // Usado por el endpoint GET .../foto: sirve la foto desde la ruta que quedó
