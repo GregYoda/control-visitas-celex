@@ -195,6 +195,69 @@ INSERT INTO dbo.CV_Configuracion (Clave, Valor) VALUES
 GO
 
 /* -----------------------------------------------------------------------------
+   4.5) ASISTENCIA DE EMPLEADOS Y MENSAJEROS (checador del kiosko)
+      CV_Empleados: catálogo de personal que puede registrar asistencia.
+      CV_Asistencia: una fila por empleado por día (estilo checador) con las
+      cuatro marcas de hora. Los mensajeros solo usan Entrada; los empleados
+      además marcan SalidaComer -> RegresoComida -> Salida (en ese orden, con
+      salida anticipada permitida). Sin columnas NULL: las horas no marcadas
+      quedan con el centinela '1900-01-01 00:00:00'.
+   ----------------------------------------------------------------------------- */
+CREATE TABLE dbo.CV_Empleados (
+    ID                      INT IDENTITY(1,1)   NOT NULL,
+    UUID                    UNIQUEIDENTIFIER    NOT NULL DEFAULT (NEWID()),
+    NumeroEmpleado          NVARCHAR(20)        NOT NULL DEFAULT (''),   -- número de empleado interno
+    NumeroWishPOS           NVARCHAR(20)        NOT NULL DEFAULT (''),   -- usuario/número en WishPOS ('' si no aplica, ej. mensajeros)
+    NombreCompleto          NVARCHAR(150)       NOT NULL,
+    Tipo                    NVARCHAR(20)        NOT NULL DEFAULT (N'Empleado'),  -- Empleado | Mensajero
+    CodigoAcceso            NVARCHAR(10)        NOT NULL,                -- código único que teclea en el kiosko
+    Activo                  BIT                 NOT NULL DEFAULT (1),
+    FechaRegistro           DATETIME            NOT NULL DEFAULT (GETDATE()),
+    ID_Fecha_Modificacion   DATETIME            NOT NULL DEFAULT ('1900-01-01 00:00:00'),
+    CONSTRAINT PK_CV_Empleados PRIMARY KEY CLUSTERED (ID),
+    CONSTRAINT CK_CV_Empleados_Tipo CHECK (Tipo IN (N'Empleado', N'Mensajero'))
+);
+GO
+
+-- El código de acceso debe ser único entre empleados ACTIVOS (se puede reciclar
+-- el código de uno dado de baja). Índice filtrado.
+CREATE UNIQUE INDEX UX_CV_Empleados_Codigo ON dbo.CV_Empleados(CodigoAcceso) WHERE Activo = 1;
+GO
+CREATE UNIQUE INDEX UX_CV_Empleados_UUID ON dbo.CV_Empleados(UUID);
+GO
+
+CREATE TABLE dbo.CV_Asistencia (
+    ID                      BIGINT IDENTITY(1,1)    NOT NULL,
+    ID_Empleado             INT                     NOT NULL,
+    Fecha                   DATE                    NOT NULL,   -- día de la jornada
+    Entrada                 DATETIME                NOT NULL DEFAULT ('1900-01-01 00:00:00'),
+    SalidaComer             DATETIME                NOT NULL DEFAULT ('1900-01-01 00:00:00'),
+    RegresoComida           DATETIME                NOT NULL DEFAULT ('1900-01-01 00:00:00'),
+    Salida                  DATETIME                NOT NULL DEFAULT ('1900-01-01 00:00:00'),
+    FotoRuta                NVARCHAR(260)           NOT NULL DEFAULT (''),  -- foto tomada al registrar la entrada
+    TipoEmpleado            NVARCHAR(20)            NOT NULL DEFAULT (N'Empleado'), -- copia del tipo al momento del registro (Empleado|Mensajero)
+    ID_Fecha_Modificacion   DATETIME                NOT NULL DEFAULT ('1900-01-01 00:00:00'),
+    CONSTRAINT PK_CV_Asistencia PRIMARY KEY CLUSTERED (ID),
+    CONSTRAINT FK_CV_Asistencia_Empleado FOREIGN KEY (ID_Empleado) REFERENCES dbo.CV_Empleados(ID)
+);
+GO
+
+-- Una sola fila por empleado por día
+CREATE UNIQUE INDEX UX_CV_Asistencia_EmpFecha ON dbo.CV_Asistencia(ID_Empleado, Fecha);
+GO
+-- Acelera reportes por rango de fechas
+CREATE INDEX IX_CV_Asistencia_Fecha ON dbo.CV_Asistencia(Fecha);
+GO
+
+-- Empleados de ejemplo para pruebas (mismos códigos que el mockup)
+INSERT INTO dbo.CV_Empleados (NumeroEmpleado, NumeroWishPOS, NombreCompleto, Tipo, CodigoAcceso) VALUES
+ (N'1024', N'305', N'María Fernanda López', N'Empleado',  N'4830'),
+ (N'1055', N'312', N'Carlos Ramírez Soto',  N'Empleado',  N'7291'),
+ (N'1099', N'340', N'Ana Torres Vega',      N'Empleado',  N'6604'),
+ (N'2010', N'',    N'Jorge Méndez',         N'Mensajero', N'5150');
+GO
+
+/* -----------------------------------------------------------------------------
    5) WM_Correo: cola de correos que ya existe en otra base (la de WishPOS). El
       SQL Server Agent Job que ya opera la revisa cada minuto y envía con
       sp_send_dbmail lo que tenga Enviar='Si' y Enviado='No'.
@@ -675,5 +738,241 @@ BEGIN
         VALUES (@Clave, @Valor, GETDATE());
 
     SELECT N'OK' AS Resultado;
+END
+GO
+
+/* =============================================================================
+   STORED PROCEDURES -- ASISTENCIA DE EMPLEADOS
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   sp_CV_Empleados_Listar
+   Catálogo de empleados para la pantalla de administración (a futuro).
+   @SoloActivos = 1 -> solo activos; 0 -> todos.
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Empleados_Listar
+    @SoloActivos BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT ID, NumeroEmpleado, NumeroWishPOS, NombreCompleto, Tipo, CodigoAcceso, Activo
+      FROM dbo.CV_Empleados
+     WHERE (@SoloActivos = 0 OR Activo = 1)
+     ORDER BY NombreCompleto;
+END
+GO
+
+/* -----------------------------------------------------------------------------
+   sp_CV_Empleados_Guardar
+   Alta/edición (upsert). @ID = 0 -> alta; >0 -> edición. Valida que el código
+   de acceso no se repita entre empleados activos. Devuelve Resultado:
+   OK | CODIGO_DUPLICADO | NO_ENCONTRADO.
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Empleados_Guardar
+    @ID              INT,
+    @NumeroEmpleado  NVARCHAR(20),
+    @NumeroWishPOS   NVARCHAR(20)   = '',
+    @NombreCompleto  NVARCHAR(150),
+    @Tipo            NVARCHAR(20),
+    @CodigoAcceso    NVARCHAR(10),
+    @Activo          BIT            = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- código único entre activos (excluyendo el propio registro en edición)
+    IF @Activo = 1 AND EXISTS (
+        SELECT 1 FROM dbo.CV_Empleados
+         WHERE CodigoAcceso = @CodigoAcceso AND Activo = 1 AND ID <> @ID)
+    BEGIN
+        SELECT N'CODIGO_DUPLICADO' AS Resultado, 0 AS ID;
+        RETURN;
+    END
+
+    IF @ID = 0
+    BEGIN
+        INSERT INTO dbo.CV_Empleados (NumeroEmpleado, NumeroWishPOS, NombreCompleto, Tipo, CodigoAcceso, Activo)
+        VALUES (@NumeroEmpleado, @NumeroWishPOS, @NombreCompleto, @Tipo, @CodigoAcceso, @Activo);
+        SELECT N'OK' AS Resultado, CAST(SCOPE_IDENTITY() AS INT) AS ID;
+        RETURN;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.CV_Empleados WHERE ID = @ID)
+    BEGIN
+        SELECT N'NO_ENCONTRADO' AS Resultado, 0 AS ID;
+        RETURN;
+    END
+
+    UPDATE dbo.CV_Empleados
+       SET NumeroEmpleado = @NumeroEmpleado,
+           NumeroWishPOS  = @NumeroWishPOS,
+           NombreCompleto = @NombreCompleto,
+           Tipo           = @Tipo,
+           CodigoAcceso   = @CodigoAcceso,
+           Activo         = @Activo,
+           ID_Fecha_Modificacion = GETDATE()
+     WHERE ID = @ID;
+
+    SELECT N'OK' AS Resultado, @ID AS ID;
+END
+GO
+
+/* -----------------------------------------------------------------------------
+   sp_CV_Asistencia_BuscarPorCodigo
+   El kiosko teclea el código; este SP valida contra CV_Empleados y regresa,
+   en una sola fila, el empleado y el estado de HOY (las cuatro marcas, con
+   centinela donde aún no hay hora). La capa de API traduce el centinela a null.
+   Resultado: OK | NO_ENCONTRADO.
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Asistencia_BuscarPorCodigo
+    @CodigoAcceso NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @IDEmp INT, @Tipo NVARCHAR(20), @Nombre NVARCHAR(150),
+            @NumEmp NVARCHAR(20), @NumWish NVARCHAR(20);
+
+    SELECT @IDEmp = ID, @Tipo = Tipo, @Nombre = NombreCompleto,
+           @NumEmp = NumeroEmpleado, @NumWish = NumeroWishPOS
+      FROM dbo.CV_Empleados
+     WHERE CodigoAcceso = @CodigoAcceso AND Activo = 1;
+
+    IF @IDEmp IS NULL
+    BEGIN
+        SELECT N'NO_ENCONTRADO' AS Resultado;
+        RETURN;
+    END
+
+    DECLARE @Hoy DATE = CAST(GETDATE() AS DATE);
+
+    SELECT
+        N'OK'           AS Resultado,
+        @IDEmp          AS ID_Empleado,
+        @NumEmp         AS NumeroEmpleado,
+        @NumWish        AS NumeroWishPOS,
+        @Nombre         AS NombreCompleto,
+        @Tipo           AS Tipo,
+        ISNULL(a.Entrada,       '1900-01-01 00:00:00') AS Entrada,
+        ISNULL(a.SalidaComer,   '1900-01-01 00:00:00') AS SalidaComer,
+        ISNULL(a.RegresoComida, '1900-01-01 00:00:00') AS RegresoComida,
+        ISNULL(a.Salida,        '1900-01-01 00:00:00') AS Salida
+      FROM (SELECT @Hoy AS f) x
+      LEFT JOIN dbo.CV_Asistencia a
+             ON a.ID_Empleado = @IDEmp AND a.Fecha = @Hoy;
+END
+GO
+
+/* -----------------------------------------------------------------------------
+   sp_CV_Asistencia_Registrar
+   Registra UN movimiento del día para un empleado, validando la secuencia
+   server-side (defensa igual que en el flujo de visitas). Crea la fila del día
+   si no existe. @TipoMovimiento: Entrada | SalidaComer | RegresoComida | Salida.
+   @FotoRuta solo aplica a la Entrada.
+   Resultado: OK | NO_ENCONTRADO | MENSAJERO_SOLO_ENTRADA | YA_REGISTRADO |
+              FUERA_DE_SECUENCIA | JORNADA_CERRADA | MOVIMIENTO_INVALIDO.
+   Devuelve además la hora registrada (HoraMovimiento) cuando OK.
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Asistencia_Registrar
+    @ID_Empleado     INT,
+    @TipoMovimiento  NVARCHAR(20),
+    @FotoRuta        NVARCHAR(260) = ''
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Centinela DATETIME = '1900-01-01 00:00:00';
+    DECLARE @Ahora DATETIME = GETDATE();
+    DECLARE @Hoy DATE = CAST(@Ahora AS DATE);
+    DECLARE @Tipo NVARCHAR(20);
+
+    SELECT @Tipo = Tipo FROM dbo.CV_Empleados WHERE ID = @ID_Empleado AND Activo = 1;
+    IF @Tipo IS NULL
+    BEGIN
+        SELECT N'NO_ENCONTRADO' AS Resultado;
+        RETURN;
+    END
+
+    IF @TipoMovimiento NOT IN (N'Entrada', N'SalidaComer', N'RegresoComida', N'Salida')
+    BEGIN
+        SELECT N'MOVIMIENTO_INVALIDO' AS Resultado;
+        RETURN;
+    END
+
+    -- Mensajeros: solo Entrada
+    IF @Tipo = N'Mensajero' AND @TipoMovimiento <> N'Entrada'
+    BEGIN
+        SELECT N'MENSAJERO_SOLO_ENTRADA' AS Resultado;
+        RETURN;
+    END
+
+    -- Asegurar la fila del día
+    IF NOT EXISTS (SELECT 1 FROM dbo.CV_Asistencia WHERE ID_Empleado = @ID_Empleado AND Fecha = @Hoy)
+        INSERT INTO dbo.CV_Asistencia (ID_Empleado, Fecha, TipoEmpleado)
+        VALUES (@ID_Empleado, @Hoy, @Tipo);
+
+    DECLARE @Entrada DATETIME, @SalidaComer DATETIME, @RegresoComida DATETIME, @Salida DATETIME;
+    SELECT @Entrada = Entrada, @SalidaComer = SalidaComer,
+           @RegresoComida = RegresoComida, @Salida = Salida
+      FROM dbo.CV_Asistencia WHERE ID_Empleado = @ID_Empleado AND Fecha = @Hoy;
+
+    -- Jornada ya cerrada: no se registra nada más
+    IF @Salida <> @Centinela
+    BEGIN
+        SELECT N'JORNADA_CERRADA' AS Resultado;
+        RETURN;
+    END
+
+    IF @TipoMovimiento = N'Entrada'
+    BEGIN
+        IF @Entrada <> @Centinela BEGIN SELECT N'YA_REGISTRADO' AS Resultado; RETURN; END
+        UPDATE dbo.CV_Asistencia
+           SET Entrada = @Ahora, FotoRuta = @FotoRuta, ID_Fecha_Modificacion = @Ahora
+         WHERE ID_Empleado = @ID_Empleado AND Fecha = @Hoy;
+    END
+    ELSE IF @TipoMovimiento = N'SalidaComer'
+    BEGIN
+        IF @Entrada = @Centinela BEGIN SELECT N'FUERA_DE_SECUENCIA' AS Resultado; RETURN; END
+        IF @SalidaComer <> @Centinela BEGIN SELECT N'YA_REGISTRADO' AS Resultado; RETURN; END
+        UPDATE dbo.CV_Asistencia
+           SET SalidaComer = @Ahora, ID_Fecha_Modificacion = @Ahora
+         WHERE ID_Empleado = @ID_Empleado AND Fecha = @Hoy;
+    END
+    ELSE IF @TipoMovimiento = N'RegresoComida'
+    BEGIN
+        IF @SalidaComer = @Centinela BEGIN SELECT N'FUERA_DE_SECUENCIA' AS Resultado; RETURN; END
+        IF @RegresoComida <> @Centinela BEGIN SELECT N'YA_REGISTRADO' AS Resultado; RETURN; END
+        UPDATE dbo.CV_Asistencia
+           SET RegresoComida = @Ahora, ID_Fecha_Modificacion = @Ahora
+         WHERE ID_Empleado = @ID_Empleado AND Fecha = @Hoy;
+    END
+    ELSE -- Salida (anticipada permitida: basta con tener Entrada)
+    BEGIN
+        IF @Entrada = @Centinela BEGIN SELECT N'FUERA_DE_SECUENCIA' AS Resultado; RETURN; END
+        UPDATE dbo.CV_Asistencia
+           SET Salida = @Ahora, ID_Fecha_Modificacion = @Ahora
+         WHERE ID_Empleado = @ID_Empleado AND Fecha = @Hoy;
+    END
+
+    SELECT N'OK' AS Resultado, @Ahora AS HoraMovimiento;
+END
+GO
+
+/* -----------------------------------------------------------------------------
+   sp_CV_Asistencia_Reporte
+   Reporte por rango de fechas (una fila por empleado por día).
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Asistencia_Reporte
+    @Desde DATE,
+    @Hasta DATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT a.Fecha, e.NumeroEmpleado, e.NombreCompleto, a.TipoEmpleado,
+           a.Entrada, a.SalidaComer, a.RegresoComida, a.Salida
+      FROM dbo.CV_Asistencia a
+      JOIN dbo.CV_Empleados e ON e.ID = a.ID_Empleado
+     WHERE a.Fecha >= @Desde AND a.Fecha <= @Hasta
+     ORDER BY a.Fecha DESC, e.NombreCompleto;
 END
 GO

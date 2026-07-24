@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro de Asistencia · Celex (mockup)</title>
+<style>
+  :root{
+    --navy-top:#0a1024;
+    --teal-badge-1:#0f6a6b; --teal-badge-2:#1a8a8b;
+    --teal-1:#0d3b3c; --teal-2:#155e5f; --teal-3:#1d7677;
+    --accent:#2bb3a3; --accent-2:#178f81;
+    --ok:#1f9d55; --err:#d64545; --warn:#c98a1c;
+    --ink:#232733; --white:#fff;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{font-family:'Segoe UI',Roboto,Arial,sans-serif;color:var(--ink);background:#0a2324;overflow-x:hidden;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select{font-family:inherit;}
+  .screen{display:none;min-height:100vh;position:relative;}
+  .screen.active{display:block;}
+
+  .kiosk-shell{min-height:100vh;background:linear-gradient(180deg,var(--teal-1),#0a2324 60%,#071718);color:#fff;display:flex;flex-direction:column;}
+  .kiosk-top{padding:22px 34px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.08);}
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand-badge{width:46px;height:46px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--teal-badge-2),var(--teal-badge-1));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;border:2px solid rgba(255,255,255,.55);}
+  .brand-name{color:#fff;font-weight:700;letter-spacing:.06em;font-size:15px;}
+  .app-version{color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.26);border-radius:999px;padding:4px 12px;font-size:11.5px;font-weight:600;letter-spacing:.03em;white-space:nowrap;}
+  .kiosk-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:24px;text-align:center;}
+  .kiosk-body h1{font-size:31px;margin:0;}
+  .kiosk-body p.sub{color:#bcd9d9;font-size:15px;margin:0 0 6px;max-width:520px;}
+
+  .btn-kiosk-main{background:linear-gradient(90deg,var(--teal-3),var(--teal-2));color:#fff;border:none;border-radius:18px;padding:26px 34px;font-size:19px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.35);min-width:230px;display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .btn-kiosk-main:hover{filter:brightness(1.1);}
+  .btn-kiosk-main small{font-weight:500;font-size:12.5px;color:#d7efef;letter-spacing:.02em;}
+  .btn-kiosk-main.salida{background:linear-gradient(90deg,#d99a2c,#b3790f);}
+  .btn-kiosk-main.salida small{color:#ffe9c4;}
+  .btn-kiosk-main.asistencia{background:linear-gradient(90deg,var(--accent),var(--accent-2));}
+  .btn-kiosk-main.asistencia small{color:#d5fff8;}
+  .btn-kiosk-secondary{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px 22px;font-size:14px;font-weight:600;}
+  .btn-kiosk-secondary:hover{background:rgba(255,255,255,.16);}
+
+  /* agrupación de home (Visitantes | Personal) */
+  .home-groups{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;max-width:620px;}
+  .home-group{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:18px 24px 24px;display:flex;flex-direction:column;gap:16px;align-items:center;width:100%;}
+  .group-label{font-size:14px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:6px 16px;border-radius:999px;}
+  .group-visit{color:#cfe0ff;background:rgba(63,111,224,.18);border:1px solid rgba(120,160,255,.4);}
+  .group-staff{color:#d5fff8;background:rgba(43,179,163,.18);border:1px solid rgba(43,179,163,.5);}
+  .group-buttons{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;}
+  .home-divider{display:flex;align-items:center;justify-content:center;}
+  .home-divider span{color:#7fa0a0;font-size:13px;font-weight:600;border:1px solid rgba(255,255,255,.14);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:#0a2324;}
+
+  .kiosk-msg{font-size:14px;min-height:20px;}
+  .kiosk-msg.err{color:#ff9d9d;}
+  .kiosk-msg.ok{color:#8dffb0;}
+
+  /* PIN pad */
+  .pin-display{display:flex;gap:12px;}
+  .pin-box{width:50px;height:62px;border-radius:12px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;}
+  .pin-box.filled{background:rgba(255,255,255,.22);border-color:var(--accent);}
+  .pin-pad{display:grid;grid-template-columns:repeat(3,82px);gap:14px;}
+  .pin-key{width:82px;height:82px;border-radius:50%;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:26px;font-weight:700;}
+  .pin-key:active{background:var(--accent);}
+  .pin-key-fn{font-size:16px;background:rgba(255,255,255,.06);}
+
+  /* cámara / foto */
+  .kiosk-video-wrap,.photo-preview-wrap{position:relative;width:320px;height:320px;max-width:80vw;max-height:80vw;border-radius:20px;overflow:hidden;border:3px solid rgba(255,255,255,.3);background:#000;margin:0 auto;}
+  .kiosk-video-wrap video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);}
+  .cam-sim{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:radial-gradient(circle at 50% 40%,#123f40,#071718);color:#cfeaea;}
+  .cam-sim-icon{font-size:54px;opacity:.85;}
+  .cam-sim-txt{font-size:13px;letter-spacing:.03em;color:#9fdcdc;}
+  .photo-preview-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+  .face-guide{position:absolute;inset:12% 24%;border:3px dashed rgba(255,255,255,.7);border-radius:50% / 40%;pointer-events:none;}
+  .sim-toggle{background:none;border:none;color:#9fdcdc;text-decoration:underline;font-size:13px;margin-top:6px;}
+
+  /* panel de empleado */
+  .emp-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:26px 30px;max-width:520px;width:100%;text-align:left;}
+  .emp-head{display:flex;align-items:center;gap:16px;margin-bottom:6px;}
+  .emp-avatar{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;border:2px solid rgba(255,255,255,.3);flex:0 0 auto;}
+  .emp-name{font-size:21px;font-weight:700;}
+  .emp-meta{font-size:12.5px;color:#bcd9d9;margin-top:2px;}
+  .tipo-pill{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;border-radius:999px;padding:2px 10px;vertical-align:middle;}
+  .tipo-emp{color:#063e39;background:#9ef0e4;}
+  .tipo-men{color:#5a3d00;background:#ffd98a;}
+  .timeline{list-style:none;padding:0;margin:16px 0 4px;}
+  .timeline li{display:flex;justify-content:space-between;padding:9px 12px;border-radius:10px;font-size:14px;margin-bottom:6px;background:rgba(255,255,255,.05);border-left:3px solid transparent;}
+  .timeline li.done{border-left-color:var(--ok);}
+  .timeline li.pend{opacity:.45;}
+  .timeline li .t-time{font-weight:700;font-variant-numeric:tabular-nums;color:#8dffb0;}
+  .timeline li.pend .t-time{color:#9fb3b3;font-weight:500;}
+  .emp-actions{display:flex;flex-direction:column;gap:12px;margin-top:14px;}
+  .btn-mov{border:none;border-radius:14px;padding:18px;font-size:17px;font-weight:700;color:#fff;background:linear-gradient(90deg,var(--accent),var(--accent-2));display:flex;justify-content:center;align-items:center;gap:10px;}
+  .btn-mov.final{background:linear-gradient(90deg,#d99a2c,#b3790f);}
+  .btn-mov:hover{filter:brightness(1.08);}
+
+  /* badge confirmación */
+  .badge-card{background:#fff;color:var(--ink);border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.35);padding:32px 38px;max-width:400px;width:100%;text-align:center;}
+  .badge-check{width:64px;height:64px;border-radius:50%;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px;}
+  .badge-photo{width:92px;height:92px;border-radius:50%;object-fit:cover;border:3px solid #eef0f4;background:#f0f1f5;display:block;margin:0 auto 12px;}
+  .badge-title{font-weight:800;color:var(--ok);letter-spacing:1px;font-size:15px;margin-bottom:14px;}
+  .badge-name{font-size:22px;font-weight:700;margin-bottom:2px;}
+  .badge-mov{display:inline-block;margin:8px 0 4px;padding:7px 18px;border-radius:999px;font-weight:800;font-size:15px;background:#e5f8f2;color:#0a6b52;border:1px solid #9fe0cd;}
+  .badge-time{font-size:34px;font-weight:800;letter-spacing:2px;color:var(--ink);margin:6px 0;font-variant-numeric:tabular-nums;}
+  .badge-note{font-size:13px;color:#8b93a3;margin-top:6px;}
+
+  /* nota de ayuda (mockup) */
+  .help-note{background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.28);border-radius:12px;padding:12px 16px;font-size:12.5px;color:#cfeaea;max-width:520px;text-align:left;line-height:1.7;}
+  .help-note b{color:#fff;}
+  .help-note code{background:rgba(255,255,255,.14);border-radius:6px;padding:1px 7px;font-size:12.5px;}
+  .mock-flag{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:50;background:#7a1d1d;color:#ffd7d7;border:1px solid #c46;border-radius:999px;padding:4px 16px;font-size:11.5px;font-weight:700;letter-spacing:.05em;}
+  .link-reset{background:none;border:none;color:#9fdcdc;text-decoration:underline;font-size:12.5px;}
+</style>
+</head>
+<body>
+
+<div class="mock-flag">MOCKUP PARA REVISIÓN · REGISTRO DE ASISTENCIA</div>
+
+<!-- =================== KIOSKO: HOME =================== -->
+<section class="screen active" id="screen-home">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · KIOSKO</div></div>
+      <span class="app-version">Asistencia · mockup v0.1</span>
+    </div>
+    <div class="kiosk-body">
+      <h1>Kiosko de accesos</h1>
+      <p class="sub">Selecciona la operación que deseas registrar</p>
+      <div class="home-groups">
+        <div class="home-group">
+          <div class="group-label group-visit">👤 Visitantes</div>
+          <div class="group-buttons">
+            <button class="btn-kiosk-main" onclick="notaVisita()">🔑 Registrar acceso<small>Visitante</small></button>
+            <button class="btn-kiosk-main salida" onclick="notaVisita()">🚪 Registrar salida<small>Visitante</small></button>
+          </div>
+        </div>
+        <div class="home-divider"><span>o</span></div>
+        <div class="home-group">
+          <div class="group-label group-staff">🪪 Personal Celex</div>
+          <div class="group-buttons">
+            <button class="btn-kiosk-main asistencia" onclick="openPad()">🕘 Registro asistencia<small>Empleados y mensajeros</small></button>
+          </div>
+        </div>
+      </div>
+      <div class="kiosk-msg" id="homeMsg"></div>
+      <button class="btn-kiosk-secondary" onclick="alert('En el sistema real cierra la sesión del kiosko.')">‹ Salir del kiosko</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== PAD: CÓDIGO DE EMPLEADO =================== -->
+<section class="screen" id="screen-pad">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ASISTENCIA</div></div>
+      <span class="app-version">Asistencia · mockup v0.1</span>
+    </div>
+    <div class="kiosk-body">
+      <h1 style="font-size:25px;">Ingresa tu código</h1>
+      <p class="sub">Escribe tu código personal de 4 dígitos para registrar tu movimiento</p>
+      <div class="pin-display" id="padDisplay">
+        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
+      </div>
+      <div class="kiosk-msg err" id="padMsg"></div>
+      <div class="pin-pad">
+        <button class="pin-key" onclick="padPress('1')">1</button>
+        <button class="pin-key" onclick="padPress('2')">2</button>
+        <button class="pin-key" onclick="padPress('3')">3</button>
+        <button class="pin-key" onclick="padPress('4')">4</button>
+        <button class="pin-key" onclick="padPress('5')">5</button>
+        <button class="pin-key" onclick="padPress('6')">6</button>
+        <button class="pin-key" onclick="padPress('7')">7</button>
+        <button class="pin-key" onclick="padPress('8')">8</button>
+        <button class="pin-key" onclick="padPress('9')">9</button>
+        <button class="pin-key pin-key-fn" onclick="padClear()">C</button>
+        <button class="pin-key" onclick="padPress('0')">0</button>
+        <button class="pin-key pin-key-fn" onclick="padBackspace()">⌫</button>
+      </div>
+      <div class="help-note">
+        <b>Códigos de prueba (mockup):</b><br>
+        <code>4830</code> María Fernanda López · Empleado<br>
+        <code>7291</code> Carlos Ramírez Soto · Empleado<br>
+        <code>6604</code> Ana Torres Vega · Empleado<br>
+        <code>5150</code> Jorge Méndez · Mensajero (solo entrada)
+      </div>
+      <button class="btn-kiosk-secondary" onclick="goHome()">‹ Cancelar</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== FOTO (solo en la entrada) =================== -->
+<section class="screen" id="screen-photo">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ASISTENCIA</div></div>
+      <span class="app-version">Asistencia · mockup v0.1</span>
+    </div>
+    <div class="kiosk-body">
+      <h1 style="font-size:24px;">Foto de entrada</h1>
+      <p class="sub" id="photoSub">Para registrar tu entrada, toma una fotografía</p>
+      <div class="kiosk-video-wrap" id="photoVideoWrap">
+        <div class="cam-sim">
+          <div class="cam-sim-icon">📷</div>
+          <div class="cam-sim-txt">Cámara simulada (mockup)</div>
+        </div>
+        <div class="face-guide"></div>
+      </div>
+      <div class="photo-preview-wrap" id="photoPreviewWrap" style="display:none;">
+        <img id="photoPreviewImg" alt="Foto capturada">
+      </div>
+      <div class="kiosk-msg" id="photoMsg"></div>
+      <div id="photoActionsCapture" style="display:flex;gap:12px;">
+        <button class="btn-kiosk-main" style="padding:18px 40px;font-size:17px;min-width:0;flex-direction:row;" onclick="takePhoto()">📸 Tomar foto</button>
+      </div>
+      <div id="photoActionsConfirm" style="display:none;gap:12px;">
+        <button class="btn-kiosk-secondary" onclick="retakePhoto()">🔁 Repetir foto</button>
+        <button class="btn-kiosk-main" style="padding:16px 30px;font-size:16px;min-width:0;flex-direction:row;" onclick="confirmEntrada(false)">✅ Registrar entrada</button>
+      </div>
+      <button class="sim-toggle" onclick="confirmEntrada(true)">Continuar sin foto</button>
+      <button class="btn-kiosk-secondary" onclick="goHome()">‹ Cancelar</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== PANEL DE EMPLEADO (movimientos) =================== -->
+<section class="screen" id="screen-empleado">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ASISTENCIA</div></div>
+      <span class="app-version">Asistencia · mockup v0.1</span>
+    </div>
+    <div class="kiosk-body">
+      <div class="emp-card">
+        <div class="emp-head">
+          <div class="emp-avatar" id="empAvatar">?</div>
+          <div>
+            <div class="emp-name" id="empName">—</div>
+            <div class="emp-meta" id="empMeta">—</div>
+          </div>
+        </div>
+        <ul class="timeline" id="empTimeline"></ul>
+        <div class="emp-actions" id="empActions"></div>
+      </div>
+      <button class="btn-kiosk-secondary" onclick="goHome()">‹ Volver</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== CONFIRMACIÓN =================== -->
+<section class="screen" id="screen-done">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ASISTENCIA</div></div>
+      <span class="app-version">Asistencia · mockup v0.1</span>
+    </div>
+    <div class="kiosk-body">
+      <div class="badge-card" id="doneCard"><!-- llenado por JS --></div>
+      <button class="btn-kiosk-main asistencia" style="padding:16px 30px;font-size:16px;min-width:0;flex-direction:row;" onclick="goHome()">Listo</button>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ===================== DATOS SIMULADOS ===================== */
+// Tabla de empleados (ID, Núm. empleado, Núm. WishPOS, Nombre, tipo, código único)
+const empleados = [
+  { id:1, numEmpleado:'1024', numWishpos:'305', nombre:'María Fernanda López', tipo:'Empleado',  codigo:'4830' },
+  { id:2, numEmpleado:'1055', numWishpos:'312', nombre:'Carlos Ramírez Soto',  tipo:'Empleado',  codigo:'7291' },
+  { id:3, numEmpleado:'1099', numWishpos:'340', nombre:'Ana Torres Vega',      tipo:'Empleado',  codigo:'6604' },
+  { id:4, numEmpleado:'2010', numWishpos:'0',   nombre:'Jorge Méndez',         tipo:'Mensajero', codigo:'5150' },
+];
+// Tabla de movimientos del día (se llena en memoria durante el mockup)
+// { empleadoId, tipo:'Entrada'|'Salida a comer'|'Regreso de comida'|'Salida', hora:'HH:MM', foto }
+let movimientos = [];
+
+const SECUENCIA = ['Entrada','Salida a comer','Regreso de comida','Salida'];
+const ICONO = { 'Entrada':'🟢', 'Salida a comer':'🍽️', 'Regreso de comida':'🔙', 'Salida':'🔴' };
+
+let empActual = null;        // empleado que está usando el kiosko
+let pinBuffer = '';
+
+/* ===================== NAVEGACIÓN ===================== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goHome(){ stopPhotoCamera(); pinReset(); empActual=null; document.getElementById('homeMsg').textContent=''; showScreen('screen-home'); }
+function notaVisita(){
+  const m = document.getElementById('homeMsg');
+  m.className='kiosk-msg'; m.textContent='(En este mockup solo está activo "Registro de asistencia".)';
+}
+
+/* ===================== PIN PAD ===================== */
+function openPad(){ pinReset(); showScreen('screen-pad'); }
+function pinReset(){ pinBuffer=''; renderPin(); document.getElementById('padMsg').textContent=''; }
+function renderPin(){
+  const boxes = document.querySelectorAll('#padDisplay .pin-box');
+  boxes.forEach((b,i)=>{ b.textContent = pinBuffer[i] ? '•' : ''; b.classList.toggle('filled', !!pinBuffer[i]); });
+}
+function padPress(n){
+  if(pinBuffer.length>=4) return;
+  pinBuffer += n; renderPin();
+  if(pinBuffer.length===4) setTimeout(validarCodigo, 150);
+}
+function padClear(){ pinBuffer=''; renderPin(); document.getElementById('padMsg').textContent=''; }
+function padBackspace(){ pinBuffer=pinBuffer.slice(0,-1); renderPin(); }
+
+/* ===================== VALIDACIÓN CONTRA TABLA DE EMPLEADOS ===================== */
+function validarCodigo(){
+  const msg = document.getElementById('padMsg');
+  const emp = empleados.find(e=>e.codigo===pinBuffer);
+  if(!emp){
+    msg.textContent = 'Código no encontrado. Verifica e intenta de nuevo.';
+    pinBuffer=''; renderPin(); return;
+  }
+  empActual = emp;
+  const hoy = movsDe(emp.id);
+  const tieneEntrada = hoy.some(m=>m.tipo==='Entrada');
+
+  if(!tieneEntrada){
+    // Primera marca del día → ENTRADA (con foto, igual que las visitas)
+    openPhotoParaEntrada();
+    return;
+  }
+  // Ya tiene entrada registrada hoy
+  if(emp.tipo==='Mensajero'){
+    // Mensajeros: solo entrada
+    mostrarDone('Entrada ya registrada', emp, hoy.find(m=>m.tipo==='Entrada').hora,
+                'Los mensajeros solo registran entrada. ¡Buen día!');
+    return;
+  }
+  // Empleado con entrada → panel de movimientos
+  if(hoy.some(m=>m.tipo==='Salida')){
+    mostrarDone('Jornada cerrada', emp, hoy.find(m=>m.tipo==='Salida').hora,
+                'Ya registraste tu salida hoy. ¡Buen día!');
+    return;
+  }
+  renderPanelEmpleado(emp);
+}
+
+function movsDe(empId){ return movimientos.filter(m=>m.empleadoId===empId); }
+function horaAhora(){
+  const d=new Date();
+  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+function registrarMov(emp, tipo, foto){
+  const hora = horaAhora();
+  movimientos.push({ empleadoId:emp.id, tipo, hora, foto:foto||null });
+  return hora;
+}
+
+/* ===================== PANEL DE EMPLEADO ===================== */
+function renderPanelEmpleado(emp){
+  const hoy = movsDe(emp.id);
+  document.getElementById('empAvatar').textContent = iniciales(emp.nombre);
+  document.getElementById('empName').textContent = emp.nombre;
+  const pill = emp.tipo==='Mensajero' ? '<span class="tipo-pill tipo-men">MENSAJERO</span>' : '<span class="tipo-pill tipo-emp">EMPLEADO</span>';
+  document.getElementById('empMeta').innerHTML = `${pill} &nbsp; Núm. ${emp.numEmpleado} · WishPOS ${emp.numWishpos}`;
+
+  // línea de tiempo de hoy
+  const tl = document.getElementById('empTimeline');
+  tl.innerHTML = SECUENCIA.map(paso=>{
+    const m = hoy.find(x=>x.tipo===paso);
+    const cls = m ? 'done' : 'pend';
+    const hora = m ? m.hora : '— — : — —';
+    return `<li class="${cls}"><span>${ICONO[paso]} ${paso}</span><span class="t-time">${hora}</span></li>`;
+  }).join('');
+
+  // acciones disponibles (secuencia hacia adelante + salida anticipada siempre)
+  const hechos = hoy.map(m=>m.tipo);
+  const acciones = [];
+  const siguiente = SECUENCIA.slice(1).find(p=>!hechos.includes(p)); // primer paso pendiente después de Entrada
+  if(siguiente && siguiente!=='Salida') acciones.push(siguiente);
+  if(!hechos.includes('Salida')) acciones.push('Salida'); // salida anticipada permitida
+
+  const cont = document.getElementById('empActions');
+  cont.innerHTML = acciones.map(a=>{
+    const final = a==='Salida';
+    return `<button class="btn-mov ${final?'final':''}" onclick="hacerMov('${a}')">${ICONO[a]} Registrar ${a.toLowerCase()}</button>`;
+  }).join('');
+
+  showScreen('screen-empleado');
+}
+function hacerMov(tipo){
+  const emp = empActual; if(!emp) return goHome();
+  const hora = registrarMov(emp, tipo, null);
+  const nota = tipo==='Salida' ? 'Salida registrada. ¡Hasta pronto!' :
+               (tipo==='Salida a comer' ? 'Disfruta tu comida.' : 'Bienvenido de vuelta.');
+  mostrarDone(tipo+' registrada', emp, hora, nota);
+}
+
+/* ===================== CONFIRMACIÓN ===================== */
+function mostrarDone(titulo, emp, hora, nota, fotoUrl){
+  const foto = fotoUrl
+    ? `<img class="badge-photo" src="${fotoUrl}" alt="foto">`
+    : `<div class="badge-check">✓</div>`;
+  document.getElementById('doneCard').innerHTML = `
+    ${foto}
+    <div class="badge-title">${titulo.toUpperCase()}</div>
+    <div class="badge-name">${emp.nombre}</div>
+    <div class="badge-mov">🕘 ${hora}</div>
+    <div class="badge-note">${nota||''}</div>`;
+  showScreen('screen-done');
+}
+function iniciales(nombre){ return nombre.split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase(); }
+
+/* ===================== CÁMARA EMULADA (solo entrada) =====================
+   En el mockup NO se pide acceso a la cámara real: "Tomar foto" genera una
+   imagen de ejemplo (iniciales del empleado) para simular la captura. El
+   sistema real sí usará la cámara, igual que el registro de visitas. */
+let capturedPhoto=null;
+function openPhotoParaEntrada(){
+  capturedPhoto=null;
+  document.getElementById('photoSub').textContent = `Hola ${empActual.nombre.split(' ')[0]}, toma tu foto para registrar la entrada`;
+  document.getElementById('photoMsg').textContent='';
+  document.getElementById('photoVideoWrap').style.display='block';
+  document.getElementById('photoPreviewWrap').style.display='none';
+  document.getElementById('photoActionsCapture').style.display='flex';
+  document.getElementById('photoActionsConfirm').style.display='none';
+  showScreen('screen-photo');
+}
+function generarFotoSimulada(){
+  const c=document.createElement('canvas'); c.width=320; c.height=320;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#178f81'; ctx.fillRect(0,0,320,320);
+  ctx.fillStyle='rgba(255,255,255,.92)';
+  ctx.beginPath(); ctx.arc(160,124,66,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(160,340,128,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#178f81'; ctx.font='bold 54px Segoe UI, sans-serif'; ctx.textAlign='center';
+  ctx.fillText(iniciales(empActual?empActual.nombre:'E'),160,144);
+  return c.toDataURL('image/jpeg',0.85);
+}
+function stopPhotoCamera(){ /* nada que detener: cámara emulada */ }
+function takePhoto(){
+  capturedPhoto=generarFotoSimulada();
+  document.getElementById('photoPreviewImg').src=capturedPhoto;
+  document.getElementById('photoVideoWrap').style.display='none';
+  document.getElementById('photoPreviewWrap').style.display='block';
+  document.getElementById('photoActionsCapture').style.display='none';
+  document.getElementById('photoActionsConfirm').style.display='flex';
+  const m=document.getElementById('photoMsg'); m.className='kiosk-msg'; m.textContent='Foto simulada para el mockup.';
+}
+function retakePhoto(){
+  capturedPhoto=null;
+  document.getElementById('photoMsg').textContent='';
+  document.getElementById('photoPreviewWrap').style.display='none';
+  document.getElementById('photoVideoWrap').style.display='block';
+  document.getElementById('photoActionsCapture').style.display='flex';
+  document.getElementById('photoActionsConfirm').style.display='none';
+}
+function confirmEntrada(sinFoto){
+  stopPhotoCamera();
+  const emp=empActual; if(!emp) return goHome();
+  const foto = sinFoto ? null : capturedPhoto;
+  const hora = registrarMov(emp,'Entrada',foto);
+  const nota = emp.tipo==='Mensajero'
+    ? 'Entrada de mensajero registrada. Registro completo.'
+    : 'Entrada registrada. Recuerda marcar tu comida y salida.';
+  mostrarDone('Entrada registrada', emp, hora, nota, foto);
+}
+</script>
+</body>
+</html>

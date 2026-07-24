@@ -6,6 +6,10 @@ quién solicitó el cambio.
 
 ---
 
+## 2026-07-24
+- **Registro de asistencia de empleados (mockup)**: nuevo mockup funcional del kiosko con "Registro asistencia", separado visualmente de los botones de visitante (bloques Visitantes / Personal Celex). Flujo: código personal en pad numérico → validación contra el padrón de empleados → entrada con foto → panel de movimientos del empleado (comida y salida). Cámara emulada en el mockup. (G. Ramírez)
+- **Base de datos de asistencia**: tablas `CV_Empleados` (padrón con número de empleado, número de WishPOS, tipo Empleado/Mensajero y código único) y `CV_Asistencia` (una fila por empleado por día con entrada, salida a comer, regreso y salida, más la foto de entrada), con sus stored procedures. Los mensajeros solo registran entrada; los empleados marcan la comida y la salida en orden, con salida anticipada permitida. Probado end-to-end contra la base local. (G. Ramírez)
+
 ## 2026-07-23
 - **Número de versión en el sistema productivo**: el login de `web/index.html` muestra la versión ("Control de Visitas · v0.15") en el topbar, igual que la demo de capacitación; se sube en cada cambio. (G. Ramírez)
 - **Script de migración de base de datos** (`db/migraciones/2026-07-23-migracion-acumulada.sql`): actualiza una base ya instalada a la versión actual sin recrearla (idempotente); agrega columnas/config/SYNONYM faltantes y refresca funciones y SPs. Probado sobre un baseline simulado y corriéndolo dos veces. (G. Ramírez)
