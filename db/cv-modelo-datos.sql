@@ -210,7 +210,7 @@ CREATE TABLE dbo.CV_Empleados (
     NumeroWishPOS           NVARCHAR(20)        NOT NULL DEFAULT (''),   -- usuario/número en WishPOS ('' si no aplica, ej. mensajeros)
     NombreCompleto          NVARCHAR(150)       NOT NULL,
     Tipo                    NVARCHAR(20)        NOT NULL DEFAULT (N'Empleado'),  -- Empleado | Mensajero
-    CodigoAcceso            NVARCHAR(10)        NOT NULL,                -- código único que teclea en el kiosko
+    CodigoAcceso            CHAR(6)         NOT NULL DEFAULT (''),   -- 6 dígitos que el empleado teclea en el kiosko; lo GENERA el sistema (no se captura), único entre activos
     Activo                  BIT                 NOT NULL DEFAULT (1),
     FechaRegistro           DATETIME            NOT NULL DEFAULT (GETDATE()),
     ID_Fecha_Modificacion   DATETIME            NOT NULL DEFAULT ('1900-01-01 00:00:00'),
@@ -220,8 +220,11 @@ CREATE TABLE dbo.CV_Empleados (
 GO
 
 -- El código de acceso debe ser único entre empleados ACTIVOS (se puede reciclar
--- el código de uno dado de baja). Índice filtrado.
-CREATE UNIQUE INDEX UX_CV_Empleados_Codigo ON dbo.CV_Empleados(CodigoAcceso) WHERE Activo = 1;
+-- el código de uno dado de baja). Se excluye el código en blanco ('') del índice
+-- para permitir la carga masiva: se insertan los renglones sin código y luego
+-- se generan con sp_CV_Empleados_GenerarCodigosFaltantes (si '' contara, dos
+-- renglones en blanco chocarían en el índice).
+CREATE UNIQUE INDEX UX_CV_Empleados_Codigo ON dbo.CV_Empleados(CodigoAcceso) WHERE Activo = 1 AND CodigoAcceso <> '';
 GO
 CREATE UNIQUE INDEX UX_CV_Empleados_UUID ON dbo.CV_Empleados(UUID);
 GO
@@ -249,12 +252,13 @@ GO
 CREATE INDEX IX_CV_Asistencia_Fecha ON dbo.CV_Asistencia(Fecha);
 GO
 
--- Empleados de ejemplo para pruebas (mismos códigos que el mockup)
+-- Empleados de ejemplo para pruebas. El código es de 6 dígitos (en producción
+-- lo genera el sistema; aquí se fijan valores conocidos para poder probar).
 INSERT INTO dbo.CV_Empleados (NumeroEmpleado, NumeroWishPOS, NombreCompleto, Tipo, CodigoAcceso) VALUES
- (N'1024', N'305', N'María Fernanda López', N'Empleado',  N'4830'),
- (N'1055', N'312', N'Carlos Ramírez Soto',  N'Empleado',  N'7291'),
- (N'1099', N'340', N'Ana Torres Vega',      N'Empleado',  N'6604'),
- (N'2010', N'',    N'Jorge Méndez',         N'Mensajero', N'5150');
+ (N'1024', N'305', N'María Fernanda López', N'Empleado',  N'483012'),
+ (N'1055', N'312', N'Carlos Ramírez Soto',  N'Empleado',  N'729145'),
+ (N'1099', N'340', N'Ana Torres Vega',      N'Empleado',  N'660433'),
+ (N'2010', N'',    N'Jorge Méndez',         N'Mensajero', N'515078');
 GO
 
 /* -----------------------------------------------------------------------------
@@ -763,10 +767,30 @@ END
 GO
 
 /* -----------------------------------------------------------------------------
+   sp_CV_Empleados_GenerarCodigo
+   Devuelve (OUTPUT) un código de 6 dígitos aleatorio y único entre TODOS los
+   empleados (activos e inactivos, para no reciclar nunca uno vivo). Mismo
+   patrón que el código de acceso de las visitas. Se usa desde las altas.
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Empleados_GenerarCodigo
+    @Codigo CHAR(6) OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    WHILE 1 = 1
+    BEGIN
+        SET @Codigo = RIGHT('000000' + CAST(ABS(CHECKSUM(NEWID())) % 1000000 AS VARCHAR(6)), 6);
+        IF NOT EXISTS (SELECT 1 FROM dbo.CV_Empleados WHERE CodigoAcceso = @Codigo) BREAK;
+    END
+END
+GO
+
+/* -----------------------------------------------------------------------------
    sp_CV_Empleados_Guardar
-   Alta/edición (upsert). @ID = 0 -> alta; >0 -> edición. Valida que el código
-   de acceso no se repita entre empleados activos. Devuelve Resultado:
-   OK | CODIGO_DUPLICADO | NO_ENCONTRADO.
+   Alta/edición (upsert). @ID = 0 -> alta; >0 -> edición. El código de acceso
+   NO se recibe: en el alta lo genera el sistema (6 dígitos); en la edición se
+   conserva el que ya tiene. Devuelve Resultado (OK | NO_ENCONTRADO), el ID y
+   el CodigoAcceso resultante.
    ----------------------------------------------------------------------------- */
 CREATE PROCEDURE dbo.sp_CV_Empleados_Guardar
     @ID              INT,
@@ -774,32 +798,24 @@ CREATE PROCEDURE dbo.sp_CV_Empleados_Guardar
     @NumeroWishPOS   NVARCHAR(20)   = '',
     @NombreCompleto  NVARCHAR(150),
     @Tipo            NVARCHAR(20),
-    @CodigoAcceso    NVARCHAR(10),
     @Activo          BIT            = 1
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- código único entre activos (excluyendo el propio registro en edición)
-    IF @Activo = 1 AND EXISTS (
-        SELECT 1 FROM dbo.CV_Empleados
-         WHERE CodigoAcceso = @CodigoAcceso AND Activo = 1 AND ID <> @ID)
-    BEGIN
-        SELECT N'CODIGO_DUPLICADO' AS Resultado, 0 AS ID;
-        RETURN;
-    END
-
     IF @ID = 0
     BEGIN
+        DECLARE @Codigo CHAR(6);
+        EXEC dbo.sp_CV_Empleados_GenerarCodigo @Codigo = @Codigo OUTPUT;
         INSERT INTO dbo.CV_Empleados (NumeroEmpleado, NumeroWishPOS, NombreCompleto, Tipo, CodigoAcceso, Activo)
-        VALUES (@NumeroEmpleado, @NumeroWishPOS, @NombreCompleto, @Tipo, @CodigoAcceso, @Activo);
-        SELECT N'OK' AS Resultado, CAST(SCOPE_IDENTITY() AS INT) AS ID;
+        VALUES (@NumeroEmpleado, @NumeroWishPOS, @NombreCompleto, @Tipo, @Codigo, @Activo);
+        SELECT N'OK' AS Resultado, CAST(SCOPE_IDENTITY() AS INT) AS ID, @Codigo AS CodigoAcceso;
         RETURN;
     END
 
     IF NOT EXISTS (SELECT 1 FROM dbo.CV_Empleados WHERE ID = @ID)
     BEGIN
-        SELECT N'NO_ENCONTRADO' AS Resultado, 0 AS ID;
+        SELECT N'NO_ENCONTRADO' AS Resultado, 0 AS ID, N'' AS CodigoAcceso;
         RETURN;
     END
 
@@ -808,12 +824,62 @@ BEGIN
            NumeroWishPOS  = @NumeroWishPOS,
            NombreCompleto = @NombreCompleto,
            Tipo           = @Tipo,
-           CodigoAcceso   = @CodigoAcceso,
            Activo         = @Activo,
            ID_Fecha_Modificacion = GETDATE()
      WHERE ID = @ID;
 
-    SELECT N'OK' AS Resultado, @ID AS ID;
+    SELECT N'OK' AS Resultado, @ID AS ID,
+           (SELECT CodigoAcceso FROM dbo.CV_Empleados WHERE ID = @ID) AS CodigoAcceso;
+END
+GO
+
+/* -----------------------------------------------------------------------------
+   sp_CV_Empleados_Alta  (PARA CARGA MANUAL / DESDE OTRO SISTEMA)
+   Alta de UN empleado generando el código automáticamente. Pensado para
+   llamarlo directo desde SSMS o desde un script que traiga al personal de
+   otro sistema. Devuelve el ID y el CodigoAcceso generado.
+     EXEC dbo.sp_CV_Empleados_Alta @NumeroEmpleado=N'1200', @NombreCompleto=N'Juan Pérez';
+     EXEC dbo.sp_CV_Empleados_Alta @NumeroEmpleado=N'1201', @NombreCompleto=N'Ana Ruiz', @Tipo=N'Mensajero', @NumeroWishPOS=N'350';
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Empleados_Alta
+    @NumeroEmpleado  NVARCHAR(20),
+    @NombreCompleto  NVARCHAR(150),
+    @Tipo            NVARCHAR(20)   = N'Empleado',
+    @NumeroWishPOS   NVARCHAR(20)   = ''
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Codigo CHAR(6);
+    EXEC dbo.sp_CV_Empleados_GenerarCodigo @Codigo = @Codigo OUTPUT;
+    INSERT INTO dbo.CV_Empleados (NumeroEmpleado, NumeroWishPOS, NombreCompleto, Tipo, CodigoAcceso, Activo)
+    VALUES (@NumeroEmpleado, @NumeroWishPOS, @NombreCompleto, @Tipo, @Codigo, 1);
+    SELECT CAST(SCOPE_IDENTITY() AS INT) AS ID, @Codigo AS CodigoAcceso;
+END
+GO
+
+/* -----------------------------------------------------------------------------
+   sp_CV_Empleados_GenerarCodigosFaltantes  (PARA CARGA MASIVA)
+   Opción más simple para traer muchos empleados de otro sistema:
+     1) Inserta los renglones dejando el código en blanco, p.ej.:
+          INSERT INTO dbo.CV_Empleados (NumeroEmpleado, NumeroWishPOS, NombreCompleto, Tipo)
+          SELECT NumEmp, NumWish, Nombre, Tipo FROM <origen>;   -- CodigoAcceso queda '' por DEFAULT
+     2) Corre este SP una vez: asigna un código único de 6 dígitos a cada
+        empleado ACTIVO que aún no tenga (CodigoAcceso = '').
+   Devuelve el padrón activo con su código ya asignado.
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Empleados_GenerarCodigosFaltantes
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @ID INT, @Codigo CHAR(6);
+    WHILE EXISTS (SELECT 1 FROM dbo.CV_Empleados WHERE Activo = 1 AND CodigoAcceso = '')
+    BEGIN
+        SELECT TOP 1 @ID = ID FROM dbo.CV_Empleados WHERE Activo = 1 AND CodigoAcceso = '' ORDER BY ID;
+        EXEC dbo.sp_CV_Empleados_GenerarCodigo @Codigo = @Codigo OUTPUT;
+        UPDATE dbo.CV_Empleados SET CodigoAcceso = @Codigo WHERE ID = @ID;
+    END
+    SELECT ID, NumeroEmpleado, NumeroWishPOS, NombreCompleto, Tipo, CodigoAcceso
+      FROM dbo.CV_Empleados WHERE Activo = 1 ORDER BY ID;
 END
 GO
 

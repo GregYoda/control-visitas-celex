@@ -416,7 +416,7 @@
   <div class="login-wrap">
     <div class="login-topbar">
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
-      <span class="demo-tag">VERSIÓN DEMO · CAPACITACIÓN · v0.18</span>
+      <span class="demo-tag">VERSIÓN DEMO · CAPACITACIÓN · v0.19</span>
     </div>
     <div class="login-center">
       <div class="login-card">
@@ -917,9 +917,10 @@
     </div>
     <div class="kiosk-body">
       <h1 style="font-size:24px;">Ingresa tu código</h1>
-      <p class="sub">Escribe tu código personal de 4 dígitos para registrar tu movimiento</p>
+      <p class="sub">Escribe tu código personal de 6 dígitos para registrar tu movimiento</p>
       <div class="pin-display" id="asisPinDisplay">
-        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
+        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
+        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
       </div>
       <div class="kiosk-msg err" id="asisPadMsg"></div>
       <div class="pin-pad">
@@ -938,8 +939,8 @@
       </div>
       <div class="help-note" style="max-width:520px;">
         <b>Códigos de prueba:</b>
-        <code>4830</code> María López · Empleado &nbsp;·&nbsp;
-        <code>5150</code> Jorge Méndez · Mensajero
+        <code>483012</code> María López · Empleado &nbsp;·&nbsp;
+        <code>515078</code> Jorge Méndez · Mensajero
       </div>
       <button class="btn-kiosk-secondary" onclick="showScreen('screen-kiosk-home')">‹ Cancelar</button>
     </div>
@@ -1050,8 +1051,8 @@
                 <option value="Mensajero">Mensajero</option>
               </select>
             </div>
-            <div class="field"><label class="required">Código de asistencia (4 dígitos)</label>
-              <input id="empCodigo" inputmode="numeric" maxlength="4" placeholder="ej. 4830">
+            <div class="field"><label>Código de asistencia</label>
+              <input id="empCodigo" readonly style="background:#f0f1f5;color:#5a6070;" placeholder="(lo genera el sistema al guardar)">
             </div>
             <div class="toggle-row">
               <label class="switch"><input type="checkbox" id="empActivo" checked><span class="slider"></span></label>
@@ -1200,10 +1201,10 @@ const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro
     visitas: [],
     // Padrón de empleados para el kiosko de asistencia (código de 4 dígitos).
     empleados: [
-      { id:1, numeroEmpleado:'1024', numeroWishPos:'305', nombreCompleto:'María Fernanda López', tipo:'Empleado',  codigoAcceso:'4830', activo:true },
-      { id:2, numeroEmpleado:'1055', numeroWishPos:'312', nombreCompleto:'Carlos Ramírez Soto',  tipo:'Empleado',  codigoAcceso:'7291', activo:true },
-      { id:3, numeroEmpleado:'1099', numeroWishPos:'340', nombreCompleto:'Ana Torres Vega',      tipo:'Empleado',  codigoAcceso:'6604', activo:true },
-      { id:4, numeroEmpleado:'2010', numeroWishPos:'',    nombreCompleto:'Jorge Méndez',         tipo:'Mensajero', codigoAcceso:'5150', activo:true }
+      { id:1, numeroEmpleado:'1024', numeroWishPos:'305', nombreCompleto:'María Fernanda López', tipo:'Empleado',  codigoAcceso:'483012', activo:true },
+      { id:2, numeroEmpleado:'1055', numeroWishPos:'312', nombreCompleto:'Carlos Ramírez Soto',  tipo:'Empleado',  codigoAcceso:'729145', activo:true },
+      { id:3, numeroEmpleado:'1099', numeroWishPos:'340', nombreCompleto:'Ana Torres Vega',      tipo:'Empleado',  codigoAcceso:'660433', activo:true },
+      { id:4, numeroEmpleado:'2010', numeroWishPos:'',    nombreCompleto:'Jorge Méndez',         tipo:'Mensajero', codigoAcceso:'515078', activo:true }
     ],
     empSeq: 4,
     // Asistencia del día: { idEmpleado, fecha, entrada, salidaComer, regresoComida, salida, tipoEmpleado }
@@ -1436,21 +1437,21 @@ const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro
       return ok(_db.empleados.filter(e=>!soloActivos || e.activo)
         .sort((a,b)=>a.nombreCompleto.localeCompare(b.nombreCompleto)));
     }
-    // --- empleados: guardar (alta/edición) ---
+    // --- empleados: guardar (alta/edición). El código lo genera el sistema ---
     if(path==='/api/empleados' && method==='POST'){
-      const dupe = _db.empleados.some(e=>e.codigoAcceso===body.codigoAcceso && e.activo && e.id!==Number(body.id) && body.activo);
-      if(dupe) return ok({ resultado:'CODIGO_DUPLICADO', id:0 });
+      const nuevoCodigoEmp = () => { let c; do{ c=codigo6(); }while(_db.empleados.some(e=>e.codigoAcceso===c)); return c; };
       if(Number(body.id)===0){
         const id=++_db.empSeq;
+        const codigo = nuevoCodigoEmp();
         _db.empleados.push({ id, numeroEmpleado:body.numeroEmpleado, numeroWishPos:body.numeroWishPos||'',
-          nombreCompleto:body.nombreCompleto, tipo:body.tipo, codigoAcceso:body.codigoAcceso, activo:!!body.activo });
-        return ok({ resultado:'OK', id });
+          nombreCompleto:body.nombreCompleto, tipo:body.tipo, codigoAcceso:codigo, activo:!!body.activo });
+        return ok({ resultado:'OK', id, codigoAcceso:codigo });
       }
       const e = _db.empleados.find(x=>x.id===Number(body.id));
-      if(!e) return ok({ resultado:'NO_ENCONTRADO', id:0 });
+      if(!e) return ok({ resultado:'NO_ENCONTRADO', id:0, codigoAcceso:'' });
       Object.assign(e, { numeroEmpleado:body.numeroEmpleado, numeroWishPos:body.numeroWishPos||'',
-        nombreCompleto:body.nombreCompleto, tipo:body.tipo, codigoAcceso:body.codigoAcceso, activo:!!body.activo });
-      return ok({ resultado:'OK', id:e.id });
+        nombreCompleto:body.nombreCompleto, tipo:body.tipo, activo:!!body.activo });
+      return ok({ resultado:'OK', id:e.id, codigoAcceso:e.codigoAcceso });
     }
 
     return ok({ error:'endpoint no simulado: '+method+' '+path }, 404);
@@ -2049,10 +2050,10 @@ function renderAsisPin(){
   boxes.forEach((b,i)=>{ b.textContent = asisBuffer[i] ? '•' : ''; b.classList.toggle('filled', !!asisBuffer[i]); });
 }
 function asisPinPress(d){
-  if(asisBuffer.length >= 4) return;
+  if(asisBuffer.length >= 6) return;
   document.getElementById('asisPadMsg').textContent = '';
   asisBuffer += d; renderAsisPin();
-  if(asisBuffer.length === 4) setTimeout(validarAsisCodigo, 150);
+  if(asisBuffer.length === 6) setTimeout(validarAsisCodigo, 150);
 }
 function asisPinClear(){ asisBuffer=''; document.getElementById('asisPadMsg').textContent=''; renderAsisPin(); }
 function asisPinBackspace(){ asisBuffer = asisBuffer.slice(0,-1); renderAsisPin(); }
@@ -2281,13 +2282,12 @@ async function guardarEmpleado(){
   const err = document.getElementById('empError');
   const nombre = document.getElementById('empNombre').value.trim();
   const numero = document.getElementById('empNumero').value.trim();
-  const codigo = document.getElementById('empCodigo').value.trim();
   const tipo = document.getElementById('empTipo').value;
+  const esAlta = editingEmpId === 0;
   if(!nombre){ err.textContent = 'El nombre completo es obligatorio.'; return; }
   if(!numero){ err.textContent = 'El número de empleado es obligatorio.'; return; }
-  if(!/^\d{4}$/.test(codigo)){ err.textContent = 'El código de asistencia debe ser de 4 dígitos.'; return; }
   const body = { id: editingEmpId, numeroEmpleado: numero, numeroWishPos: document.getElementById('empWishpos').value.trim(),
-    nombreCompleto: nombre, tipo, codigoAcceso: codigo, activo: document.getElementById('empActivo').checked };
+    nombreCompleto: nombre, tipo, activo: document.getElementById('empActivo').checked };
   let r;
   try{
     const resp = await fetch(`${API_BASE_URL}/api/empleados`, {
@@ -2295,9 +2295,11 @@ async function guardarEmpleado(){
     if(!resp.ok) throw new Error('HTTP ' + resp.status);
     r = await resp.json();
   }catch(e){ err.textContent = 'No se pudo guardar.'; return; }
-  if(r.resultado === 'CODIGO_DUPLICADO'){ err.textContent = 'Ese código de asistencia ya lo usa otro empleado activo. Usa uno distinto.'; return; }
   if(r.resultado === 'NO_ENCONTRADO'){ err.textContent = 'El empleado ya no existe.'; return; }
   if(r.resultado !== 'OK'){ err.textContent = 'No se pudo guardar el empleado.'; return; }
+  if(esAlta && r.codigoAcceso){
+    alert(`Empleado dado de alta.\n\nSu código de asistencia es:  ${r.codigoAcceso}\n\nCompárteselo para que registre su asistencia en el kiosko.`);
+  }
   await openAdminEmpleados();
 }
 

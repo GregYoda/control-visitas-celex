@@ -16,10 +16,11 @@ public record EmpleadoGuardarRequest(
     string? NumeroWishPos,
     string NombreCompleto,
     string Tipo,
-    string CodigoAcceso,
     bool Activo);
+    // El código NO se envía: en el alta lo genera el sistema (6 dígitos);
+    // en la edición se conserva el que ya tiene.
 
-public record EmpleadoGuardarResultado(string Resultado, int Id);  // OK | CODIGO_DUPLICADO | NO_ENCONTRADO
+public record EmpleadoGuardarResultado(string Resultado, int Id, string CodigoAcceso = "");  // OK | NO_ENCONTRADO
 
 // ---- Asistencia (kiosko) ----
 // Estado del día del empleado. Las horas van en null cuando aún no se marcan

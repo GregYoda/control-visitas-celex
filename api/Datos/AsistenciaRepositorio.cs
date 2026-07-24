@@ -56,7 +56,6 @@ public class AsistenciaRepositorio(ISqlConnectionFactory conexionFactory) : IAsi
         comando.Parameters.AddWithValue("@NumeroWishPOS", datos.NumeroWishPos ?? "");
         comando.Parameters.AddWithValue("@NombreCompleto", datos.NombreCompleto);
         comando.Parameters.AddWithValue("@Tipo", datos.Tipo);
-        comando.Parameters.AddWithValue("@CodigoAcceso", datos.CodigoAcceso);
         comando.Parameters.AddWithValue("@Activo", datos.Activo);
 
         await conexion.OpenAsync();
@@ -64,7 +63,8 @@ public class AsistenciaRepositorio(ISqlConnectionFactory conexionFactory) : IAsi
         await lector.ReadAsync();
         return new EmpleadoGuardarResultado(
             lector.GetString(lector.GetOrdinal("Resultado")),
-            lector.GetInt32(lector.GetOrdinal("ID")));
+            lector.GetInt32(lector.GetOrdinal("ID")),
+            lector.GetString(lector.GetOrdinal("CodigoAcceso")));
     }
 
     public async Task<EmpleadoEstado> BuscarPorCodigoAsync(string codigo)

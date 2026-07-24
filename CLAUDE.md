@@ -238,7 +238,7 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   El kiosko (`screen-kiosk-home`) ahora agrupa los botones en dos bloques:
   **Visitantes** (Registrar acceso / salida) y **Personal Celex** (Registro
   asistencia), para que el visitante no se confunda de botón. El flujo de
-  asistencia: pad numérico (código personal de 4 dígitos) → valida contra el
+  asistencia: pad numérico (código personal de 6 dígitos) → valida contra el
   padrón `CV_Empleados` → si no tiene entrada del día, pide foto (reutiliza
   `screen-photo` con `fotoContexto='asistencia'`) y registra la Entrada → si ya
   tiene entrada, los **empleados** ven un panel con la línea de tiempo del día y
@@ -246,8 +246,10 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   con **salida anticipada** siempre disponible); los **mensajeros** solo
   registran Entrada (nada más). La secuencia se valida server-side en
   `sp_CV_Asistencia_Registrar` (no solo en el front). Tablas: `CV_Empleados`
-  (padrón: número de empleado, número de WishPOS, tipo, código único entre
-  activos vía índice filtrado) y `CV_Asistencia` (una fila por empleado por día,
+  (padrón: número de empleado, número de WishPOS, tipo, y **código de 6 dígitos
+  que GENERA el sistema** —no se captura—, único entre activos vía índice
+  filtrado `WHERE Activo=1 AND CodigoAcceso<>''`; el `<>''` permite insertar
+  muchos renglones sin código para carga masiva) y `CV_Asistencia` (una fila por empleado por día,
   estilo checador, con `Entrada`/`SalidaComer`/`RegresoComida`/`Salida` +
   `FotoRuta`). API: `GET /api/asistencia/empleado/{codigo}`,
   `POST /api/asistencia/registrar` (guarda la foto de entrada en
@@ -260,14 +262,23 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   el reporte de visitas. También hay una **pantalla de administración de
   empleados** (`screen-admin-empleados` / `screen-editar-empleado`, tarjeta
   "Empleados" gateada con el mismo permiso `CV.200.00` que Configuración):
-  lista el padrón, da de alta/edita (código de 4 dígitos, valida duplicado
-  server-side), y activa/inactiva (con toggle "Mostrar inactivos"). **Las
+  lista el padrón, da de alta/edita y activa/inactiva (con toggle "Mostrar
+  inactivos"). **El código NO se captura**: al dar de alta lo genera el sistema
+  (6 dígitos, `sp_CV_Empleados_GenerarCodigo`) y el front lo muestra en un aviso
+  para comunicárselo al empleado; el campo del formulario es de solo lectura.
+  Para **carga desde otro sistema** hay dos SPs pensados para correr en la BD:
+  `sp_CV_Empleados_Alta` (@NumeroEmpleado, @NombreCompleto, @Tipo, @NumeroWishPOS
+  → inserta uno y devuelve el código) y `sp_CV_Empleados_GenerarCodigosFaltantes`
+  (para carga masiva: se insertan los renglones con el código en blanco y este
+  SP asigna un código único a cada uno). **Ojo:** un INSERT manual a
+  `CV_Empleados` requiere `SET QUOTED_IDENTIFIER ON` (SSMS lo pone por defecto;
+  `sqlcmd -Q` no). **Las
   respuestas de la API mandan `Cache-Control: no-store`** (middleware en
   `Program.cs` para rutas `/api`) para evitar que el navegador sirva datos
   viejos tras un cambio; y las recargas de lista tras guardar usan `await` (un
   `openAdminEmpleados()` sin await mostraba la lista "un paso atrás"). El código de asistencia se teclea en
-  un **pad propio** de 4 dígitos (`asisPin*`), independiente del pad de 6
-  dígitos de visitas. Hay un mockup autónomo previo en
+  un **pad propio** de 6 dígitos (`asisPin*`), separado del pad de 6 dígitos de
+  visitas (distinta variable/flujo). Hay un mockup autónomo previo en
   `web/mockup-asistencia.html` (cámara emulada) usado para revisar el diseño.
   El demo de capacitación (`web/demo-capacitacion.html`) ya incluye todo el
   flujo de asistencia (kiosko + reporte + administración) con su backend
@@ -451,14 +462,14 @@ pedirlo, preguntarlo. Las entradas históricas quedaron atribuidas a
 
 Ambos frontends muestran un número de versión en el login:
 - **Producción** (`web/index.html`): chip `.app-version` en el topbar del login
-  ("Control de Visitas · v0.18").
+  ("Control de Visitas · v0.19").
 - **Capacitación** (`web/demo-capacitacion.html`): etiqueta `.demo-tag`
-  ("VERSIÓN DEMO · CAPACITACIÓN · v0.18").
+  ("VERSIÓN DEMO · CAPACITACIÓN · v0.19").
 
 **Subir la versión en cada cambio** del archivo correspondiente (v0.15, v0.16,
-…) para identificar el build. Ambas van en **v0.18**: el demo ya incluye el
-flujo completo de asistencia (kiosko + reporte + administración de empleados)
-con su backend simulado, a la par de producción.
+…) para identificar el build. Ambas van en **v0.19**: código de asistencia de
+6 dígitos generado por el sistema. El demo incluye el flujo completo (kiosko +
+reporte + administración) con su backend simulado, a la par de producción.
 
 ## Idioma y tono
 

@@ -410,7 +410,7 @@
   <div class="login-wrap">
     <div class="login-topbar">
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
-      <span class="app-version">Control de Visitas · v0.18</span>
+      <span class="app-version">Control de Visitas · v0.19</span>
     </div>
     <div class="login-center">
       <div class="login-card">
@@ -907,9 +907,10 @@
     </div>
     <div class="kiosk-body">
       <h1 style="font-size:24px;">Ingresa tu código</h1>
-      <p class="sub">Escribe tu código personal de 4 dígitos para registrar tu movimiento</p>
+      <p class="sub">Escribe tu código personal de 6 dígitos para registrar tu movimiento</p>
       <div class="pin-display" id="asisPinDisplay">
-        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
+        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
+        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
       </div>
       <div class="kiosk-msg err" id="asisPadMsg"></div>
       <div class="pin-pad">
@@ -1058,8 +1059,8 @@
                 <option value="Mensajero">Mensajero</option>
               </select>
             </div>
-            <div class="field"><label class="required">Código de asistencia (4 dígitos)</label>
-              <input id="empCodigo" inputmode="numeric" maxlength="4" placeholder="ej. 4830">
+            <div class="field"><label>Código de asistencia</label>
+              <input id="empCodigo" readonly style="background:#f0f1f5;color:#5a6070;" placeholder="(lo genera el sistema al guardar)">
             </div>
             <div class="toggle-row">
               <label class="switch"><input type="checkbox" id="empActivo" checked><span class="slider"></span></label>
@@ -1740,11 +1741,11 @@ function renderAsisPin(){
   boxes.forEach((b,i)=>{ b.textContent = asisBuffer[i] ? '•' : ''; b.classList.toggle('filled', !!asisBuffer[i]); });
 }
 function asisPinPress(d){
-  if(asisBuffer.length >= 4) return;
+  if(asisBuffer.length >= 6) return;
   document.getElementById('asisPadMsg').textContent = '';
   asisBuffer += d;
   renderAsisPin();
-  if(asisBuffer.length === 4) setTimeout(validarAsisCodigo, 150);
+  if(asisBuffer.length === 6) setTimeout(validarAsisCodigo, 150);
 }
 function asisPinClear(){ asisBuffer = ''; document.getElementById('asisPadMsg').textContent = ''; renderAsisPin(); }
 function asisPinBackspace(){ asisBuffer = asisBuffer.slice(0,-1); renderAsisPin(); }
@@ -2455,11 +2456,10 @@ async function guardarEmpleado(){
   const err = document.getElementById('empError');
   const nombre = document.getElementById('empNombre').value.trim();
   const numero = document.getElementById('empNumero').value.trim();
-  const codigo = document.getElementById('empCodigo').value.trim();
   const tipo = document.getElementById('empTipo').value;
+  const esAlta = editingEmpId === 0;
   if(!nombre){ err.textContent = 'El nombre completo es obligatorio.'; return; }
   if(!numero){ err.textContent = 'El número de empleado es obligatorio.'; return; }
-  if(!/^\d{4}$/.test(codigo)){ err.textContent = 'El código de asistencia debe ser de 4 dígitos.'; return; }
 
   const body = {
     id: editingEmpId,
@@ -2467,7 +2467,6 @@ async function guardarEmpleado(){
     numeroWishPos: document.getElementById('empWishpos').value.trim(),
     nombreCompleto: nombre,
     tipo,
-    codigoAcceso: codigo,
     activo: document.getElementById('empActivo').checked
   };
   let r;
@@ -2481,9 +2480,11 @@ async function guardarEmpleado(){
     r = await resp.json();
   }catch(e){ err.textContent = 'No se pudo guardar (¿está corriendo la API?).'; return; }
 
-  if(r.resultado === 'CODIGO_DUPLICADO'){ err.textContent = 'Ese código de asistencia ya lo usa otro empleado activo. Usa uno distinto.'; return; }
   if(r.resultado === 'NO_ENCONTRADO'){ err.textContent = 'El empleado ya no existe.'; return; }
   if(r.resultado !== 'OK'){ err.textContent = 'No se pudo guardar el empleado.'; return; }
+  if(esAlta && r.codigoAcceso){
+    alert(`Empleado dado de alta.\n\nSu código de asistencia es:  ${r.codigoAcceso}\n\nCompárteselo para que registre su asistencia en el kiosko.`);
+  }
   await openAdminEmpleados();
 }
 
