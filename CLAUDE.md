@@ -269,6 +269,10 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   un **pad propio** de 4 dígitos (`asisPin*`), independiente del pad de 6
   dígitos de visitas. Hay un mockup autónomo previo en
   `web/mockup-asistencia.html` (cámara emulada) usado para revisar el diseño.
+  El demo de capacitación (`web/demo-capacitacion.html`) ya incluye todo el
+  flujo de asistencia (kiosko + reporte + administración) con su backend
+  simulado (`_db.empleados` / `_db.asistencia` y handlers en el mock de fetch);
+  códigos de prueba: 4830 (María, Empleado) y 5150 (Jorge, Mensajero).
   **Ojo (DBA):** el DML sobre `CV_Empleados` requiere `SET QUOTED_IDENTIFIER ON`
   por el índice filtrado del código único; la API ya lo cumple (Microsoft.Data.
   SqlClient lo activa por conexión), solo aplica a scripts sueltos de `sqlcmd -Q`.
@@ -449,12 +453,12 @@ Ambos frontends muestran un número de versión en el login:
 - **Producción** (`web/index.html`): chip `.app-version` en el topbar del login
   ("Control de Visitas · v0.18").
 - **Capacitación** (`web/demo-capacitacion.html`): etiqueta `.demo-tag`
-  ("VERSIÓN DEMO · CAPACITACIÓN · v0.15").
+  ("VERSIÓN DEMO · CAPACITACIÓN · v0.18").
 
 **Subir la versión en cada cambio** del archivo correspondiente (v0.15, v0.16,
-…) para identificar el build. Producción va en **v0.18** (registro de asistencia
-+ reporte + administración de empleados); el demo de capacitación sigue en
-**v0.15** porque aún no incluye asistencia (se alinea cuando se le agregue).
+…) para identificar el build. Ambas van en **v0.18**: el demo ya incluye el
+flujo completo de asistencia (kiosko + reporte + administración de empleados)
+con su backend simulado, a la par de producción.
 
 ## Idioma y tono
 

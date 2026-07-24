@@ -7,6 +7,7 @@ quién solicitó el cambio.
 ---
 
 ## 2026-07-24
+- **Asistencia en el demo de capacitación (v0.18)**: el demo autónomo ya incluye todo el flujo de asistencia (kiosko con registro de entrada/comida/salida, reporte y administración de empleados) con datos de ejemplo, sin necesidad de API ni base de datos. El demo queda alineado con producción en v0.18. (G. Ramírez)
 - **Administración de empleados (v0.18)**: nueva pantalla para dar de alta, editar y activar/inactivar al personal del padrón de asistencia (nombre, número de empleado, número de WishPOS, tipo y código de 4 dígitos), con validación de código duplicado. Disponible para los mismos usuarios que ven Configuración. Además, las respuestas de la API ya no se cachean en el navegador (evita ver datos viejos justo después de un cambio). Probado end-to-end. (G. Ramírez)
 - **Reporte de asistencia (v0.17)**: nueva tarjeta en Control de Visitas que lista las marcas del personal por rango de fechas (entrada, salida a comer, regreso y salida) con exportación a CSV. Probado end-to-end. (G. Ramírez)
 - **Registro de asistencia en el sistema real (v0.16)**: el kiosko ya integra el registro de asistencia contra la base y la API. Los botones del kiosko quedaron agrupados en Visitantes / Personal Celex para no confundir. Empleados: entrada con foto y luego salida a comer, regreso y salida (en orden, con salida anticipada); mensajeros: solo entrada. Probado end-to-end contra la API local. (G. Ramírez)

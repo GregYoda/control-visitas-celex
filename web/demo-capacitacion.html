@@ -300,6 +300,40 @@
   .pin-key:active{background:#d99a2c;}
   .pin-key-fn{font-size:16px;background:rgba(255,255,255,.06);}
 
+  /* ---------- Kiosko: home agrupado (Visitantes | Personal) + asistencia ---------- */
+  .home-groups{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;max-width:640px;}
+  .home-group{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:18px 24px 24px;display:flex;flex-direction:column;gap:16px;align-items:center;width:100%;}
+  .group-label{font-size:14px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:6px 16px;border-radius:999px;}
+  .group-visit{color:#cfe0ff;background:rgba(63,111,224,.18);border:1px solid rgba(120,160,255,.4);}
+  .group-staff{color:#d5fff8;background:rgba(43,179,163,.18);border:1px solid rgba(43,179,163,.5);}
+  .group-buttons{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;}
+  .home-divider{display:flex;align-items:center;justify-content:center;}
+  .home-divider span{color:#7fa0a0;font-size:13px;font-weight:600;border:1px solid rgba(255,255,255,.14);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:#0a2324;}
+  .home-group .btn-kiosk-main{display:flex;flex-direction:column;align-items:center;gap:6px;padding:24px 30px;min-width:230px;font-size:19px;letter-spacing:normal;}
+  .home-group .btn-kiosk-main small{font-weight:500;font-size:12.5px;color:#d7efef;}
+  .btn-kiosk-main.asistencia{background:linear-gradient(90deg,#2bb3a3,#178f81);}
+  /* ---------- Kiosko: panel del empleado (asistencia) ---------- */
+  .emp-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:26px 30px;max-width:520px;width:100%;text-align:left;}
+  .emp-head{display:flex;align-items:center;gap:16px;margin-bottom:6px;}
+  .emp-avatar{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;border:2px solid rgba(255,255,255,.3);flex:0 0 auto;}
+  .emp-name{font-size:21px;font-weight:700;}
+  .emp-meta{font-size:12.5px;color:#bcd9d9;margin-top:2px;}
+  .tipo-pill{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;border-radius:999px;padding:2px 10px;vertical-align:middle;}
+  .tipo-emp{color:#063e39;background:#9ef0e4;}
+  .tipo-men{color:#5a3d00;background:#ffd98a;}
+  .timeline{list-style:none;padding:0;margin:16px 0 4px;}
+  .timeline li{display:flex;justify-content:space-between;padding:9px 12px;border-radius:10px;font-size:14px;margin-bottom:6px;background:rgba(255,255,255,.05);border-left:3px solid transparent;}
+  .timeline li.done{border-left-color:var(--ok);}
+  .timeline li.pend{opacity:.45;}
+  .timeline li .t-time{font-weight:700;font-variant-numeric:tabular-nums;color:#8dffb0;}
+  .timeline li.pend .t-time{color:#9fb3b3;font-weight:500;}
+  .emp-actions{display:flex;flex-direction:column;gap:12px;margin-top:14px;}
+  .btn-mov{border:none;border-radius:14px;padding:18px;font-size:17px;font-weight:700;color:#fff;background:linear-gradient(90deg,#2bb3a3,#178f81);display:flex;justify-content:center;align-items:center;gap:10px;}
+  .btn-mov.final{background:linear-gradient(90deg,#d99a2c,#b3790f);}
+  .btn-mov:hover{filter:brightness(1.08);}
+  .badge-mov{display:inline-block;margin:8px 0 4px;padding:7px 18px;border-radius:999px;font-weight:800;font-size:16px;background:#e5f8f2;color:#0a6b52;border:1px solid #9fe0cd;font-variant-numeric:tabular-nums;}
+  .badge-note{font-size:13px;color:#8b93a3;margin-top:6px;}
+
   /* ---------- Reports ---------- */
   .filters-row{display:flex;gap:14px;align-items:end;flex-wrap:wrap;background:#fff;padding:20px 24px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:24px;}
   .filters-row .field{margin:0;}
@@ -382,7 +416,7 @@
   <div class="login-wrap">
     <div class="login-topbar">
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
-      <span class="demo-tag">VERSIÓN DEMO · CAPACITACIÓN · v0.15</span>
+      <span class="demo-tag">VERSIÓN DEMO · CAPACITACIÓN · v0.18</span>
     </div>
     <div class="login-center">
       <div class="login-card">
@@ -484,6 +518,12 @@
             <p>Consulta accesos por rango de fechas y exporta el reporte.</p>
             <button onclick="openReportes()">Ver reportes</button>
           </div>
+          <div class="module-card">
+            <div class="card-icon" style="background:radial-gradient(circle at 35% 30%,#2bb3a3,#0f6a6b);">🕘</div>
+            <h3>Reporte de asistencia</h3>
+            <p>Entradas, comidas y salidas del personal por rango de fechas.</p>
+            <button onclick="openReporteAsistencia()">Ver asistencia</button>
+          </div>
           <div class="module-card kiosk-card">
             <div class="card-icon">🛡️</div>
             <h3>Área de Acceso</h3>
@@ -501,6 +541,12 @@
             <h3>Configuración</h3>
             <p>Parámetros del sistema, como la ruta donde se guardan las fotos.</p>
             <button onclick="openConfiguracion()">Configurar</button>
+          </div>
+          <div class="module-card" id="adminEmpCard" style="display:none;">
+            <div class="card-icon" style="background:radial-gradient(circle at 35% 30%,#2bb3a3,#0f6a6b);">👥</div>
+            <h3>Empleados</h3>
+            <p>Da de alta y administra el padrón de empleados y mensajeros (código de asistencia).</p>
+            <button onclick="openAdminEmpleados()">Administrar</button>
           </div>
         </div>
       </div>
@@ -673,11 +719,23 @@
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
     </div>
     <div class="kiosk-body">
-      <h1>Bienvenido al control de accesos</h1>
-      <p class="sub">Toca el botón para registrar la llegada o salida de un visitante</p>
-      <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;">
-        <button class="btn-kiosk-main" onclick="openAccesoCodigo()">🔑 REGISTRAR ACCESO</button>
-        <button class="btn-kiosk-main salida" onclick="openSalidaCodigo()">🚪 REGISTRAR SALIDA</button>
+      <h1>Kiosko de accesos</h1>
+      <p class="sub">Selecciona la operación que deseas registrar</p>
+      <div class="home-groups">
+        <div class="home-group">
+          <div class="group-label group-visit">👤 Visitantes</div>
+          <div class="group-buttons">
+            <button class="btn-kiosk-main" onclick="openAccesoCodigo()">🔑 Registrar acceso<small>Visitante</small></button>
+            <button class="btn-kiosk-main salida" onclick="openSalidaCodigo()">🚪 Registrar salida<small>Visitante</small></button>
+          </div>
+        </div>
+        <div class="home-divider"><span>o</span></div>
+        <div class="home-group">
+          <div class="group-label group-staff">🪪 Personal Celex</div>
+          <div class="group-buttons">
+            <button class="btn-kiosk-main asistencia" onclick="openAsisPad()">🕘 Registro asistencia<small>Empleados y mensajeros</small></button>
+          </div>
+        </div>
       </div>
       <button class="btn-kiosk-secondary" onclick="doLogout()">‹ Salir del kiosko</button>
     </div>
@@ -743,8 +801,8 @@
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ÁREA DE ACCESO</div></div>
     </div>
     <div class="kiosk-body">
-      <h1 style="font-size:24px;">Foto de la visita</h1>
-      <p class="sub">Para la credencial de acceso, toma una fotografía del visitante</p>
+      <h1 style="font-size:24px;" id="photoTitulo">Foto de la visita</h1>
+      <p class="sub" id="photoSub">Para la credencial de acceso, toma una fotografía del visitante</p>
 
       <div class="kiosk-video-wrap" id="photoVideoWrap">
         <video id="photoVideo" muted playsinline autoplay></video>
@@ -847,6 +905,166 @@
     <div class="kiosk-body">
       <div class="badge-card" id="salidaDoneCard" style="max-width:380px;"><!-- filled by JS --></div>
       <button class="btn-kiosk-main" style="padding:16px 30px;font-size:15px;" onclick="showScreen('screen-kiosk-home')">Finalizar</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== ASISTENCIA: CÓDIGO DE EMPLEADO =================== -->
+<section class="screen" id="screen-asis-pad">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ASISTENCIA</div></div>
+    </div>
+    <div class="kiosk-body">
+      <h1 style="font-size:24px;">Ingresa tu código</h1>
+      <p class="sub">Escribe tu código personal de 4 dígitos para registrar tu movimiento</p>
+      <div class="pin-display" id="asisPinDisplay">
+        <div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div><div class="pin-box"></div>
+      </div>
+      <div class="kiosk-msg err" id="asisPadMsg"></div>
+      <div class="pin-pad">
+        <button class="pin-key" onclick="asisPinPress('1')">1</button>
+        <button class="pin-key" onclick="asisPinPress('2')">2</button>
+        <button class="pin-key" onclick="asisPinPress('3')">3</button>
+        <button class="pin-key" onclick="asisPinPress('4')">4</button>
+        <button class="pin-key" onclick="asisPinPress('5')">5</button>
+        <button class="pin-key" onclick="asisPinPress('6')">6</button>
+        <button class="pin-key" onclick="asisPinPress('7')">7</button>
+        <button class="pin-key" onclick="asisPinPress('8')">8</button>
+        <button class="pin-key" onclick="asisPinPress('9')">9</button>
+        <button class="pin-key pin-key-fn" onclick="asisPinClear()">C</button>
+        <button class="pin-key" onclick="asisPinPress('0')">0</button>
+        <button class="pin-key pin-key-fn" onclick="asisPinBackspace()">⌫</button>
+      </div>
+      <div class="help-note" style="max-width:520px;">
+        <b>Códigos de prueba:</b>
+        <code>4830</code> María López · Empleado &nbsp;·&nbsp;
+        <code>5150</code> Jorge Méndez · Mensajero
+      </div>
+      <button class="btn-kiosk-secondary" onclick="showScreen('screen-kiosk-home')">‹ Cancelar</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== ASISTENCIA: PANEL DEL EMPLEADO =================== -->
+<section class="screen" id="screen-asis-panel">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ASISTENCIA</div></div>
+    </div>
+    <div class="kiosk-body">
+      <div class="emp-card">
+        <div class="emp-head">
+          <div class="emp-avatar" id="asisAvatar">?</div>
+          <div>
+            <div class="emp-name" id="asisName">—</div>
+            <div class="emp-meta" id="asisMeta">—</div>
+          </div>
+        </div>
+        <ul class="timeline" id="asisTimeline"></ul>
+        <div class="emp-actions" id="asisActions"></div>
+      </div>
+      <button class="btn-kiosk-secondary" onclick="showScreen('screen-kiosk-home')">‹ Volver</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== ASISTENCIA: CONFIRMACIÓN =================== -->
+<section class="screen" id="screen-asis-done">
+  <div class="kiosk-shell">
+    <div class="kiosk-top">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX · ASISTENCIA</div></div>
+    </div>
+    <div class="kiosk-body">
+      <div class="badge-card" id="asisDoneCard" style="max-width:400px;"><!-- filled by JS --></div>
+      <button class="btn-kiosk-main asistencia" style="padding:16px 30px;font-size:15px;" onclick="showScreen('screen-kiosk-home')">Listo</button>
+    </div>
+  </div>
+</section>
+
+<!-- =================== REPORTE DE ASISTENCIA =================== -->
+<section class="screen" id="screen-reportes-asistencia">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right"><button class="btn-logout" onclick="doLogout()">Cerrar sesión</button></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;overflow:auto;">
+        <button class="breadcrumb-back" onclick="showScreen('screen-visitas-home')">‹ Volver</button>
+        <div class="content-title">Reporte de asistencia</div>
+        <div class="filters-row">
+          <div class="field"><label>Fecha inicio</label><input type="date" id="repAsisDesde"></div>
+          <div class="field"><label>Fecha fin</label><input type="date" id="repAsisHasta"></div>
+          <button class="btn-primary" style="width:auto;padding:11px 22px;" onclick="generarReporteAsistencia()">Generar reporte</button>
+          <button class="btn-secondary" style="width:auto;padding:11px 22px;margin-top:0;" onclick="exportarCSVAsistencia()">⬇️ Exportar CSV</button>
+        </div>
+        <div id="reportAsisTableWrap"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== ADMINISTRACIÓN DE EMPLEADOS =================== -->
+<section class="screen" id="screen-admin-empleados">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right"><button class="btn-logout" onclick="doLogout()">Cerrar sesión</button></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;overflow:auto;">
+        <button class="breadcrumb-back" onclick="showScreen('screen-visitas-home')">‹ Volver</button>
+        <div class="content-title">Empleados</div>
+        <div class="filters-row">
+          <button class="btn-primary" style="width:auto;padding:11px 22px;" onclick="abrirNuevoEmpleado()">＋ Nuevo empleado</button>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#5a6070;">
+            <input type="checkbox" id="admEmpInactivos" onchange="openAdminEmpleados()"> Mostrar inactivos
+          </label>
+        </div>
+        <div id="adminEmpTableWrap"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== ALTA / EDICIÓN DE EMPLEADO =================== -->
+<section class="screen" id="screen-editar-empleado">
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
+      <div class="topbar-right"><button class="btn-logout" onclick="doLogout()">Cerrar sesión</button></div>
+    </div>
+    <div class="body-row">
+      <div style="flex:1;padding:34px 40px;overflow:auto;">
+        <button class="breadcrumb-back" onclick="showScreen('screen-admin-empleados')">‹ Volver a empleados</button>
+        <div class="content-title" style="max-width:640px;" id="empFormTitulo">Nuevo empleado</div>
+        <div class="form-card" style="max-width:640px;">
+          <div class="form-grid">
+            <div class="field full"><label class="required">Nombre completo</label><input id="empNombre" placeholder="Nombre y apellidos"></div>
+            <div class="field"><label class="required">Número de empleado</label><input id="empNumero" placeholder="ej. 1024"></div>
+            <div class="field"><label>Número de WishPOS <span class="opt">(opcional)</span></label><input id="empWishpos" placeholder="ej. 305"></div>
+            <div class="field"><label class="required">Tipo</label>
+              <select id="empTipo">
+                <option value="Empleado">Empleado</option>
+                <option value="Mensajero">Mensajero</option>
+              </select>
+            </div>
+            <div class="field"><label class="required">Código de asistencia (4 dígitos)</label>
+              <input id="empCodigo" inputmode="numeric" maxlength="4" placeholder="ej. 4830">
+            </div>
+            <div class="toggle-row">
+              <label class="switch"><input type="checkbox" id="empActivo" checked><span class="slider"></span></label>
+              <label>Activo</label>
+            </div>
+          </div>
+          <div class="login-error" id="empError"></div>
+          <div class="form-actions">
+            <button class="btn-primary" onclick="guardarEmpleado()">Guardar</button>
+            <button class="btn-secondary" onclick="showScreen('screen-admin-empleados')">Cancelar</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -980,6 +1198,16 @@ const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro
       {id:7,nombre:'Contraloría Interna'},{id:8,nombre:'Otro'}
     ],
     visitas: [],
+    // Padrón de empleados para el kiosko de asistencia (código de 4 dígitos).
+    empleados: [
+      { id:1, numeroEmpleado:'1024', numeroWishPos:'305', nombreCompleto:'María Fernanda López', tipo:'Empleado',  codigoAcceso:'4830', activo:true },
+      { id:2, numeroEmpleado:'1055', numeroWishPos:'312', nombreCompleto:'Carlos Ramírez Soto',  tipo:'Empleado',  codigoAcceso:'7291', activo:true },
+      { id:3, numeroEmpleado:'1099', numeroWishPos:'340', nombreCompleto:'Ana Torres Vega',      tipo:'Empleado',  codigoAcceso:'6604', activo:true },
+      { id:4, numeroEmpleado:'2010', numeroWishPos:'',    nombreCompleto:'Jorge Méndez',         tipo:'Mensajero', codigoAcceso:'5150', activo:true }
+    ],
+    empSeq: 4,
+    // Asistencia del día: { idEmpleado, fecha, entrada, salidaComer, regresoComida, salida, tipoEmpleado }
+    asistencia: [],
     // UsuariosVIP: en el demo se deja al usuario 100 (el que entra con "2000")
     // para poder mostrar el checkbox VIP de una vez.
     // UsuariosKiosko: el usuario 300 (el que entra con "3000") arranca directo
@@ -1165,6 +1393,66 @@ const API_BASE_URL = 'http://localhost:5280'; // ajustar si la API corre en otro
         .sort((a,b)=>new Date(b.fechaRegistro)-new Date(a.fechaRegistro)).map(reporteFila));
     }
 
+    // --- asistencia: buscar empleado por código ---
+    if((m=path.match(/^\/api\/asistencia\/empleado\/([^\/]+)$/)) && method==='GET'){
+      const codigo = decodeURIComponent(m[1]);
+      const e = _db.empleados.find(x=>x.codigoAcceso===codigo && x.activo);
+      if(!e) return ok({ resultado:'NO_ENCONTRADO' });
+      const a = _db.asistencia.find(x=>x.idEmpleado===e.id && x.fecha===hoy()) || {};
+      return ok({ resultado:'OK', idEmpleado:e.id, numeroEmpleado:e.numeroEmpleado, numeroWishPos:e.numeroWishPos,
+        nombreCompleto:e.nombreCompleto, tipo:e.tipo,
+        entrada:a.entrada||null, salidaComer:a.salidaComer||null, regresoComida:a.regresoComida||null, salida:a.salida||null });
+    }
+    // --- asistencia: registrar movimiento (valida secuencia, igual que el SP) ---
+    if(path==='/api/asistencia/registrar' && method==='POST'){
+      const e = _db.empleados.find(x=>x.id===Number(body.idEmpleado) && x.activo);
+      if(!e) return ok({ resultado:'NO_ENCONTRADO' });
+      const tm = body.tipoMovimiento;
+      if(['Entrada','SalidaComer','RegresoComida','Salida'].indexOf(tm)<0) return ok({ resultado:'MOVIMIENTO_INVALIDO' });
+      if(e.tipo==='Mensajero' && tm!=='Entrada') return ok({ resultado:'MENSAJERO_SOLO_ENTRADA' });
+      let a = _db.asistencia.find(x=>x.idEmpleado===e.id && x.fecha===hoy());
+      if(!a){ a = { idEmpleado:e.id, fecha:hoy(), entrada:null, salidaComer:null, regresoComida:null, salida:null, tipoEmpleado:e.tipo }; _db.asistencia.push(a); }
+      if(a.salida) return ok({ resultado:'JORNADA_CERRADA' });
+      const ahora = new Date().toISOString();
+      if(tm==='Entrada'){ if(a.entrada) return ok({ resultado:'YA_REGISTRADO' }); a.entrada=ahora; }
+      else if(tm==='SalidaComer'){ if(!a.entrada) return ok({ resultado:'FUERA_DE_SECUENCIA' }); if(a.salidaComer) return ok({ resultado:'YA_REGISTRADO' }); a.salidaComer=ahora; }
+      else if(tm==='RegresoComida'){ if(!a.salidaComer) return ok({ resultado:'FUERA_DE_SECUENCIA' }); if(a.regresoComida) return ok({ resultado:'YA_REGISTRADO' }); a.regresoComida=ahora; }
+      else { if(!a.entrada) return ok({ resultado:'FUERA_DE_SECUENCIA' }); a.salida=ahora; }
+      return ok({ resultado:'OK', horaMovimiento:ahora });
+    }
+    // --- asistencia: reporte ---
+    if(path==='/api/asistencia/reporte' && method==='GET'){
+      const desde = (query.match(/desde=([^&]*)/)||[])[1];
+      const hasta = (query.match(/hasta=([^&]*)/)||[])[1];
+      const empDe = id => _db.empleados.find(e=>e.id===id) || {};
+      return ok(_db.asistencia.filter(a=>a.fecha>=desde && a.fecha<=hasta)
+        .sort((x,y)=> (y.fecha.localeCompare(x.fecha)) || empDe(x.idEmpleado).nombreCompleto.localeCompare(empDe(y.idEmpleado).nombreCompleto))
+        .map(a=>{ const e=empDe(a.idEmpleado); return { fecha:a.fecha, numeroEmpleado:e.numeroEmpleado||'', nombreCompleto:e.nombreCompleto||'',
+          tipoEmpleado:a.tipoEmpleado, entrada:a.entrada||null, salidaComer:a.salidaComer||null, regresoComida:a.regresoComida||null, salida:a.salida||null }; }));
+    }
+    // --- empleados: listar ---
+    if(path==='/api/empleados' && method==='GET'){
+      const soloActivos = /soloActivos=true/i.test(query);
+      return ok(_db.empleados.filter(e=>!soloActivos || e.activo)
+        .sort((a,b)=>a.nombreCompleto.localeCompare(b.nombreCompleto)));
+    }
+    // --- empleados: guardar (alta/edición) ---
+    if(path==='/api/empleados' && method==='POST'){
+      const dupe = _db.empleados.some(e=>e.codigoAcceso===body.codigoAcceso && e.activo && e.id!==Number(body.id) && body.activo);
+      if(dupe) return ok({ resultado:'CODIGO_DUPLICADO', id:0 });
+      if(Number(body.id)===0){
+        const id=++_db.empSeq;
+        _db.empleados.push({ id, numeroEmpleado:body.numeroEmpleado, numeroWishPos:body.numeroWishPos||'',
+          nombreCompleto:body.nombreCompleto, tipo:body.tipo, codigoAcceso:body.codigoAcceso, activo:!!body.activo });
+        return ok({ resultado:'OK', id });
+      }
+      const e = _db.empleados.find(x=>x.id===Number(body.id));
+      if(!e) return ok({ resultado:'NO_ENCONTRADO', id:0 });
+      Object.assign(e, { numeroEmpleado:body.numeroEmpleado, numeroWishPos:body.numeroWishPos||'',
+        nombreCompleto:body.nombreCompleto, tipo:body.tipo, codigoAcceso:body.codigoAcceso, activo:!!body.activo });
+      return ok({ resultado:'OK', id:e.id });
+    }
+
     return ok({ error:'endpoint no simulado: '+method+' '+path }, 404);
   };
 })();
@@ -1213,7 +1501,8 @@ function esUsuarioDemo(){
 // del kiosko): la única forma de volver a la vista normal es el teclado físico
 // (Esc / F11, comportamiento estándar del navegador).
 const PANTALLAS_KIOSKO = ['screen-kiosk-home','screen-acceso-codigo','screen-validate',
-  'screen-photo','screen-badge','screen-salida-codigo','screen-salida-confirm','screen-salida-done'];
+  'screen-photo','screen-badge','screen-salida-codigo','screen-salida-confirm','screen-salida-done',
+  'screen-asis-pad','screen-asis-panel','screen-asis-done'];
 function entrarPantallaCompleta(){
   const el = document.documentElement;
   const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
@@ -1308,6 +1597,7 @@ async function doLogin(){
   document.getElementById('regUserLabel').textContent = data.nombre || data.usuario;
   document.getElementById('fAnfitrion').value = data.nombre || data.usuario;
   document.getElementById('configCard').style.display = session.puedeConfigurar ? '' : 'none';
+  document.getElementById('adminEmpCard').style.display = session.puedeConfigurar ? '' : 'none';
   buildSidebar('sidebarList','menu');
   buildSidebar('sidebarList2','visitas');
   // Usuarios de "terminal de caseta" entran directo al kiosko; al salir del
@@ -1324,6 +1614,7 @@ function doLogout(){
   session.esReclutador = false;
   entrevistaDefaults = null;
   document.getElementById('configCard').style.display = 'none';
+  document.getElementById('adminEmpCard').style.display = 'none';
   document.getElementById('loginPass').value='';
   document.getElementById('loginKeypad').classList.remove('show'); // ocultar teclado numérico
   showScreen('screen-login');
@@ -1631,7 +1922,11 @@ function renderBadge(visit){
 /* ---------- kiosko: foto de la visita ---------- */
 let photoStream = null;
 let capturedPhotoDataUrl = null;
+let fotoContexto = 'visita'; // 'visita' | 'asistencia' -- qué hacer al confirmar la foto
 function openPhotoCapture(){
+  fotoContexto = 'visita';
+  document.getElementById('photoTitulo').textContent = 'Foto de la visita';
+  document.getElementById('photoSub').textContent = 'Para la credencial de acceso, toma una fotografía del visitante';
   capturedPhotoDataUrl = null;
   document.getElementById('photoMsg').textContent = '';
   document.getElementById('photoVideoWrap').style.display = 'block';
@@ -1661,8 +1956,13 @@ function startPhotoCamera(){
 // una foto de ejemplo con las iniciales del visitante y pasa a la vista previa,
 // para que el flujo se complete con una imagen visible en la etiqueta.
 function demoFotoFallback(mensaje){
-  const v = visits.find(x=>x.id===pendingVisitId) || {};
-  const ini = ((v.nombre||'V')[0]||'V') + ((v.apellidoP||v.apellidoPaterno||'')[0]||'');
+  let ini;
+  if(fotoContexto === 'asistencia'){
+    ini = inicialesAsis(asisEmpActual ? asisEmpActual.nombreCompleto : 'E');
+  }else{
+    const v = visits.find(x=>x.id===pendingVisitId) || {};
+    ini = ((v.nombre||'V')[0]||'V') + ((v.apellidoP||v.apellidoPaterno||'')[0]||'');
+  }
   const c = document.createElement('canvas'); c.width=320; c.height=320;
   const ctx = c.getContext('2d');
   ctx.fillStyle = '#3f6fe0'; ctx.fillRect(0,0,320,320);
@@ -1710,6 +2010,7 @@ function retakePhoto(){
   startPhotoCamera();
 }
 async function confirmPhotoAndContinue(skip){
+  if(fotoContexto === 'asistencia'){ await confirmarEntradaAsistencia(skip); return; }
   const visit = visits.find(v=>v.id===pendingVisitId);
   stopPhotoCamera();
   if(!visit){ showScreen('screen-kiosk-home'); return; }
@@ -1728,6 +2029,276 @@ async function confirmPhotoAndContinue(skip){
   }
   renderBadge(visit);
   showScreen('screen-badge');
+}
+
+/* ===================== ASISTENCIA DE EMPLEADOS (kiosko) ===================== */
+const ASIS_SEC = ['Entrada','SalidaComer','RegresoComida','Salida'];
+const ASIS_LABEL = { Entrada:'Entrada', SalidaComer:'Salida a comer', RegresoComida:'Regreso de comida', Salida:'Salida' };
+const ASIS_ICONO = { Entrada:'🟢', SalidaComer:'🍽️', RegresoComida:'🔙', Salida:'🔴' };
+let asisBuffer = '';
+let asisEmpActual = null;
+
+function openAsisPad(){
+  asisBuffer = ''; asisEmpActual = null;
+  document.getElementById('asisPadMsg').textContent = '';
+  renderAsisPin();
+  showScreen('screen-asis-pad');
+}
+function renderAsisPin(){
+  const boxes = document.querySelectorAll('#asisPinDisplay .pin-box');
+  boxes.forEach((b,i)=>{ b.textContent = asisBuffer[i] ? '•' : ''; b.classList.toggle('filled', !!asisBuffer[i]); });
+}
+function asisPinPress(d){
+  if(asisBuffer.length >= 4) return;
+  document.getElementById('asisPadMsg').textContent = '';
+  asisBuffer += d; renderAsisPin();
+  if(asisBuffer.length === 4) setTimeout(validarAsisCodigo, 150);
+}
+function asisPinClear(){ asisBuffer=''; document.getElementById('asisPadMsg').textContent=''; renderAsisPin(); }
+function asisPinBackspace(){ asisBuffer = asisBuffer.slice(0,-1); renderAsisPin(); }
+
+async function validarAsisCodigo(){
+  const msg = document.getElementById('asisPadMsg');
+  let data;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/asistencia/empleado/${encodeURIComponent(asisBuffer)}`, { cache: 'no-store' });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    data = await resp.json();
+  }catch(e){ msg.textContent = 'No se pudo validar el código.'; asisBuffer=''; renderAsisPin(); return; }
+  if(data.resultado !== 'OK'){ msg.textContent = 'Código no encontrado. Verifica e intenta de nuevo.'; asisBuffer=''; renderAsisPin(); return; }
+
+  asisEmpActual = data;
+  if(!data.entrada){ openFotoAsistencia(); return; }
+  if(data.tipo === 'Mensajero'){
+    mostrarAsisDone('Entrada ya registrada', data.nombreCompleto, fmtHoraCorta(data.entrada),
+                    'Los mensajeros solo registran entrada. ¡Buen día!', null); return;
+  }
+  if(data.salida){
+    mostrarAsisDone('Jornada cerrada', data.nombreCompleto, fmtHoraCorta(data.salida),
+                    'Ya registraste tu salida hoy. ¡Buen día!', null); return;
+  }
+  renderPanelAsis(data);
+}
+
+function renderPanelAsis(estado){
+  document.getElementById('asisAvatar').textContent = inicialesAsis(estado.nombreCompleto);
+  document.getElementById('asisName').textContent = estado.nombreCompleto;
+  const pill = estado.tipo === 'Mensajero'
+    ? '<span class="tipo-pill tipo-men">MENSAJERO</span>'
+    : '<span class="tipo-pill tipo-emp">EMPLEADO</span>';
+  document.getElementById('asisMeta').innerHTML =
+    `${pill} &nbsp; Núm. ${estado.numeroEmpleado}${estado.numeroWishPos ? ' · WishPOS ' + estado.numeroWishPos : ''}`;
+  const horas = { Entrada:estado.entrada, SalidaComer:estado.salidaComer, RegresoComida:estado.regresoComida, Salida:estado.salida };
+  document.getElementById('asisTimeline').innerHTML = ASIS_SEC.map(paso=>{
+    const h = horas[paso];
+    return `<li class="${h ? 'done' : 'pend'}"><span>${ASIS_ICONO[paso]} ${ASIS_LABEL[paso]}</span>`
+         + `<span class="t-time">${h ? fmtHoraCorta(h) : '— — : — —'}</span></li>`;
+  }).join('');
+  const hechos = ASIS_SEC.filter(p=>horas[p]);
+  const acciones = [];
+  const siguiente = ASIS_SEC.slice(1).find(p=>!hechos.includes(p));
+  if(siguiente && siguiente !== 'Salida') acciones.push(siguiente);
+  if(!hechos.includes('Salida')) acciones.push('Salida');
+  document.getElementById('asisActions').innerHTML = acciones.map(a=>{
+    const final = a === 'Salida';
+    return `<button class="btn-mov ${final ? 'final' : ''}" onclick="hacerMovAsis('${a}')">`
+         + `${ASIS_ICONO[a]} Registrar ${ASIS_LABEL[a].toLowerCase()}</button>`;
+  }).join('');
+  showScreen('screen-asis-panel');
+}
+
+async function registrarMovAsis(tipoMovimiento, fotoBase64){
+  const body = { idEmpleado: asisEmpActual.idEmpleado, tipoMovimiento };
+  if(fotoBase64) body.fotoBase64 = fotoBase64;
+  const resp = await fetch(`${API_BASE_URL}/api/asistencia/registrar`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+  if(!resp.ok) throw new Error('HTTP ' + resp.status);
+  return await resp.json();
+}
+async function hacerMovAsis(tipo){
+  if(!asisEmpActual) return showScreen('screen-kiosk-home');
+  let r;
+  try{ r = await registrarMovAsis(tipo, null); }
+  catch(e){ alert('No se pudo registrar el movimiento.'); return; }
+  if(r.resultado !== 'OK'){ alert(traducirAsisResultado(r.resultado)); return; }
+  const nota = tipo === 'Salida' ? 'Salida registrada. ¡Hasta pronto!'
+             : (tipo === 'SalidaComer' ? 'Disfruta tu comida.' : 'Bienvenido de vuelta.');
+  mostrarAsisDone(ASIS_LABEL[tipo] + ' registrada', asisEmpActual.nombreCompleto, fmtHoraCorta(r.horaMovimiento), nota, null);
+}
+
+function openFotoAsistencia(){
+  fotoContexto = 'asistencia';
+  const nombre = asisEmpActual.nombreCompleto.split(' ')[0];
+  document.getElementById('photoTitulo').textContent = 'Foto de entrada';
+  document.getElementById('photoSub').textContent = `Hola ${nombre}, toma tu foto para registrar la entrada`;
+  capturedPhotoDataUrl = null;
+  document.getElementById('photoMsg').textContent = '';
+  document.getElementById('photoVideoWrap').style.display = 'block';
+  document.getElementById('photoPreviewWrap').style.display = 'none';
+  document.getElementById('photoActionsCapture').style.display = 'flex';
+  document.getElementById('photoActionsConfirm').style.display = 'none';
+  showScreen('screen-photo');
+  startPhotoCamera();
+}
+async function confirmarEntradaAsistencia(skip){
+  stopPhotoCamera();
+  if(!asisEmpActual){ showScreen('screen-kiosk-home'); return; }
+  const foto = skip ? null : capturedPhotoDataUrl;
+  let r;
+  try{ r = await registrarMovAsis('Entrada', foto); }
+  catch(e){ alert('No se pudo registrar la entrada.'); return; }
+  if(r.resultado !== 'OK'){ alert(traducirAsisResultado(r.resultado)); showScreen('screen-kiosk-home'); return; }
+  const nota = asisEmpActual.tipo === 'Mensajero'
+    ? 'Entrada de mensajero registrada. Registro completo.'
+    : 'Entrada registrada. Recuerda marcar tu comida y salida.';
+  mostrarAsisDone('Entrada registrada', asisEmpActual.nombreCompleto, fmtHoraCorta(r.horaMovimiento), nota, foto);
+}
+
+function mostrarAsisDone(titulo, nombre, hora, nota, fotoUrl){
+  const foto = fotoUrl
+    ? `<img class="badge-photo" src="${fotoUrl}" alt="foto" style="margin:0 auto 12px;">`
+    : `<div class="badge-check">✓</div>`;
+  document.getElementById('asisDoneCard').innerHTML =
+    `${foto}
+     <div class="badge-title" style="color:var(--ok);">${titulo.toUpperCase()}</div>
+     <div class="badge-name">${nombre}</div>
+     <div class="badge-mov">🕘 ${hora}</div>
+     <div class="badge-note">${nota || ''}</div>`;
+  showScreen('screen-asis-done');
+}
+function traducirAsisResultado(r){
+  const m = { NO_ENCONTRADO:'Empleado no encontrado.', MENSAJERO_SOLO_ENTRADA:'Los mensajeros solo registran entrada.',
+    YA_REGISTRADO:'Ese movimiento ya estaba registrado.', FUERA_DE_SECUENCIA:'No se puede registrar ese movimiento en este momento.',
+    JORNADA_CERRADA:'La jornada de hoy ya está cerrada.', MOVIMIENTO_INVALIDO:'Movimiento no válido.' };
+  return m[r] || 'No se pudo registrar el movimiento.';
+}
+function fmtHoraCorta(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+function inicialesAsis(nombre){ return nombre.split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase(); }
+
+/* ---------- reporte de asistencia ---------- */
+let ultimoReporteAsis = [];
+function openReporteAsistencia(){
+  document.getElementById('repAsisDesde').value = hoyISO();
+  document.getElementById('repAsisHasta').value = hoyISO();
+  document.getElementById('reportAsisTableWrap').innerHTML = '<div class="empty-note">Selecciona un rango de fechas y genera el reporte.</div>';
+  showScreen('screen-reportes-asistencia');
+}
+async function generarReporteAsistencia(){
+  const desde = document.getElementById('repAsisDesde').value;
+  const hasta = document.getElementById('repAsisHasta').value;
+  const wrap = document.getElementById('reportAsisTableWrap');
+  if(!desde || !hasta){ wrap.innerHTML = '<div class="empty-note">Selecciona un rango de fechas y genera el reporte.</div>'; return; }
+  let filas;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/asistencia/reporte?desde=${desde}&hasta=${hasta}`, { cache: 'no-store' });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    filas = await resp.json();
+  }catch(e){ wrap.innerHTML = '<div class="empty-note">No se pudo generar el reporte.</div>'; return; }
+  ultimoReporteAsis = filas;
+  if(!filas.length){ wrap.innerHTML = '<div class="empty-note">No hay registros en el rango seleccionado.</div>'; return; }
+  const g = '—';
+  const rows = filas.map(a => {
+    const tipoTag = a.tipoEmpleado === 'Mensajero'
+      ? '<span class="tipo-pill tipo-men">MENSAJERO</span>' : '<span class="tipo-pill tipo-emp">EMPLEADO</span>';
+    return `<tr>
+      <td>${fmtFechaVisita(a.fecha)}</td><td>${a.numeroEmpleado || g}</td><td>${a.nombreCompleto}</td><td>${tipoTag}</td>
+      <td>${a.entrada ? fmtHoraCorta(a.entrada) : g}</td><td>${a.salidaComer ? fmtHoraCorta(a.salidaComer) : g}</td>
+      <td>${a.regresoComida ? fmtHoraCorta(a.regresoComida) : g}</td><td>${a.salida ? fmtHoraCorta(a.salida) : g}</td></tr>`;
+  }).join('');
+  wrap.innerHTML = `<table class="report-table">
+      <thead><tr><th>Fecha</th><th>Núm. empleado</th><th>Nombre</th><th>Tipo</th><th>Entrada</th><th>Salida a comer</th><th>Regreso de comida</th><th>Salida</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+}
+function exportarCSVAsistencia(){
+  if(!ultimoReporteAsis.length){ alert('No hay datos para exportar. Genera el reporte primero.'); return; }
+  const header = ['Fecha','NumeroEmpleado','Nombre','Tipo','Entrada','SalidaAComer','RegresoDeComida','Salida'];
+  const rows = ultimoReporteAsis.map(a=>[
+    a.fecha||'', a.numeroEmpleado||'', a.nombreCompleto, a.tipoEmpleado,
+    a.entrada?fmtHoraCorta(a.entrada):'', a.salidaComer?fmtHoraCorta(a.salidaComer):'',
+    a.regresoComida?fmtHoraCorta(a.regresoComida):'', a.salida?fmtHoraCorta(a.salida):''
+  ].map(x=>`"${String(x).replace(/"/g,'""')}"`).join(','));
+  const csv = [header.join(','), ...rows].join('\n');
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'reporte-asistencia-celex.csv'; a.click();
+}
+
+/* ---------- administración de empleados (padrón) ---------- */
+let empList = [];
+async function openAdminEmpleados(){
+  const wrap = document.getElementById('adminEmpTableWrap');
+  const soloActivos = !document.getElementById('admEmpInactivos').checked;
+  showScreen('screen-admin-empleados');
+  wrap.innerHTML = '<div class="empty-note">Cargando…</div>';
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/empleados?soloActivos=${soloActivos}`, { cache: 'no-store' });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    empList = await resp.json();
+  }catch(e){ wrap.innerHTML = '<div class="empty-note">No se pudo cargar el padrón.</div>'; return; }
+  if(!empList.length){ wrap.innerHTML = '<div class="empty-note">Aún no hay empleados. Usa “＋ Nuevo empleado”.</div>'; return; }
+  const rows = empList.map(e => {
+    const tipoTag = e.tipo === 'Mensajero'
+      ? '<span class="tipo-pill tipo-men">MENSAJERO</span>' : '<span class="tipo-pill tipo-emp">EMPLEADO</span>';
+    const activo = e.activo
+      ? '<span class="status-pill accesado">Activo</span>' : '<span class="status-pill cancelada">Inactivo</span>';
+    return `<tr><td>${e.nombreCompleto}</td><td>${e.numeroEmpleado || '—'}</td><td>${e.numeroWishPos || '—'}</td>
+      <td>${tipoTag}</td><td><b>${e.codigoAcceso}</b></td><td>${activo}</td>
+      <td><button class="btn-secondary" style="width:auto;padding:6px 14px;margin-top:0;" onclick="abrirEditarEmpleado(${e.id})">Editar</button></td></tr>`;
+  }).join('');
+  wrap.innerHTML = `<table class="report-table">
+      <thead><tr><th>Nombre</th><th>Núm. empleado</th><th>WishPOS</th><th>Tipo</th><th>Código</th><th>Estado</th><th></th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+}
+let editingEmpId = 0;
+function llenarFormEmpleado(e){
+  document.getElementById('empError').textContent = '';
+  document.getElementById('empNombre').value = e ? e.nombreCompleto : '';
+  document.getElementById('empNumero').value = e ? e.numeroEmpleado : '';
+  document.getElementById('empWishpos').value = e ? e.numeroWishPos : '';
+  document.getElementById('empTipo').value = e ? e.tipo : 'Empleado';
+  document.getElementById('empCodigo').value = e ? e.codigoAcceso : '';
+  document.getElementById('empActivo').checked = e ? e.activo : true;
+}
+function abrirNuevoEmpleado(){
+  editingEmpId = 0;
+  document.getElementById('empFormTitulo').textContent = 'Nuevo empleado';
+  llenarFormEmpleado(null);
+  showScreen('screen-editar-empleado');
+}
+function abrirEditarEmpleado(id){
+  const e = empList.find(x => x.id === id);
+  if(!e) return;
+  editingEmpId = id;
+  document.getElementById('empFormTitulo').textContent = 'Editar empleado';
+  llenarFormEmpleado(e);
+  showScreen('screen-editar-empleado');
+}
+async function guardarEmpleado(){
+  const err = document.getElementById('empError');
+  const nombre = document.getElementById('empNombre').value.trim();
+  const numero = document.getElementById('empNumero').value.trim();
+  const codigo = document.getElementById('empCodigo').value.trim();
+  const tipo = document.getElementById('empTipo').value;
+  if(!nombre){ err.textContent = 'El nombre completo es obligatorio.'; return; }
+  if(!numero){ err.textContent = 'El número de empleado es obligatorio.'; return; }
+  if(!/^\d{4}$/.test(codigo)){ err.textContent = 'El código de asistencia debe ser de 4 dígitos.'; return; }
+  const body = { id: editingEmpId, numeroEmpleado: numero, numeroWishPos: document.getElementById('empWishpos').value.trim(),
+    nombreCompleto: nombre, tipo, codigoAcceso: codigo, activo: document.getElementById('empActivo').checked };
+  let r;
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/empleados`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    r = await resp.json();
+  }catch(e){ err.textContent = 'No se pudo guardar.'; return; }
+  if(r.resultado === 'CODIGO_DUPLICADO'){ err.textContent = 'Ese código de asistencia ya lo usa otro empleado activo. Usa uno distinto.'; return; }
+  if(r.resultado === 'NO_ENCONTRADO'){ err.textContent = 'El empleado ya no existe.'; return; }
+  if(r.resultado !== 'OK'){ err.textContent = 'No se pudo guardar el empleado.'; return; }
+  await openAdminEmpleados();
 }
 
 /* ---------- kiosko: registro de salida (código de 6 dígitos) ---------- */
@@ -2244,6 +2815,7 @@ function toggleKeyboard(){
 wireEnterAvanza(['loginPass'], doLogin);
 wireEnterAvanza(['validateApP'], submitValidate);
 wireEnterAvanza(['repDesde','repHasta'], generarReporte);
+wireEnterAvanza(['repAsisDesde','repAsisHasta'], generarReporteAsistencia);
 wireEnterAvanza(['cfgRutaFotos','cfgPrefijoFoto','cfgDigitosFoto','cfgUsuariosVIP','cfgUsuariosKiosko'], guardarConfiguracion);
 wireEnterAvanza(
   ['fNombre','fApP','fApM','fCorreo','fEmpresa','fArea','fMotivo','fObservaciones','fFechaVisita','fAnfitrion','fMarca','fModelo','fPlacas'],
