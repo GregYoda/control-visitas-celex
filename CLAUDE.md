@@ -296,6 +296,12 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   `dbo.WM_Correo` → base de WishPOS, hay que reapuntarlo al nombre real y dar
   permiso de INSERT), publicar en IIS y verificar. Luego el kiosko
   (`docs/checklist-modo-kiosco.md`).
+- 🔧 **Migraciones de BD** (`db/migraciones/`): scripts idempotentes para
+  actualizar una base ya instalada sin recrearla. `2026-07-23-migracion-acumulada.sql`
+  lleva la base al estado previo a asistencia; `2026-07-24-asistencia.sql` agrega
+  el módulo de asistencia (tablas `CV_Empleados`/`CV_Asistencia` + SPs, sin
+  empleados de ejemplo). Correr con `-f i:65001`. Ambos probados corriéndolos
+  dos veces y sobre una base ya instalada.
 
 ## Decisiones de diseño ya tomadas (no las reabras sin razón)
 
