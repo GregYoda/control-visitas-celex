@@ -7,6 +7,7 @@ quién solicitó el cambio.
 ---
 
 ## 2026-07-27
+- **Etiqueta de acceso imprimible 3.5" × 1.5" (v0.20)**: el botón "Imprimir etiqueta" del kiosko ahora imprime una etiqueta del tamaño físico de la impresora térmica (3.5×1.5 pulgadas), en blanco y negro, con el logo Celex (emblema redondo) embebido, el código de salida grande, el tipo (Visita), la fecha/hora de acceso, el nombre del visitante y a quién visita (anfitrión · área). (G. Ramírez)
 - **Manual de uso e infografía actualizados con imágenes**: el manual (`docs/manual-de-uso.*`) ahora cubre el módulo de asistencia (kiosko agrupado, registro de personal, reporte de asistencia y administración de empleados) e incluye capturas reales del sistema en cada sección. Se creó también una infografía de una hoja (`docs/infografia-control-visitas.*`) que resume los dos flujos —visitantes y asistencia— con imágenes. Ambos en HTML y PDF. (G. Ramírez)
 
 ## 2026-07-24

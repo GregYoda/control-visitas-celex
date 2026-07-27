@@ -468,14 +468,28 @@ pedirlo, preguntarlo. Las entradas históricas quedaron atribuidas a
 
 Ambos frontends muestran un número de versión en el login:
 - **Producción** (`web/index.html`): chip `.app-version` en el topbar del login
-  ("Control de Visitas · v0.19").
+  ("Control de Visitas · v0.20").
 - **Capacitación** (`web/demo-capacitacion.html`): etiqueta `.demo-tag`
   ("VERSIÓN DEMO · CAPACITACIÓN · v0.19").
 
 **Subir la versión en cada cambio** del archivo correspondiente (v0.15, v0.16,
-…) para identificar el build. Ambas van en **v0.19**: código de asistencia de
-6 dígitos generado por el sistema. El demo incluye el flujo completo (kiosko +
-reporte + administración) con su backend simulado, a la par de producción.
+…) para identificar el build. Producción va en **v0.20** (etiqueta de acceso
+imprimible 3.5"×1.5"); el demo de capacitación queda en **v0.19** (no incluye
+la etiqueta imprimible; se alinea cuando se le agregue).
+
+## Etiqueta de acceso imprimible (kiosko)
+
+El botón "Imprimir etiqueta" (`screen-badge`) imprime una **etiqueta física de
+3.5" × 1.5"** para impresora térmica (blanco y negro), no toda la pantalla. Se
+arma en un contenedor `#printLabel` (oculto en pantalla, visible solo al
+imprimir vía `@media print` con `@page size: 3.5in 1.5in`), que `renderBadge`
+llena con `renderPrintLabel(visit)`: **código de salida** (número grande),
+tipo (Visita/Entrevista), **fecha/hora de acceso**, nombre completo y
+"Visita a: anfitrión · área". El **logo Celex** (emblema redondo) va **embebido
+como data URI** en `index.html` (constante `CELEX_LOGO_BN`, autocontenido; no
+depende de un archivo externo al desplegar) y se imprime en B/N con
+`filter:grayscale(1) contrast(...)`. El logo fuente está en el Escritorio como
+`CELEX_Logo.png` (225×225, fondo transparente).
 
 ## Idioma y tono
 
