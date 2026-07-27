@@ -6,6 +6,9 @@ quién solicitó el cambio.
 
 ---
 
+## 2026-07-27
+- **Manual de uso e infografía actualizados con imágenes**: el manual (`docs/manual-de-uso.*`) ahora cubre el módulo de asistencia (kiosko agrupado, registro de personal, reporte de asistencia y administración de empleados) e incluye capturas reales del sistema en cada sección. Se creó también una infografía de una hoja (`docs/infografia-control-visitas.*`) que resume los dos flujos —visitantes y asistencia— con imágenes. Ambos en HTML y PDF. (G. Ramírez)
+
 ## 2026-07-24
 - **Script de migración de asistencia** (`db/migraciones/2026-07-24-asistencia.sql`): agrega a una base ya instalada las tablas y procedimientos del módulo de asistencia (empleados/mensajeros) de forma idempotente (crea lo que falte y refresca los SP; no inserta empleados de ejemplo). Probado en base limpia y sobre la base ya instalada, corriéndolo dos veces sin daño. (G. Ramírez)
 - **Código de asistencia de 6 dígitos generado por el sistema (v0.19)**: el código del empleado ahora lo genera el sistema automáticamente (6 dígitos, aleatorio y único), ya no lo captura quien da de alta; al crear un empleado se muestra su código para comunicárselo, y el pad del kiosko pasó a 6 dígitos. Para cargar personal desde otro sistema se agregaron dos procedimientos en la base: `sp_CV_Empleados_Alta` (alta de uno, devuelve el código) y `sp_CV_Empleados_GenerarCodigosFaltantes` (inserta muchos con el código en blanco y luego los genera de golpe). (G. Ramírez)

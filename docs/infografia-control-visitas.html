@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Infografía — Control de Visitas (Celex)</title>
+<style>
+  :root{
+    --navy-1:#0d1b45; --navy-2:#1d3f8f; --blue:#3f6fe0;
+    --teal-1:#0f6a6b; --teal-2:#14b8a6; --teal-ink:#0b4d48;
+    --amber:#d99a2c; --amber-ink:#7a5200;
+    --ink:#1c2431; --muted:#5b6784; --line:#e2e7f0; --soft:#f5f7fb; --card:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;color:var(--ink);background:#eef1f7;}
+  .page{width:1000px;margin:0 auto;background:#fff;}
+
+  /* HERO */
+  .hero{background:linear-gradient(125deg,var(--navy-1),var(--navy-2) 58%,var(--blue));color:#fff;padding:34px 44px 30px;position:relative;overflow:hidden;}
+  .hero::after{content:"";position:absolute;right:-90px;top:-70px;width:340px;height:340px;border-radius:50%;
+    background:radial-gradient(circle at 40% 40%,rgba(20,184,166,.55),transparent 70%);}
+  .hero .brand{display:flex;align-items:center;gap:12px;margin-bottom:18px;position:relative;z-index:1;}
+  .hero .badge{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.5);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;}
+  .hero .brand .who{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.85;}
+  .hero h1{margin:0;font-size:40px;line-height:1.05;letter-spacing:-.02em;position:relative;z-index:1;}
+  .hero p{margin:10px 0 0;font-size:16px;max-width:70ch;opacity:.94;position:relative;z-index:1;}
+  .hero .ver{position:absolute;top:34px;right:44px;z-index:2;font-size:12px;font-weight:700;letter-spacing:.05em;
+    background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:5px 14px;}
+
+  /* CONCEPTOS strip */
+  .concepts{display:grid;grid-template-columns:repeat(3,1fr);gap:0;background:var(--navy-1);color:#fff;}
+  .concepts .c{padding:16px 22px;border-left:1px solid rgba(255,255,255,.10);}
+  .concepts .c:first-child{border-left:none;}
+  .concepts .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.72;}
+  .concepts .code{font-family:"Cascadia Mono",Consolas,monospace;font-weight:800;letter-spacing:.24em;font-size:22px;margin:4px 0 3px;color:#9fe0d6;}
+  .concepts .d{font-size:11.5px;opacity:.85;line-height:1.45;}
+
+  .body{padding:26px 40px 10px;}
+  .section-title{display:flex;align-items:center;gap:12px;margin:8px 0 14px;}
+  .section-title .dot{width:12px;height:12px;border-radius:50%;}
+  .section-title h2{margin:0;font-size:21px;letter-spacing:-.01em;}
+  .section-title .sub{font-size:12.5px;color:var(--muted);}
+
+  .flow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:6px;}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px 16px;position:relative;box-shadow:0 4px 16px rgba(20,40,80,.06);}
+  .step .num{position:absolute;top:-12px;left:14px;width:26px;height:26px;border-radius:50%;color:#fff;font-weight:800;font-size:13px;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.2);}
+  .step h3{margin:8px 0 4px;font-size:14.5px;}
+  .step p{margin:0;font-size:12px;color:var(--muted);line-height:1.5;}
+  .step img{width:100%;border:1px solid var(--line);border-radius:9px;margin-top:10px;display:block;box-shadow:0 3px 12px rgba(20,40,80,.10);}
+
+  .v .num{background:var(--blue);}  .v .section-dot{background:var(--blue);}
+  .a .num{background:var(--teal-2);} .a .section-dot{background:var(--teal-2);}
+
+  .band{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;align-items:stretch;margin:22px 0 6px;}
+  .band .panel{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:16px 20px;}
+  .band .panel h3{margin:0 0 8px;font-size:15px;color:var(--navy-2);}
+  .band .panel ul{margin:0;padding-left:18px;}
+  .band .panel li{font-size:12.2px;margin:5px 0;line-height:1.5;}
+  .band .shot{padding:0;overflow:hidden;}
+  .band .shot img{width:100%;height:100%;object-fit:cover;display:block;border-radius:14px;border:1px solid var(--line);}
+
+  .feature-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0 4px;}
+  .feat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 14px;}
+  .feat .ic{font-size:20px;}
+  .feat b{display:block;font-size:12.8px;margin:6px 0 2px;}
+  .feat span{font-size:11.3px;color:var(--muted);line-height:1.45;}
+
+  .foot{background:var(--navy-1);color:#fff;padding:16px 40px;display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-top:22px;}
+  .foot .tags span{display:inline-block;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:3px 11px;margin-left:6px;}
+
+  @media print{
+    @page{ size:A4; margin:0; }
+    body{background:#fff;}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .page{width:auto;}
+    .flow,.band,.feature-row,.step,.concepts{break-inside:avoid;}
+    .body{padding:20px 30px 6px;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hero">
+    <span class="ver">v0.19</span>
+    <div class="brand"><div class="badge">C</div><div class="who">Celex · Distribuidor Autorizado Telcel · Región 5</div></div>
+    <h1>Control de Visitas</h1>
+    <p>Un solo sistema para el acceso de <b>visitantes</b> y la <b>asistencia del personal</b>: adiós a la bitácora de papel. Código digital, foto en caseta y reportes exportables.</p>
+  </div>
+
+  <div class="concepts">
+    <div class="c"><div class="k">Código de acceso · visitante</div><div class="code">482913</div><div class="d">Se genera al registrar la visita y llega por correo. Un solo uso, solo el día agendado.</div></div>
+    <div class="c"><div class="k">Código de salida · visitante</div><div class="code">207765</div><div class="d">Se genera al entrar y aparece en la etiqueta. El visitante lo conserva para salir.</div></div>
+    <div class="c"><div class="k">Código de asistencia · personal</div><div class="code">483012</div><div class="d">Personal y permanente. Lo genera el sistema al dar de alta al empleado o mensajero.</div></div>
+  </div>
+
+  <div class="body">
+
+    <!-- FLUJO VISITANTES -->
+    <div class="section-title v">
+      <span class="dot section-dot"></span>
+      <h2>👤 Flujo de visitantes</h2>
+      <span class="sub">recepción registra · caseta recibe</span>
+    </div>
+    <div class="flow v">
+      <div class="step">
+        <div class="num">1</div>
+        <h3>Registrar</h3>
+        <p>Recepción captura al visitante y el sistema genera su <b>código de acceso</b>; el visitante lo recibe por correo.</p>
+        <img src="img/10-registro-visita.png" alt="Registro de visita">
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <h3>Acceso en caseta</h3>
+        <p>El visitante teclea su código, confirma apellido y se toma su <b>foto</b>. Recibe una etiqueta con su código de salida.</p>
+        <img src="img/03-kiosko-home.png" alt="Kiosko de accesos">
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <h3>Salida</h3>
+        <p>Al salir teclea su <b>código de salida</b> y confirma identidad. El sistema calcula el tiempo de estancia.</p>
+        <img src="img/11-salida-visitante.png" alt="Registro de salida">
+      </div>
+    </div>
+
+    <!-- FLUJO ASISTENCIA -->
+    <div class="section-title a" style="margin-top:22px;">
+      <span class="dot section-dot"></span>
+      <h2>🕘 Asistencia del personal</h2>
+      <span class="sub">empleados y mensajeros · en el mismo kiosko</span>
+    </div>
+    <div class="flow a">
+      <div class="step">
+        <div class="num">1</div>
+        <h3>Teclea su código</h3>
+        <p>El colaborador ingresa su <b>código de 6 dígitos</b>. El sistema lo identifica contra el padrón.</p>
+        <img src="img/04-asistencia-pad.png" alt="Pad de asistencia">
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <h3>Entrada con foto</h3>
+        <p>La primera marca del día registra la <b>entrada</b> y toma foto. Los <b>mensajeros</b> terminan aquí.</p>
+        <img src="img/06-asistencia-confirmacion.png" alt="Confirmación">
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <h3>Comida y salida</h3>
+        <p>Los empleados marcan <b>salida a comer → regreso → salida</b>, en orden y con salida anticipada permitida.</p>
+        <img src="img/05-asistencia-panel.png" alt="Panel del empleado">
+      </div>
+    </div>
+
+    <!-- ADMIN + REPORTES -->
+    <div class="band">
+      <div class="panel">
+        <h3>Administración y reportes</h3>
+        <ul>
+          <li><b>Padrón de empleados</b>: alta, edición y baja. El <b>código lo genera el sistema</b> (no se captura) y puede cargarse en masa desde otro sistema.</li>
+          <li><b>Reporte de asistencia</b>: entrada, comida y salida por empleado y día, exportable a CSV.</li>
+          <li><b>Bitácora de visitantes</b>: accesos por rango de fechas, con foto y estado, exportable a CSV.</li>
+          <li><b>Configuración</b> y permisos por usuario de WishPOS (VIP, kiosko, reclutadores).</li>
+        </ul>
+      </div>
+      <div class="panel shot"><img src="img/08-admin-empleados.png" alt="Administración de empleados"></div>
+    </div>
+
+    <!-- FEATURES -->
+    <div class="feature-row">
+      <div class="feat"><div class="ic">🔐</div><b>Login WishPOS</b><span>Sin usuarios nuevos: la misma contraseña.</span></div>
+      <div class="feat"><div class="ic">📷</div><b>Foto en caseta</b><span>Visitantes y entrada de personal.</span></div>
+      <div class="feat"><div class="ic">🖥️</div><b>Modo kiosko</b><span>Pantalla táctil, a prueba de errores.</span></div>
+      <div class="feat"><div class="ic">📊</div><b>Reportes CSV</b><span>Visitas y asistencia, listos para Excel.</span></div>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    <span>Celex · Control de Visitas — Infografía del sistema</span>
+    <span class="tags"><span>Visitantes</span><span>Asistencia</span><span>v0.19</span></span>
+  </div>
+
+</div>
+</body>
+</html>

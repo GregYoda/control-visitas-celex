@@ -33,6 +33,8 @@
   .cover .eyebrow{font-size:12px;letter-spacing:.1em;text-transform:uppercase;opacity:.85;}
   .cover h1{margin:0 0 8px;font-size:34px;line-height:1.1;letter-spacing:-.01em;position:relative;z-index:1;}
   .cover p{margin:0;font-size:15px;max-width:60ch;opacity:.92;position:relative;z-index:1;}
+  .cover .ver{display:inline-block;margin-top:16px;font-size:12px;font-weight:700;letter-spacing:.04em;
+    background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.32);border-radius:999px;padding:4px 12px;position:relative;z-index:1;}
 
   h2{font-size:19px;color:var(--navy);margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line);}
   h2 .n{display:inline-block;min-width:26px;color:var(--purple);font-weight:800;}
@@ -53,6 +55,8 @@
   .p-pend{background:#fff3d6;color:#a1720c;} .p-dentro{background:#e3edff;color:#1d4ed8;}
   .p-salida{background:#f1e8ff;color:#7b3fe4;} .p-canc{background:#fde2e2;color:#b3261e;}
   .vip{display:inline-block;font-size:11px;font-weight:800;color:var(--amber-tx);background:#fff3d6;border:1px solid var(--amber-bd);border-radius:999px;padding:1px 8px;}
+  .tag-emp{display:inline-block;font-size:11px;font-weight:800;color:#063e39;background:#9ef0e4;border-radius:999px;padding:1px 9px;}
+  .tag-men{display:inline-block;font-size:11px;font-weight:800;color:#5a3d00;background:#ffd98a;border-radius:999px;padding:1px 9px;}
 
   .callout{border-radius:10px;padding:11px 15px;margin:12px 0;font-size:12.8px;border:1px solid;}
   .callout > b:first-child{display:block;margin-bottom:2px;font-size:12px;letter-spacing:.02em;text-transform:uppercase;}
@@ -60,6 +64,13 @@
   .tip{background:var(--teal-bg);border-color:var(--teal-bd);color:var(--teal-tx);}
 
   .card{border:1px solid var(--line);border-radius:12px;padding:4px 18px 10px;margin:12px 0;break-inside:avoid;}
+
+  /* Figuras (capturas de pantalla) */
+  figure.shot{margin:14px 0 20px;break-inside:avoid;}
+  figure.shot img{width:100%;border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 22px rgba(20,40,80,.12);display:block;}
+  figure.shot figcaption{font-size:11.5px;color:var(--muted);margin-top:7px;text-align:center;}
+  figure.shot.half img{max-width:440px;margin:0 auto;}
+
   footer{margin:34px 0 10px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:11.5px;
     display:flex;justify-content:space-between;gap:12px;}
 
@@ -68,7 +79,7 @@
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .wrap{max-width:none;padding:0;}
     h2{break-after:avoid;} h3{break-after:avoid;}
-    table,.callout,.card,ol,ul{break-inside:avoid;}
+    table,.callout,.card,ol,ul,figure.shot{break-inside:avoid;}
     .cover{break-inside:avoid;}
   }
 </style>
@@ -79,13 +90,15 @@
   <div class="cover">
     <div class="brand"><div class="badge">C</div><div class="eyebrow">Celex · Distribuidor Autorizado Telcel</div></div>
     <h1>Manual de uso<br>Control de Visitas</h1>
-    <p>Registro y control de acceso de visitantes: código de acceso, foto en caseta, código de salida y reportes.</p>
+    <p>Registro y control de acceso de <b>visitantes</b> y de la <b>asistencia del personal</b>: código de acceso, foto en caseta, código de salida y reportes.</p>
+    <span class="ver">Versión del sistema · v0.19</span>
   </div>
 
   <h2><span class="n">1</span> Conceptos clave (léelo primero)</h2>
   <ul>
-    <li><b>Código de acceso</b> <span class="chip">482913</span> — se genera al <b>registrar</b> la visita y se le comparte al visitante (también le llega por correo). Lo teclea en la caseta para registrar su llegada. Sirve <b>una sola vez</b> y solo el <b>día</b> para el que se registró.</li>
-    <li><b>Código de salida</b> <span class="chip">207765</span> — es <b>distinto</b> al de acceso. Se genera <b>cuando la visita entra</b> y aparece en su etiqueta. El visitante lo conserva y lo usa al salir.</li>
+    <li><b>Código de acceso</b> (visitante) <span class="chip">482913</span> — se genera al <b>registrar</b> la visita y se le comparte al visitante (también le llega por correo). Lo teclea en la caseta para registrar su llegada. Sirve <b>una sola vez</b> y solo el <b>día</b> para el que se registró.</li>
+    <li><b>Código de salida</b> (visitante) <span class="chip">207765</span> — es <b>distinto</b> al de acceso. Se genera <b>cuando la visita entra</b> y aparece en su etiqueta. El visitante lo conserva y lo usa al salir.</li>
+    <li><b>Código de asistencia</b> (personal) <span class="chip">483012</span> — código <b>personal y permanente</b> de cada empleado o mensajero. <b>Lo genera el sistema</b> al darlo de alta (no se captura). Con él, el personal registra su asistencia en el kiosko.</li>
   </ul>
   <p><b>Estados de una visita:</b></p>
   <p>
@@ -101,113 +114,134 @@
     <li>Escribe tu <b>contraseña de WishPOS</b> (no se pide usuario) y presiona <b>Entrar</b>.</li>
     <li>Entras al <b>Menú</b>; da clic en <b>Control de Visitas</b> para abrir el módulo.</li>
   </ol>
+  <figure class="shot"><img src="img/01-login.png" alt="Pantalla de inicio de sesión"><figcaption>Inicio de sesión — solo pide la contraseña de WishPOS.</figcaption></figure>
   <div class="callout tip"><b>Sugerencia</b>Es la misma contraseña de WishPOS. El sistema no crea usuarios nuevos.</div>
 
   <h2><span class="n">3</span> El módulo Control de Visitas</h2>
-  <p>Verás hasta cinco tarjetas (la de Configuración solo aparece si tu usuario tiene el permiso correspondiente):</p>
+  <p>Verás las siguientes tarjetas (las de <b>Empleados</b> y <b>Configuración</b> solo aparecen si tu usuario tiene el permiso correspondiente):</p>
+  <figure class="shot"><img src="img/02-menu-modulo.png" alt="Tarjetas del módulo Control de Visitas"><figcaption>Módulo Control de Visitas: registrar, reportes, asistencia, kiosko, empleados y configuración.</figcaption></figure>
   <table>
     <tr><th>Tarjeta</th><th>Para qué sirve</th></tr>
     <tr><td>📝 <b>Registrar visita</b></td><td>Capturar un visitante y generar su código de acceso.</td></tr>
     <tr><td>📋 <b>Mis visitas</b></td><td>Consultar, editar o cancelar las visitas que tú registraste.</td></tr>
-    <tr><td>📊 <b>Reportes / Bitácora</b></td><td>Consultar accesos por fechas y exportar a CSV.</td></tr>
-    <tr><td>🛡️ <b>Área de Acceso</b></td><td>Modo caseta/kiosko (registrar llegada y salida).</td></tr>
+    <tr><td>📊 <b>Reportes / Bitácora</b></td><td>Accesos de visitantes por fechas, con export a CSV.</td></tr>
+    <tr><td>🕘 <b>Reporte de asistencia</b></td><td>Entradas, comidas y salidas del personal por fechas.</td></tr>
+    <tr><td>🛡️ <b>Área de Acceso</b></td><td>Modo caseta/kiosko: visitantes y asistencia de personal.</td></tr>
+    <tr><td>👥 <b>Empleados</b></td><td>Alta y administración del padrón (solo usuarios autorizados).</td></tr>
     <tr><td>⚙️ <b>Configuración</b></td><td>Parámetros del sistema (solo usuarios autorizados).</td></tr>
   </table>
 
   <h2><span class="n">4</span> Registrar una visita</h2>
   <ol>
     <li>En el módulo, entra a <b>Registrar visita</b>.</li>
-    <li>Llena los campos (los marcados con * son obligatorios):
-      <ul>
-        <li>Nombre, Apellido paterno, Apellido materno *</li>
-        <li>Correo electrónico * — a esta dirección le llega el código de acceso.</li>
-        <li>Empresa *, Área a visitar *, Motivo de la visita *</li>
-        <li><b>Observaciones</b> (opcional) — comentarios para que <b>vigilancia</b> los tenga en cuenta al recibir a la visita.</li>
-        <li>Fecha de visita * — el acceso solo se permitirá ese día.</li>
-        <li>Persona que visita (anfitrión) *</li>
-        <li><b>⭐ Marcar como visita VIP</b> — <i>solo aparece si tu usuario está autorizado</i> (ver Configuración).</li>
-        <li><b>¿El visitante trae vehículo?</b> — si lo activas, captura Marca, Modelo y Placas.</li>
-      </ul>
-    </li>
-    <li>Presiona <b>Generar código de acceso</b>.</li>
-    <li>La pantalla muestra el <b>código de 6 dígitos</b> y un resumen. El visitante lo recibe <b>automáticamente por correo</b>; también puedes copiarlo para compartirlo por otro medio.</li>
+    <li>Llena los campos (los marcados con * son obligatorios): Nombre y apellidos *, Correo * (ahí llega el código), Empresa (opcional), Área *, Motivo *, <b>Observaciones</b> (para vigilancia), Fecha de visita *, Anfitrión *, <b>⭐ VIP</b> (si estás autorizado) y <b>vehículo</b> (Marca/Modelo/Placas si aplica).</li>
+    <li>Presiona <b>Generar código de acceso</b>. El visitante lo recibe <b>por correo</b>; también puedes copiarlo.</li>
   </ol>
+  <figure class="shot"><img src="img/10-registro-visita.png" alt="Formulario de registro de visita"><figcaption>Captura de la visita. Empresa es opcional; la fecha define el día válido para el acceso.</figcaption></figure>
   <div class="callout tip"><b>Recuerda</b>El visitante necesita este código <b>el día de su visita</b> para registrar su llegada en la caseta.</div>
 
   <h2><span class="n">5</span> Mis visitas (consultar / editar / cancelar)</h2>
   <p>Muestra la lista de lo que tú registraste, con su estado, foto (si ya entró) y etiqueta <span class="vip">⭐ VIP</span> cuando aplica.</p>
   <ul>
-    <li><b>Editar</b> — solo mientras la visita está <span class="pill p-pend">Pendiente</span>. Cambia lo necesario y <b>Guardar cambios</b>. Una vez que el visitante entró, Editar queda deshabilitado.</li>
-    <li><b>Cancelar esta visita</b> — dentro de la edición (pide confirmación). Solo mientras esté Pendiente; al cancelarla, su código de acceso deja de funcionar.</li>
-    <li><b>Volver sin guardar</b> — sale de la edición sin aplicar cambios.</li>
+    <li><b>Editar</b> — solo mientras la visita está <span class="pill p-pend">Pendiente</span>. Una vez que entró, queda deshabilitado.</li>
+    <li><b>Cancelar esta visita</b> — dentro de la edición (pide confirmación); solo mientras esté Pendiente. Su código de acceso deja de funcionar.</li>
+    <li><b>Volver sin guardar</b> — sale sin aplicar cambios.</li>
   </ul>
 
   <h2><span class="n">6</span> Modo caseta / Área de Acceso</h2>
-  <p>Para el equipo de la caseta. Entra con <b>Área de Acceso → Entrar al kiosko</b>. Verás dos opciones grandes.</p>
+  <p>Entra con <b>Área de Acceso → Entrar al kiosko</b>. La pantalla separa en <b>dos grupos</b> para no confundir al visitante con el personal:</p>
+  <figure class="shot"><img src="img/03-kiosko-home.png" alt="Kiosko de accesos con dos grupos"><figcaption><b>Visitantes</b> (acceso / salida) y <b>Personal Celex</b> (registro de asistencia).</figcaption></figure>
 
+  <h3>6.1 Registrar acceso de un visitante (llegada)</h3>
+  <ol>
+    <li>Toca <b>🔑 Registrar acceso</b>.</li>
+    <li>El visitante teclea su <b>código de acceso de 6 dígitos</b>.</li>
+    <li><b>Confirma identidad</b>: escribe el <b>apellido paterno</b> tal como se registró y presiona <b>Validar</b>.</li>
+    <li><b>Foto</b>: <b>Tomar foto</b> → <b>Usar esta foto</b> (o <b>Repetir foto</b>). Sin cámara, <b>Continuar sin foto</b>.</li>
+    <li>Aparece la <b>etiqueta de acceso</b> con nombre, área, anfitrión, la marca <span class="vip">⭐ VISITA VIP</span> si aplica y el <b>código de salida</b> (a conservar). Se puede <b>Imprimir etiqueta</b>.</li>
+  </ol>
   <div class="card">
-    <h3>6.1 🔑 Registrar acceso (llegada)</h3>
-    <ol>
-      <li>Toca <b>REGISTRAR ACCESO</b>.</li>
-      <li>El visitante teclea su <b>código de acceso de 6 dígitos</b>.</li>
-      <li><b>Confirma identidad</b>: escribe el <b>apellido paterno</b> tal como se registró y presiona <b>Validar</b>.</li>
-      <li><b>Foto</b>: <b>Tomar foto → Usar esta foto</b> (o Repetir). Si no hay cámara, <b>Continuar sin foto</b>.</li>
-      <li>Aparece la <b>etiqueta de acceso</b> con nombre, área, anfitrión, la marca <span class="vip">⭐ VISITA VIP</span> si aplica, y el <b>código de salida</b> a conservar. Se puede <b>Imprimir etiqueta</b>.</li>
-    </ol>
-    <p style="margin:6px 0 2px;"><b>Mensajes posibles al validar:</b></p>
+    <p style="margin:10px 0 4px;"><b>Mensajes posibles al validar:</b></p>
     <ul>
       <li><i>Código no reconocido</i> — mal tecleado o no existe.</li>
-      <li><i>Este código ya fue utilizado</i> — ya se registró el acceso.</li>
+      <li><i>Este código ya fue utilizado</i> — ya se registró el acceso con él.</li>
       <li><i>Esta visita fue cancelada</i> — solicitar apoyo en recepción.</li>
-      <li><i>Esta visita está registrada para el [fecha], no para hoy</i> — el acceso solo vale el día registrado.</li>
+      <li><i>Esta visita está registrada para el [fecha], no para hoy</i> — el acceso solo es válido el día registrado.</li>
       <li><i>Apellido no coincide</i> — hasta <b>3 intentos</b>; tras el tercero se pide apoyo a seguridad/recepción.</li>
     </ul>
   </div>
 
-  <div class="card">
-    <h3>6.2 🚪 Registrar salida</h3>
-    <ol>
-      <li>Toca <b>REGISTRAR SALIDA</b>.</li>
-      <li>El visitante teclea su <b>código de salida</b>.</li>
-      <li>Aparece <b>«¿Eres tú?»</b> con su nombre y hora de entrada:
-        <ul>
-          <li><b>✅ Confirmar salida</b> — registra la salida y muestra el tiempo de estancia.</li>
-          <li><b>❌ No soy yo</b> — regresa para volver a teclear.</li>
-        </ul>
-      </li>
-    </ol>
-  </div>
-
-  <div class="callout warn"><b>Salir del kiosko</b>El botón «‹ Salir del kiosko» <b>cierra la sesión</b> por completo, para no dejar la cuenta abierta en el equipo de la caseta.</div>
-
-  <h2><span class="n">7</span> Reportes / Bitácora</h2>
+  <h3>6.2 Registrar salida de un visitante</h3>
   <ol>
-    <li>Entra a <b>Reportes / Bitácora</b>.</li>
-    <li>Elige el <b>rango de fechas</b> (Desde / Hasta) y presiona <b>Generar</b>.</li>
-    <li>La tabla muestra cada visita: visitante, empresa, área, anfitrión, fecha, <b>estado</b>, registro, acceso, código de salida, salida y duración (y la marca VIP cuando aplica).</li>
-    <li><b>Exportar CSV</b> descarga exactamente lo que ves en pantalla (se abre en Excel).</li>
+    <li>Toca <b>🚪 Registrar salida</b>.</li>
+    <li>El visitante teclea su <b>código de salida</b>.</li>
+    <li>En <b>"¿Eres tú?"</b> confirma con <b>✅ Confirmar salida</b> (muestra el tiempo de estancia) o <b>❌ No soy yo</b>.</li>
   </ol>
 
-  <h2><span class="n">8</span> Configuración (solo usuarios autorizados)</h2>
-  <p>La tarjeta ⚙️ <b>Configuración</b> solo aparece para usuarios con el permiso correspondiente de WishPOS. Permite ajustar:</p>
+  <h3>6.3 Registro de asistencia del personal</h3>
+  <p>Para <b>empleados y mensajeros</b>. Toca <b>🕘 Registro asistencia</b> y teclea el <b>código de asistencia de 6 dígitos</b>.</p>
+  <figure class="shot half"><img src="img/04-asistencia-pad.png" alt="Teclado numérico de asistencia"><figcaption>Pad de asistencia: código personal de 6 dígitos.</figcaption></figure>
+  <p>El sistema identifica a la persona contra el <b>padrón</b>:</p>
+  <ul>
+    <li>Si es su <b>primera marca del día</b>, registra la <b>Entrada</b> y pide una <b>foto</b>. Para los <span class="tag-men">MENSAJERO</span> ahí termina (solo registran entrada).</li>
+    <li>Si ya tiene entrada y es <span class="tag-emp">EMPLEADO</span>, aparece su <b>panel del día</b> con la línea de tiempo y los botones válidos.</li>
+  </ul>
+  <figure class="shot"><img src="img/05-asistencia-panel.png" alt="Panel del empleado con línea de tiempo"><figcaption>Panel del empleado: entrada marcada; el sistema ofrece el siguiente paso y la salida.</figcaption></figure>
+  <p>El empleado registra <b>en orden</b>: <b>Salida a comer → Regreso de comida → Salida</b>. Se permite la <b>salida anticipada</b> (omitir la comida). Cada marca muestra una confirmación:</p>
+  <figure class="shot half"><img src="img/06-asistencia-confirmacion.png" alt="Confirmación de movimiento de asistencia"><figcaption>Confirmación del movimiento registrado, con la hora.</figcaption></figure>
+  <div class="callout tip"><b>Nota</b>El código de asistencia es <b>personal y permanente</b>; no se comparte. Si un empleado lo olvida, se consulta en <b>Empleados</b> (§9).</div>
+
+  <h3>6.4 Salir del kiosko</h3>
+  <p>El botón <b>‹ Salir del kiosko</b> <b>cierra la sesión</b> por completo (para no dejar la cuenta abierta en el equipo de la caseta).</p>
+
+  <h2><span class="n">7</span> Reportes / Bitácora de visitantes</h2>
+  <ol>
+    <li>Entra a <b>Reportes / Bitácora</b>.</li>
+    <li>Elige el <b>rango de fechas</b> (Desde / Hasta) y presiona <b>Generar reporte</b>.</li>
+    <li>La tabla muestra: visitante, empresa, área, anfitrión, fecha, <b>estado</b>, registro, acceso, código de salida, salida y duración.</li>
+    <li><b>Exportar CSV</b> descarga lo que ves en pantalla (abre en Excel).</li>
+  </ol>
+
+  <h2><span class="n">8</span> Reporte de asistencia</h2>
+  <ol>
+    <li>Entra a <b>Reporte de asistencia</b>, elige el <b>rango de fechas</b> y <b>Generar reporte</b>.</li>
+    <li>La tabla muestra, por empleado y día: <b>Entrada, Salida a comer, Regreso de comida y Salida</b>, con el tipo (Empleado / Mensajero).</li>
+    <li><b>Exportar CSV</b> descarga el reporte.</li>
+  </ol>
+  <figure class="shot"><img src="img/07-reporte-asistencia.png" alt="Reporte de asistencia por fechas"><figcaption>Reporte de asistencia: una fila por empleado y día con sus cuatro marcas.</figcaption></figure>
+
+  <h2><span class="n">9</span> Empleados (padrón) — solo usuarios autorizados</h2>
+  <p>La tarjeta 👥 <b>Empleados</b> administra al personal que registra asistencia.</p>
+  <figure class="shot"><img src="img/08-admin-empleados.png" alt="Lista de empleados"><figcaption>Padrón de empleados: código, tipo y estado (activo / inactivo).</figcaption></figure>
+  <ul>
+    <li><b>＋ Nuevo empleado</b> — captura Nombre, Número de empleado, Número de WishPOS (opcional) y Tipo (<span class="tag-emp">Empleado</span> o <span class="tag-men">Mensajero</span>). <b>El código de asistencia lo genera el sistema</b> (6 dígitos) y se muestra al guardar para que se lo comuniques al colaborador.</li>
+    <li><b>Editar</b> — actualiza los datos; el código <b>no cambia</b>.</li>
+    <li><b>Activar / inactivar</b> — un empleado inactivo ya no puede registrar asistencia. Usa <b>"Mostrar inactivos"</b> para verlos.</li>
+  </ul>
+  <figure class="shot half"><img src="img/09-alta-empleado.png" alt="Alta de empleado"><figcaption>Alta de empleado. El código de asistencia es de solo lectura: lo genera el sistema al guardar.</figcaption></figure>
+  <div class="callout warn"><b>Carga desde otro sistema (área de sistemas)</b>Se puede cargar el personal directo en la base de datos con <b>sp_CV_Empleados_Alta</b> (uno, devuelve su código) o <b>sp_CV_Empleados_GenerarCodigosFaltantes</b> (masivo: se insertan los renglones sin código y el procedimiento asigna a cada uno un código único).</div>
+
+  <h2><span class="n">10</span> Configuración (solo usuarios autorizados)</h2>
   <ul>
     <li><b>Ruta de fotos</b> — carpeta del servidor donde se guardan las fotos.</li>
-    <li><b>Prefijo</b> y <b>Dígitos del ID</b> — arman el nombre de cada foto (ej. <span class="chip">CV0000000001.jpg</span>).</li>
-    <li><b>Usuarios que pueden marcar visitas VIP</b> — lista de <b>IDs de usuario</b> (el ID que aparece al iniciar sesión) separados por coma (ej. <span class="chip">100, 205</span>). Solo esos usuarios verán el checkbox VIP. Vacío = nadie.</li>
+    <li><b>Prefijo</b> y <b>Dígitos del ID</b> — arman el nombre de cada foto (ej. <span class="chip">CV0000000001</span>).</li>
+    <li><b>Usuarios VIP / kiosko / reclutadores</b> — listas de <b>IDs de usuario</b> separados por coma.</li>
   </ul>
-  <div class="callout warn"><b>Importante</b>Un cambio en la lista de usuarios VIP surte efecto la <b>próxima vez que esa persona inicie sesión</b>.</div>
+  <div class="callout warn"><b>Importante</b>Un cambio en estas listas surte efecto la <b>próxima vez que esa persona inicie sesión</b>.</div>
 
-  <h2><span class="n">9</span> Preguntas frecuentes</h2>
-  <p><b>¿El visitante puede entrar otro día con el mismo código?</b><br>No. El código de acceso solo funciona el día registrado y una sola vez.</p>
-  <p><b>¿Se puede editar una visita que ya entró?</b><br>No. Solo mientras está <i>Pendiente</i>; después queda como registro histórico.</p>
-  <p><b>No me aparece la opción VIP al registrar.</b><br>Solo la ven los usuarios dados de alta en Configuración → <i>Usuarios que pueden marcar visitas VIP</i>. Pide que agreguen tu ID de usuario y vuelve a iniciar sesión.</p>
-  <p><b>No me aparece la tarjeta de Configuración.</b><br>Requiere un permiso especial de WishPOS; no todos los usuarios lo tienen.</p>
-  <p><b>La cámara no funciona en la caseta.</b><br>La toma de foto requiere que el sistema se abra por <b>HTTPS</b> (sitio seguro). Si no hay cámara, usa <b>Continuar sin foto</b>.</p>
-  <p><b>El visitante no recibió el correo.</b><br>Se envía automáticamente al registrar. Si no llega, verifica que el correo capturado sea correcto y reporta a soporte.</p>
+  <h2><span class="n">11</span> Preguntas frecuentes</h2>
+  <ul>
+    <li><b>¿El visitante puede entrar otro día con el mismo código?</b> No. Solo el día registrado y una sola vez.</li>
+    <li><b>¿Quién define el código de asistencia?</b> Lo <b>genera el sistema</b> al dar de alta; se muestra en el alta y se consulta en <b>Empleados</b>.</li>
+    <li><b>Un mensajero, ¿marca comida y salida?</b> No. Los mensajeros <b>solo registran entrada</b>.</li>
+    <li><b>Un empleado se fue sin marcar la comida, ¿puede marcar salida?</b> Sí, se permite la <b>salida anticipada</b>: basta con haber marcado la entrada.</li>
+    <li><b>La cámara no funciona en la caseta.</b> Requiere abrir el sistema por <b>HTTPS</b>. Sin cámara, usa <b>Continuar sin foto</b>.</li>
+    <li><b>El visitante no recibió el correo.</b> Verifica el correo capturado y reporta a soporte (el envío depende de un proceso del servidor).</li>
+  </ul>
 
   <footer>
-    <span>Control de Visitas · Celex — Manual de uso</span>
-    <span>Uso interno</span>
+    <span>Celex · Control de Visitas — Manual de uso</span>
+    <span>v0.19</span>
   </footer>
 
 </div>
