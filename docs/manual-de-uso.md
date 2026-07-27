@@ -5,7 +5,7 @@ Sistema para registrar y controlar el acceso de **visitantes** y la
 papel por un flujo digital con **código de acceso**, **foto** y **código de
 salida**, todo consultable en reportes.
 
-> Versión del sistema: **v0.19**
+> **Versión del sistema: v0.19** · Actualizado: 27 de julio de 2026
 
 ---
 
