@@ -470,12 +470,13 @@ Ambos frontends muestran un número de versión en el login:
 - **Producción** (`web/index.html`): chip `.app-version` en el topbar del login
   ("Control de Visitas · v0.21").
 - **Capacitación** (`web/demo-capacitacion.html`): etiqueta `.demo-tag`
-  ("VERSIÓN DEMO · CAPACITACIÓN · v0.19").
+  ("VERSIÓN DEMO · CAPACITACIÓN · v0.21").
 
 **Subir la versión en cada cambio** del archivo correspondiente (v0.15, v0.16,
-…) para identificar el build. Producción va en **v0.20** (etiqueta de acceso
-imprimible 3.5"×1.5"); el demo de capacitación queda en **v0.19** (no incluye
-la etiqueta imprimible; se alinea cuando se le agregue).
+…) para identificar el build. Ambas van en **v0.21**: incluye asistencia,
+etiqueta imprimible 3.5"×1.5" y tipo "Entrevista" en la etiqueta. El demo
+(`web/demo-capacitacion.html`) replica la etiqueta imprimible con su backend
+simulado (código de prueba de entrevista: 555000).
 
 ## Etiqueta de acceso imprimible (kiosko)
 

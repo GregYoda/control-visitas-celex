@@ -7,6 +7,7 @@ quién solicitó el cambio.
 ---
 
 ## 2026-07-27
+- **Demo de capacitación alineado a v0.21**: el demo autónomo ya incluye la etiqueta imprimible 3.5"×1.5" (con logo, código de salida, nombre y "Visita a:") y el tipo "Entrevista" cuando aplica; imprime en una sola página. Código de prueba de entrevista en la caseta: 555000. (G. Ramírez)
 - **Etiqueta: tipo "Entrevista" (v0.21)**: la etiqueta ahora muestra "Entrevista" cuando la visita fue marcada como entrevista (y "Visita" en los demás casos). Se expuso `EsEntrevista` en la validación de acceso (SP, API y front). (G. Ramírez)
 - **Etiqueta de acceso imprimible 3.5" × 1.5" (v0.20)**: el botón "Imprimir etiqueta" del kiosko ahora imprime una etiqueta del tamaño físico de la impresora térmica (3.5×1.5 pulgadas), en blanco y negro, con el logo Celex (emblema redondo) embebido, el código de salida grande, el tipo (Visita), la fecha/hora de acceso, el nombre del visitante y a quién visita (anfitrión · área). (G. Ramírez)
 - **Manual de uso e infografía actualizados con imágenes**: el manual (`docs/manual-de-uso.*`) ahora cubre el módulo de asistencia (kiosko agrupado, registro de personal, reporte de asistencia y administración de empleados) e incluye capturas reales del sistema en cada sección. Se creó también una infografía de una hoja (`docs/infografia-control-visitas.*`) que resume los dos flujos —visitantes y asistencia— con imágenes. Ambos en HTML y PDF. (G. Ramírez)
