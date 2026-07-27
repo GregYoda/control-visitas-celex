@@ -429,7 +429,7 @@
   <div class="login-wrap">
     <div class="login-topbar">
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
-      <span class="app-version">Control de Visitas · v0.20</span>
+      <span class="app-version">Control de Visitas · v0.21</span>
     </div>
     <div class="login-center">
       <div class="login-card">
@@ -1609,6 +1609,7 @@ async function submitValidate(){
     const visitaAcceso = {
       id: pendingVisitId, numeroId: v.id, nombre: v.nombre, apellidoP: v.apellidoPaterno, apellidoM: v.apellidoMaterno,
       empresa: v.empresa, area: v.area, anfitrion: v.anfitrion, motivo: v.motivo, observaciones: v.observaciones, esVip: v.esVip,
+      esEntrevista: v.esEntrevista,
       fechaVisita: v.fechaVisita, status: 'accesado', fechaAcceso: new Date(v.fechaAcceso),
       codigoSalida: v.codigoSalida, foto: null, fechaSalida: null
     };

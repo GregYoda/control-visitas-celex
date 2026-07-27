@@ -33,6 +33,7 @@ public record VisitaAccesoInfo(
     string Motivo,
     string? Observaciones,
     bool EsVip,
+    bool EsEntrevista,
     string Anfitrion,
     string Area,
     DateOnly FechaVisita,

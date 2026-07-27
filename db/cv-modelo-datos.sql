@@ -471,7 +471,7 @@ BEGIN
         VALUES (@ID, @ApellidoTecleado, N'Exitoso');
 
         SELECT N'OK' AS Resultado, v.ID, v.Nombre, v.ApellidoPaterno, v.ApellidoMaterno,
-               v.Empresa, v.Motivo, v.Observaciones, v.EsVIP, v.Anfitrion, a.Nombre AS Area, v.FechaVisita,
+               v.Empresa, v.Motivo, v.Observaciones, v.EsVIP, v.EsEntrevista, v.Anfitrion, a.Nombre AS Area, v.FechaVisita,
                v.CodigoSalida, v.FechaAcceso
         FROM dbo.CV_Visitas v
         JOIN dbo.CV_Areas a ON a.ID = v.ID_Area

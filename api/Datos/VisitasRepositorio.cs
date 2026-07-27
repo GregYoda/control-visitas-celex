@@ -90,6 +90,7 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
                 lector.GetString(lector.GetOrdinal("Motivo")),
                 NullSiVacia(lector.GetString(lector.GetOrdinal("Observaciones"))),
                 lector.GetBoolean(lector.GetOrdinal("EsVIP")),
+                lector.GetBoolean(lector.GetOrdinal("EsEntrevista")),
                 lector.GetString(lector.GetOrdinal("Anfitrion")),
                 lector.GetString(lector.GetOrdinal("Area")),
                 DateOnly.FromDateTime(lector.GetDateTime(lector.GetOrdinal("FechaVisita"))),

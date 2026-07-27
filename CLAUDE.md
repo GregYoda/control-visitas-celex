@@ -468,7 +468,7 @@ pedirlo, preguntarlo. Las entradas históricas quedaron atribuidas a
 
 Ambos frontends muestran un número de versión en el login:
 - **Producción** (`web/index.html`): chip `.app-version` en el topbar del login
-  ("Control de Visitas · v0.20").
+  ("Control de Visitas · v0.21").
 - **Capacitación** (`web/demo-capacitacion.html`): etiqueta `.demo-tag`
   ("VERSIÓN DEMO · CAPACITACIÓN · v0.19").
 
