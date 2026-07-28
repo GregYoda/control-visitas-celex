@@ -461,6 +461,43 @@
     .home-group .btn-kiosk-main{ min-width:0; width:100%; }
     .breadcrumb-back{ margin-bottom:12px; }
   }
+
+  /* ---------- Kiosko en pantallas de poco alto (p. ej. touch 15" 1366x768) ----------
+     Compacta espaciados, título, teclas del pad y cámara para que TODO el kiosko
+     quepa sin scroll ni cortar botones. Solo aplica cuando el alto es <= 820px;
+     en monitores grandes el kiosko conserva su tamaño cómodo. */
+  @media (max-height: 820px){
+    .kiosk-top{ padding:10px 24px; }
+    .kiosk-body{ padding:14px 24px; gap:12px; overflow:auto; }
+    .kiosk-body h1{ font-size:22px; }
+    .kiosk-body p.sub{ font-size:13px; margin:0 0 4px; }
+    .btn-kiosk-main{ padding:16px 40px; font-size:18px; min-height:60px; }
+    .btn-kiosk-secondary{ padding:10px 26px; min-height:44px; font-size:14px; }
+    /* Home agrupado (Visitantes | Personal) */
+    .home-groups{ gap:8px; }
+    .home-group{ padding:12px 18px 14px; gap:10px; }
+    .group-buttons{ gap:12px; }
+    .home-group .btn-kiosk-main{ padding:14px 24px; min-width:190px; font-size:16px; }
+    .home-divider span{ width:28px; height:28px; }
+    /* PIN pad */
+    .pin-display{ gap:8px; }
+    .pin-box{ width:40px; height:48px; font-size:22px; }
+    .pin-pad{ grid-template-columns:repeat(3,64px); gap:10px; }
+    .pin-key{ width:64px; height:64px; font-size:22px; }
+    .pin-key-fn{ font-size:15px; }
+    /* Captura / vista previa de foto */
+    .kiosk-video-wrap, .photo-preview-wrap{ width:250px; height:250px; }
+    /* Recuadros y campos */
+    .kiosk-card-box{ padding:20px 28px; }
+    .kiosk-field input{ padding:12px 14px; font-size:20px; }
+    /* Panel del empleado (asistencia) */
+    .emp-card{ padding:16px 22px; }
+    .emp-avatar{ width:48px; height:48px; font-size:20px; }
+    .timeline{ margin:10px 0 2px; }
+    .timeline li{ padding:6px 12px; margin-bottom:4px; }
+    .emp-actions{ gap:8px; margin-top:10px; }
+    .btn-mov{ padding:12px; font-size:16px; }
+  }
 </style>
 </head>
 <body>
@@ -470,7 +507,7 @@
   <div class="login-wrap">
     <div class="login-topbar">
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
-      <span class="app-version">Control de Visitas · v0.23</span>
+      <span class="app-version">Control de Visitas · v0.24</span>
     </div>
     <div class="login-center">
       <div class="login-card">
