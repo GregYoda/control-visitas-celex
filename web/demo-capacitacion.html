@@ -520,7 +520,7 @@
   <div class="login-wrap">
     <div class="login-topbar">
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
-      <span class="demo-tag">VERSIÓN DEMO · CAPACITACIÓN · v0.25</span>
+      <span class="demo-tag">VERSIÓN DEMO · CAPACITACIÓN · v0.26</span>
     </div>
     <div class="login-center">
       <div class="login-card">
@@ -679,6 +679,15 @@
               </select>
             </div>
             <div class="field"><label>Persona que visita (anfitrión)</label><input id="cfgEntrevistaAnfitrion" placeholder="ej. Recepción"></div>
+          </div>
+
+          <div class="content-title" style="font-size:15px;margin:22px 0 4px;">Cierre automático de visitas</div>
+          <p style="color:#8b93a3;font-size:12.5px;margin:0 0 14px;">
+            Cada día, a la hora indicada, el sistema registra la salida de las visitas que quedaron "Dentro" (sin registrar salida) y envía un aviso con el total a los correos indicados. Separa varios correos con punto y coma (;). Deja los correos vacíos para no enviar aviso.
+          </p>
+          <div class="form-grid">
+            <div class="field"><label>Hora del cierre automático</label><input id="cfgHoraCierre" type="time"></div>
+            <div class="field full"><label>Correos para el aviso de cierre</label><input id="cfgCorreosCierre" placeholder="ej. seguridad@celex.com; recepcion@celex.com"></div>
           </div>
 
           <p style="color:#8b93a3;font-size:12.5px;margin:14px 0 18px;">
@@ -1353,7 +1362,8 @@ const CELEX_LOGO_BN = document.getElementById('celexFavicon').href;
     // UsuariosReclutadores: el usuario 400 (contraseña 4000) puede marcar
     // "Entrevista"; los valores Entrevista* son los que se prellenan.
     config: { RutaFotos:'C\\Control de Visitas\\Fotos', PrefijoFoto:'CV', DigitosFoto:'10', UsuariosVIP:'100', UsuariosKiosko:'300',
-      UsuariosReclutadores:'400', EntrevistaEmpresa:'Entrevista', EntrevistaIdArea:'4', EntrevistaMotivo:'Entrevista', EntrevistaFechaModo:'dia', EntrevistaAnfitrion:'Recepción' }
+      UsuariosReclutadores:'400', EntrevistaEmpresa:'Entrevista', EntrevistaIdArea:'4', EntrevistaMotivo:'Entrevista', EntrevistaFechaModo:'dia', EntrevistaAnfitrion:'Recepción',
+      HoraCierreAutomatico:'21:00', CorreosCierreAutomatico:'' }
   };
   window.__demoFotos = {};                 // idNumérico -> data URL de la foto
 
@@ -2823,7 +2833,8 @@ const CONFIG_CAMPOS = {
   RutaFotos: 'cfgRutaFotos', PrefijoFoto: 'cfgPrefijoFoto', DigitosFoto: 'cfgDigitosFoto',
   UsuariosVIP: 'cfgUsuariosVIP', UsuariosKiosko: 'cfgUsuariosKiosko', UsuariosReclutadores: 'cfgUsuariosReclutadores',
   EntrevistaEmpresa: 'cfgEntrevistaEmpresa', EntrevistaIdArea: 'cfgEntrevistaArea', EntrevistaMotivo: 'cfgEntrevistaMotivo',
-  EntrevistaFechaModo: 'cfgEntrevistaFecha', EntrevistaAnfitrion: 'cfgEntrevistaAnfitrion'
+  EntrevistaFechaModo: 'cfgEntrevistaFecha', EntrevistaAnfitrion: 'cfgEntrevistaAnfitrion',
+  HoraCierreAutomatico: 'cfgHoraCierre', CorreosCierreAutomatico: 'cfgCorreosCierre'
 };
 
 async function openConfiguracion(){
@@ -3057,7 +3068,7 @@ wireEnterAvanza(['loginPass'], doLogin);
 wireEnterAvanza(['validateApP'], submitValidate);
 wireEnterAvanza(['repDesde','repHasta'], generarReporte);
 wireEnterAvanza(['repAsisDesde','repAsisHasta'], generarReporteAsistencia);
-wireEnterAvanza(['cfgRutaFotos','cfgPrefijoFoto','cfgDigitosFoto','cfgUsuariosVIP','cfgUsuariosKiosko'], guardarConfiguracion);
+wireEnterAvanza(['cfgRutaFotos','cfgPrefijoFoto','cfgDigitosFoto','cfgUsuariosVIP','cfgUsuariosKiosko','cfgHoraCierre','cfgCorreosCierre'], guardarConfiguracion);
 wireEnterAvanza(
   ['fNombre','fApP','fApM','fCorreo','fEmpresa','fArea','fMotivo','fObservaciones','fFechaVisita','fHoraVisita','fAnfitrion','fMarca','fModelo','fPlacas'],
   generarCodigoAcceso

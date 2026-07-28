@@ -193,7 +193,17 @@ INSERT INTO dbo.CV_Configuracion (Clave, Valor) VALUES
  (N'EntrevistaIdArea', N''),
  (N'EntrevistaMotivo', N'Entrevista'),
  (N'EntrevistaFechaModo', N'dia'),
- (N'EntrevistaAnfitrion', N'Recepción');
+ (N'EntrevistaAnfitrion', N'Recepción'),
+ -- Cierre automático de visitas (proceso nocturno):
+ -- HoraCierreAutomatico: hora 'HH:mm' a la que se ejecuta el cierre (lo dispara
+ --   un agente que corre cada minuto; el SP solo actúa cuando la hora coincide).
+ -- CorreosCierreAutomatico: destinatarios del aviso, separados por ; (o ,).
+ --   Vacío = no se envía correo.
+ -- CierreAutomaticoUltimaFecha: control interno (última fecha en que corrió),
+ --   para no ejecutar/avisar dos veces el mismo día. No se edita en la UI.
+ (N'HoraCierreAutomatico', N'21:00'),
+ (N'CorreosCierreAutomatico', N''),
+ (N'CierreAutomaticoUltimaFecha', N'1900-01-01');
 GO
 
 /* -----------------------------------------------------------------------------
@@ -627,24 +637,104 @@ GO
 
 /* -----------------------------------------------------------------------------
    sp_CV_Visitas_CierreAutomatico
-   Cierre nocturno (lo dispara el Job de SQL Server Agent a las 21:00): registra
-   la salida de TODAS las visitas que quedaron "Dentro" (accesadas y sin salida),
+   Cierre nocturno de visitas que quedaron "Dentro" (accesadas y sin salida),
    incluyendo rezagadas de días anteriores. Marca CierreAutomatico = 1 para
    distinguirlas de una salida registrada por el visitante en la caseta.
-   Es idempotente: al correr de nuevo solo afecta a las que sigan abiertas.
-   Devuelve cuántas cerró (queda en el historial del Job).
+
+   Diseñado para dispararse desde un agente que corre CADA MINUTO: solo ACTÚA
+   cuando la hora actual (HH:mm) coincide con CV_Configuracion.HoraCierreAutomatico,
+   y como máximo UNA VEZ AL DÍA (se apoya en CierreAutomaticoUltimaFecha). En
+   cualquier otro minuto retorna sin hacer nada.
+
+   Al ejecutar, además encola en WM_Correo un aviso con cuántas visitas cerró
+   (y la lista) dirigido a CV_Configuracion.CorreosCierreAutomatico (separados
+   por ; o ,). Si no hay destinatarios configurados, no envía correo.
+
+   @Forzar = 1 omite las validaciones de hora y de "una vez al día" (para
+   ejecutar el cierre manualmente / pruebas). Devuelve cuántas cerró.
    ----------------------------------------------------------------------------- */
 CREATE PROCEDURE dbo.sp_CV_Visitas_CierreAutomatico
+    @Forzar BIT = 0
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE dbo.CV_Visitas
-       SET FechaSalida = GETDATE(),
-           CierreAutomatico = 1,
-           ID_Fecha_Modificacion = GETDATE()
-     WHERE Status = N'Accesado' AND FechaSalida = '1900-01-01';
 
-    SELECT @@ROWCOUNT AS Cerradas;
+    DECLARE @HoraCfg   NVARCHAR(10)  = (SELECT Valor FROM dbo.CV_Configuracion WHERE Clave = N'HoraCierreAutomatico');
+    DECLARE @Correos   NVARCHAR(500) = (SELECT Valor FROM dbo.CV_Configuracion WHERE Clave = N'CorreosCierreAutomatico');
+    DECLARE @UltFecha  NVARCHAR(20)  = (SELECT Valor FROM dbo.CV_Configuracion WHERE Clave = N'CierreAutomaticoUltimaFecha');
+    DECLARE @AhoraHHMM NVARCHAR(5)   = FORMAT(GETDATE(), 'HH:mm');
+    DECLARE @HoyISO    NVARCHAR(10)  = CONVERT(NVARCHAR(10), CAST(GETDATE() AS DATE), 23);  -- yyyy-MM-dd
+
+    SET @HoraCfg = ISNULL(NULLIF(LTRIM(RTRIM(@HoraCfg)), N''), N'21:00');
+
+    -- Si no se fuerza: actuar solo en el minuto configurado y una vez por día.
+    IF @Forzar = 0
+    BEGIN
+        IF @AhoraHHMM <> LEFT(@HoraCfg, 5) RETURN;          -- no es la hora: salir silencioso
+        IF ISNULL(@UltFecha, N'') = @HoyISO RETURN;         -- ya se ejecutó hoy
+    END
+
+    -- Cerrar todas las visitas "Dentro" y capturar cuáles se cerraron.
+    -- (OUTPUT no admite subconsultas, así que se guarda ID_Area y se une a
+    --  CV_Areas al armar el correo.)
+    DECLARE @Cerradas TABLE (ID BIGINT, Nombre NVARCHAR(320), ID_Area INT, FechaAcceso DATETIME);
+
+    UPDATE v
+       SET v.FechaSalida = GETDATE(),
+           v.CierreAutomatico = 1,
+           v.ID_Fecha_Modificacion = GETDATE()
+    OUTPUT inserted.ID,
+           inserted.Nombre + N' ' + inserted.ApellidoPaterno + N' ' + inserted.ApellidoMaterno,
+           inserted.ID_Area,
+           inserted.FechaAcceso
+      INTO @Cerradas
+      FROM dbo.CV_Visitas v
+     WHERE v.Status = N'Accesado' AND v.FechaSalida = '1900-01-01';
+
+    DECLARE @N INT = (SELECT COUNT(*) FROM @Cerradas);
+
+    -- Registrar que ya corrió hoy (para el modo agente cada minuto).
+    UPDATE dbo.CV_Configuracion SET Valor = @HoyISO, ID_Fecha_Modificacion = GETDATE()
+     WHERE Clave = N'CierreAutomaticoUltimaFecha';
+    IF @@ROWCOUNT = 0
+        INSERT INTO dbo.CV_Configuracion (Clave, Valor, ID_Fecha_Modificacion)
+        VALUES (N'CierreAutomaticoUltimaFecha', @HoyISO, GETDATE());
+
+    -- Aviso por correo (si hay destinatarios). dbo.WM_Correo lo envía el Job
+    -- existente; los destinatarios van separados por ; (se normaliza , -> ;).
+    SET @Correos = REPLACE(ISNULL(@Correos, N''), N',', N';');
+    IF LTRIM(RTRIM(@Correos)) <> N''
+    BEGIN
+        DECLARE @Filas NVARCHAR(MAX) = N'';
+        SELECT @Filas = @Filas +
+            N'<tr><td style="padding:4px 12px 4px 0;">' + dbo.fn_CV_EscaparHtml(c.Nombre) + N'</td>' +
+            N'<td style="padding:4px 12px 4px 0;">' + dbo.fn_CV_EscaparHtml(ISNULL(a.Nombre, N'')) + N'</td>' +
+            N'<td style="padding:4px 0;">' + FORMAT(c.FechaAcceso, 'dd/MM/yyyy HH:mm') + N'</td></tr>'
+        FROM @Cerradas c
+        LEFT JOIN dbo.CV_Areas a ON a.ID = c.ID_Area;
+
+        DECLARE @Tabla NVARCHAR(MAX) = CASE WHEN @N = 0 THEN N''
+            ELSE N'<table style="border-collapse:collapse;font-size:14px;margin-top:10px;">' +
+                 N'<tr style="color:#555555;text-align:left;"><th style="padding:4px 12px 4px 0;">Visitante</th><th style="padding:4px 12px 4px 0;">Área</th><th style="padding:4px 0;">Acceso</th></tr>' +
+                 @Filas + N'</table>' END;
+
+        DECLARE @HTML NVARCHAR(MAX) =
+            N'<div style="font-family:Helvetica,Arial,sans-serif;color:#333333;font-size:15px;line-height:1.5;">' +
+            N'<p style="font-weight:700;color:#002f87;">Cierre automático de visitas — Celex</p>' +
+            N'<p>El ' + FORMAT(GETDATE(), 'dd/MM/yyyy') + N' a las ' + FORMAT(GETDATE(), 'HH:mm') +
+            N' se cerraron <b>' + CAST(@N AS NVARCHAR(10)) + N'</b> visita(s) que quedaron <b>Dentro</b> (sin registrar salida).</p>' +
+            @Tabla +
+            N'<p style="color:#888888;font-size:12px;margin-top:16px;">Mensaje automático del sistema Control de Visitas.</p></div>';
+
+        INSERT INTO dbo.WM_Correo
+            (Asunto, Correos, Enviado, EnviadoFechaHr, Enviar, HTML, Usuario_ID, ID_UUID, IDFecha, TipoDocumento)
+        VALUES
+            (N'Cierre automático de visitas (' + CAST(@N AS NVARCHAR(10)) + N') — Celex',
+             @Correos, 'No', '1900-01-01 00:00:00', 'Si', @HTML, 0,
+             CAST(NEWID() AS VARCHAR(128)), GETDATE(), 'CierreAutomatico');
+    END
+
+    SELECT @N AS Cerradas;
 END
 GO
 
