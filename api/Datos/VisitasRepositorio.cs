@@ -13,6 +13,7 @@ public interface IVisitasRepositorio
     Task<List<ReporteFila>> ReporteAsync(DateOnly fechaInicio, DateOnly fechaFin);
     Task<List<MiVisita>> MisVisitasAsync(string registradoPor);
     Task<ActualizarResultado> ActualizarAsync(long id, VisitaActualizarRequest datos);
+    Task<ActualizarResultado> ReenviarCorreoAsync(long id);
     Task<ActualizarResultado> CancelarAsync(long id);
     Task ActualizarFotoRutaAsync(long id, string fotoRuta);
     Task<VisitaInfoFoto?> ObtenerInfoFotoAsync(long id);
@@ -29,9 +30,18 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
     private static readonly DateTime FechaVacia = new(1900, 1, 1);
     private static DateTime? NullSiVacia(DateTime valor) => valor == FechaVacia ? null : valor;
     private static string? NullSiVacia(string valor) => string.IsNullOrEmpty(valor) ? null : valor;
+    // Los códigos son CHAR(6): vienen rellenos con espacios cuando están vacíos.
+    private static string? NullSiVaciaTrim(string valor) => string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
     // FotoRuta es una ruta de disco del servidor -- no se le manda al frontend
     // (ver GET /api/visitas/{id}/foto), solo si existe o no.
     private static bool TieneFoto(string fotoRuta) => !string.IsNullOrEmpty(fotoRuta);
+    // HoraVisita es TIME (informativa) y admite NULL en visitas previas.
+    private static TimeOnly? LeerHora(SqlDataReader lector, string columna)
+    {
+        var ord = lector.GetOrdinal(columna);
+        return lector.IsDBNull(ord) ? null : TimeOnly.FromTimeSpan(lector.GetTimeSpan(ord));
+    }
+    private static object HoraParam(TimeOnly? hora) => hora.HasValue ? hora.Value.ToTimeSpan() : DBNull.Value;
 
     public async Task<VisitaRegistroResponse> RegistrarAsync(VisitaRegistroRequest datos)
     {
@@ -52,6 +62,7 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
         comando.Parameters.AddWithValue("@RegistradoPor", datos.RegistradoPor);
         comando.Parameters.AddWithValue("@ID_Usuario", datos.IdUsuario ?? 0);
         comando.Parameters.Add("@FechaVisita", SqlDbType.Date).Value = datos.FechaVisita.ToDateTime(TimeOnly.MinValue);
+        comando.Parameters.Add("@HoraVisita", SqlDbType.Time).Value = HoraParam(datos.HoraVisita);
         comando.Parameters.AddWithValue("@TraeAuto", datos.TraeAuto);
         comando.Parameters.AddWithValue("@Marca", datos.Marca ?? "");
         comando.Parameters.AddWithValue("@Modelo", datos.Modelo ?? "");
@@ -174,9 +185,11 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
                 lector.GetBoolean(lector.GetOrdinal("EsVIP")),
                 lector.GetString(lector.GetOrdinal("Estado")),
                 DateOnly.FromDateTime(lector.GetDateTime(lector.GetOrdinal("FechaVisita"))),
+                LeerHora(lector, "HoraVisita"),
                 lector.GetDateTime(lector.GetOrdinal("FechaRegistro")),
                 NullSiVacia(lector.GetDateTime(lector.GetOrdinal("FechaAcceso"))),
-                NullSiVacia(lector.GetString(lector.GetOrdinal("CodigoSalida"))),
+                NullSiVaciaTrim(lector.GetString(lector.GetOrdinal("CodigoAcceso"))),
+                NullSiVaciaTrim(lector.GetString(lector.GetOrdinal("CodigoSalida"))),
                 NullSiVacia(lector.GetDateTime(lector.GetOrdinal("FechaSalida"))),
                 lector.IsDBNull(lector.GetOrdinal("MinutosEstancia")) ? null : Convert.ToInt32(lector["MinutosEstancia"]),
                 TieneFoto(lector.GetString(lector.GetOrdinal("FotoRuta")))));
@@ -211,10 +224,13 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
                 lector.GetBoolean(lector.GetOrdinal("EsVIP")),
                 lector.GetString(lector.GetOrdinal("Anfitrion")),
                 DateOnly.FromDateTime(lector.GetDateTime(lector.GetOrdinal("FechaVisita"))),
+                LeerHora(lector, "HoraVisita"),
                 lector.GetBoolean(lector.GetOrdinal("TraeAuto")),
                 NullSiVacia(lector.GetString(lector.GetOrdinal("Marca"))),
                 NullSiVacia(lector.GetString(lector.GetOrdinal("Modelo"))),
                 NullSiVacia(lector.GetString(lector.GetOrdinal("Placas"))),
+                lector.GetString(lector.GetOrdinal("CodigoAcceso")).Trim(),
+                lector.GetString(lector.GetOrdinal("CodigoSalida")).Trim(),
                 lector.GetString(lector.GetOrdinal("Estado")),
                 lector.GetString(lector.GetOrdinal("Status")),
                 lector.GetDateTime(lector.GetOrdinal("FechaRegistro")),
@@ -241,10 +257,23 @@ public class VisitasRepositorio(ISqlConnectionFactory conexionFactory) : IVisita
         comando.Parameters.AddWithValue("@EsVIP", datos.EsVip);
         comando.Parameters.AddWithValue("@Anfitrion", datos.Anfitrion);
         comando.Parameters.Add("@FechaVisita", SqlDbType.Date).Value = datos.FechaVisita.ToDateTime(TimeOnly.MinValue);
+        comando.Parameters.Add("@HoraVisita", SqlDbType.Time).Value = HoraParam(datos.HoraVisita);
         comando.Parameters.AddWithValue("@TraeAuto", datos.TraeAuto);
         comando.Parameters.AddWithValue("@Marca", datos.Marca ?? "");
         comando.Parameters.AddWithValue("@Modelo", datos.Modelo ?? "");
         comando.Parameters.AddWithValue("@Placas", datos.Placas ?? "");
+
+        await conexion.OpenAsync();
+        await using var lector = await comando.ExecuteReaderAsync();
+        await lector.ReadAsync();
+        return new ActualizarResultado(lector.GetString(lector.GetOrdinal("Resultado")));
+    }
+
+    public async Task<ActualizarResultado> ReenviarCorreoAsync(long id)
+    {
+        await using var conexion = conexionFactory.Crear();
+        await using var comando = new SqlCommand("dbo.sp_CV_Visitas_ReenviarCorreo", conexion) { CommandType = CommandType.StoredProcedure };
+        comando.Parameters.AddWithValue("@ID", id);
 
         await conexion.OpenAsync();
         await using var lector = await comando.ExecuteReaderAsync();

@@ -92,6 +92,7 @@ CREATE TABLE dbo.CV_Visitas (
     RegistradoPor           NVARCHAR(100)   NOT NULL,   -- usuario WishPOS que capturó el registro
     ID_Usuario              INT             NOT NULL DEFAULT (0),  -- Usuario_ID (WishPOS) de quien capturó el registro
     FechaVisita             DATE            NOT NULL,   -- día para el que se agendó; el acceso solo se permite ese día
+    HoraVisita              TIME(0)         NULL,       -- hora agendada (informativa; no restringe el acceso). NULL en visitas previas a esta versión
 
     TraeAuto                BIT             NOT NULL DEFAULT (0),
     Marca                   NVARCHAR(50)    NOT NULL DEFAULT (''),
@@ -301,6 +302,7 @@ CREATE PROCEDURE dbo.sp_CV_Visitas_Registrar
     @RegistradoPor      NVARCHAR(100),
     @ID_Usuario         INT             = 0,   -- Usuario_ID (WishPOS) de quien registra
     @FechaVisita        DATE,
+    @HoraVisita         TIME(0)         = NULL,   -- hora agendada (informativa)
     @TraeAuto           BIT             = 0,
     @Marca              NVARCHAR(50)    = '',
     @Modelo             NVARCHAR(50)    = '',
@@ -335,23 +337,60 @@ BEGIN
 
     INSERT INTO dbo.CV_Visitas
         (UUID, CodigoAcceso, Nombre, ApellidoPaterno, ApellidoMaterno, Correo, Empresa, ID_Area, Motivo, Observaciones, EsVIP, EsEntrevista,
-         Anfitrion, RegistradoPor, ID_Usuario, FechaVisita, TraeAuto, Marca, Modelo, Placas)
+         Anfitrion, RegistradoPor, ID_Usuario, FechaVisita, HoraVisita, TraeAuto, Marca, Modelo, Placas)
     VALUES
         (@NuevoUUID, @CodigoAcceso, @Nombre, @ApellidoPaterno, @ApellidoMaterno, @Correo, @Empresa, @ID_Area, @Motivo, @Observaciones, @EsVIP, @EsEntrevista,
-         @Anfitrion, @RegistradoPor, @ID_Usuario, @FechaVisita, @TraeAuto, @Marca, @Modelo, @Placas);
+         @Anfitrion, @RegistradoPor, @ID_Usuario, @FechaVisita, @HoraVisita, @TraeAuto, @Marca, @Modelo, @Placas);
 
-    -- Capturar el ID de la visita AQUÍ, antes del INSERT a WM_Correo. Si se
-    -- deja el SCOPE_IDENTITY() para el final, devolvería el ID de WM_Correo
-    -- (el último insert del scope), no el de la visita.
+    -- Capturar el ID de la visita AQUÍ, antes de encolar el correo.
     DECLARE @NuevoId BIGINT = SCOPE_IDENTITY();
 
-    -- Correo de confirmación al visitante: se encola en WM_Correo, el
-    -- SQL Server Agent Job existente lo envía (revisa cada minuto).
-    -- Nota: se construye en NVARCHAR y se convierte a VARCHAR (tipo real de
-    -- WM_Correo) hasta el final -- concatenar literales sin N'' aquí
-    -- corrompe los acentos al pasar por el driver de sqlcmd/ODBC.
-    -- Textos que cambian según sea Visita o Entrevista.
-    DECLARE @EsVisita BIT = CASE WHEN @EsEntrevista = 1 THEN 0 ELSE 1 END;
+    -- Correo de confirmación al visitante: se arma y se encola en un SP
+    -- compartido (misma plantilla para el registro y para el reenvío desde
+    -- la edición). Ver dbo.sp_CV_Visitas_EncolarCorreo.
+    EXEC dbo.sp_CV_Visitas_EncolarCorreo @ID = @NuevoId;
+
+    SELECT @NuevoId AS ID, @NuevoUUID AS UUID, @CodigoAcceso AS CodigoAcceso;
+END
+GO
+
+/* -----------------------------------------------------------------------------
+   sp_CV_Visitas_EncolarCorreo
+   Arma el correo de confirmación (formato Celular Express) para una visita ya
+   registrada y lo encola en WM_Correo. Fuente única de verdad del correo: lo
+   usan tanto el registro (sp_CV_Visitas_Registrar) como el reenvío desde la
+   edición (sp_CV_Visitas_ReenviarCorreo). Los textos cambian según sea Visita
+   o Entrevista. No devuelve result set (para no interferir con el SELECT final
+   del SP que lo invoca).
+
+   Nota: el HTML se construye en NVARCHAR con literales N'' y se convierte a
+   VARCHAR (tipo real de WM_Correo) al insertar; concatenar sin N'' corrompe los
+   acentos al pasar por el driver de sqlcmd/ODBC.
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Visitas_EncolarCorreo
+    @ID BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Nombre NVARCHAR(100), @ApellidoPaterno NVARCHAR(100), @ApellidoMaterno NVARCHAR(100),
+            @Correo NVARCHAR(150), @Empresa NVARCHAR(150), @Motivo NVARCHAR(300), @Anfitrion NVARCHAR(100),
+            @Area NVARCHAR(100), @FechaVisita DATE, @HoraVisita TIME(0),
+            @TraeAuto BIT, @Marca NVARCHAR(50), @Modelo NVARCHAR(50), @Placas NVARCHAR(20),
+            @EsEntrevista BIT, @CodigoAcceso CHAR(6), @UUID UNIQUEIDENTIFIER, @ID_Usuario INT;
+
+    SELECT
+        @Nombre = v.Nombre, @ApellidoPaterno = v.ApellidoPaterno, @ApellidoMaterno = v.ApellidoMaterno,
+        @Correo = v.Correo, @Empresa = v.Empresa, @Motivo = v.Motivo, @Anfitrion = v.Anfitrion,
+        @Area = a.Nombre, @FechaVisita = v.FechaVisita, @HoraVisita = v.HoraVisita,
+        @TraeAuto = v.TraeAuto, @Marca = v.Marca, @Modelo = v.Modelo, @Placas = v.Placas,
+        @EsEntrevista = v.EsEntrevista, @CodigoAcceso = v.CodigoAcceso, @UUID = v.UUID, @ID_Usuario = v.ID_Usuario
+    FROM dbo.CV_Visitas v
+    JOIN dbo.CV_Areas a ON a.ID = v.ID_Area
+    WHERE v.ID = @ID;
+
+    IF @@ROWCOUNT = 0 RETURN;   -- visita inexistente: nada que encolar
+
     DECLARE @TipoDoc  VARCHAR(20)  = CASE WHEN @EsEntrevista = 1 THEN 'Entrevista' ELSE 'Visita' END;
     DECLARE @Asunto   NVARCHAR(150) = CASE WHEN @EsEntrevista = 1 THEN N'Confirmación de tu entrevista en Celex' ELSE N'Confirmación de tu visita a Celex' END;
     DECLARE @Intro    NVARCHAR(600) = CASE WHEN @EsEntrevista = 1
@@ -364,6 +403,9 @@ BEGIN
     DECLARE @LS NVARCHAR(200) = N'padding:5px 12px 5px 0;color:#555555;font-size:14px;vertical-align:top;white-space:nowrap;';
     DECLARE @VS NVARCHAR(200) = N'padding:5px 0;font-size:14px;font-weight:700;color:#002f87;';
 
+    -- Fila de hora: solo si la visita tiene hora (las previas a esta versión son NULL).
+    DECLARE @FilaHora NVARCHAR(MAX) = CASE WHEN @HoraVisita IS NOT NULL
+        THEN N'<tr><td style="' + @LS + N'">Hora:</td><td style="' + @VS + N'">' + FORMAT(CAST(@HoraVisita AS DATETIME), 'HH:mm') + N'</td></tr>' ELSE N'' END;
     DECLARE @FilaEmpresa NVARCHAR(MAX) = CASE WHEN @Empresa <> N''
         THEN N'<tr><td style="' + @LS + N'">Empresa:</td><td style="' + @VS + N'">' + dbo.fn_CV_EscaparHtml(@Empresa) + N'</td></tr>' ELSE N'' END;
     DECLARE @FilaVehiculo NVARCHAR(MAX) = CASE WHEN @TraeAuto = 1
@@ -372,9 +414,6 @@ BEGIN
     DECLARE @Logo1 NVARCHAR(300) = N'https://cdn.shopify.com/s/files/1/0877/3052/files/LogoCelularExpress.png?v=1688569794';
     DECLARE @Logo2 NVARCHAR(300) = N'https://cdn.shopify.com/s/files/1/0877/3052/files/LogoDistribuidorAutorizado.png?v=1688569794';
 
-    -- Correo con formato tipo Celular Express (encabezado con logos, azul Telcel
-    -- #002f87 y pie de soporte). Se construye en NVARCHAR con literales N'' y se
-    -- convierte a VARCHAR al insertar (concatenar sin N'' corrompe los acentos).
     DECLARE @HTML NVARCHAR(MAX) =
         N'<!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
         N'<body style="margin:0;padding:0;background:#ffffff;font-family:Helvetica,Arial,sans-serif;">' +
@@ -398,8 +437,10 @@ BEGIN
         -- Datos
         N'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0 4px 0;">' +
         N'<tr><td style="' + @LS + N'">' + @LblFecha + N':</td><td style="' + @VS + N'">' + FORMAT(@FechaVisita, 'dd/MM/yyyy') + N'</td></tr>' +
+        @FilaHora +
         @FilaEmpresa +
         N'<tr><td style="' + @LS + N'">Persona que visita:</td><td style="' + @VS + N'">' + dbo.fn_CV_EscaparHtml(@Anfitrion) + N'</td></tr>' +
+        N'<tr><td style="' + @LS + N'">Área que visita:</td><td style="' + @VS + N'">' + dbo.fn_CV_EscaparHtml(@Area) + N'</td></tr>' +
         N'<tr><td style="' + @LS + N'">Motivo:</td><td style="' + @VS + N'">' + dbo.fn_CV_EscaparHtml(@Motivo) + N'</td></tr>' +
         @FilaVehiculo +
         N'</table>' +
@@ -419,9 +460,27 @@ BEGIN
         (Asunto, Correos, Enviado, EnviadoFechaHr, Enviar, HTML, Usuario_ID, ID_UUID, IDFecha, TipoDocumento)
     VALUES
         (@Asunto, @Correo, 'No', '1900-01-01 00:00:00', 'Si', @HTML, @ID_Usuario,
-         CAST(@NuevoUUID AS VARCHAR(128)), GETDATE(), @TipoDoc);
+         CAST(@UUID AS VARCHAR(128)), GETDATE(), @TipoDoc);
+END
+GO
 
-    SELECT @NuevoId AS ID, @NuevoUUID AS UUID, @CodigoAcceso AS CodigoAcceso;
+/* -----------------------------------------------------------------------------
+   sp_CV_Visitas_ReenviarCorreo
+   Reencola el correo de confirmación de una visita existente (con sus datos
+   actuales). Lo usa el botón "Enviar correo con los cambios" de la edición.
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Visitas_ReenviarCorreo
+    @ID BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF NOT EXISTS (SELECT 1 FROM dbo.CV_Visitas WHERE ID = @ID)
+    BEGIN
+        SELECT N'NO_ENCONTRADA' AS Resultado;
+        RETURN;
+    END
+    EXEC dbo.sp_CV_Visitas_EncolarCorreo @ID = @ID;
+    SELECT N'OK' AS Resultado;
 END
 GO
 
@@ -584,7 +643,7 @@ BEGIN
             WHEN v.FechaSalida = '1900-01-01'  THEN N'Dentro'
             ELSE N'Salida registrada'
         END AS Estado,
-        v.FechaVisita, v.FechaRegistro, v.FechaAcceso, v.CodigoSalida, v.FechaSalida,
+        v.FechaVisita, v.HoraVisita, v.FechaRegistro, v.FechaAcceso, v.CodigoAcceso, v.CodigoSalida, v.FechaSalida,
         CASE WHEN v.FechaSalida = '1900-01-01' THEN NULL
              ELSE DATEDIFF(MINUTE, v.FechaAcceso, v.FechaSalida) END AS MinutosEstancia,
         v.FotoRuta
@@ -608,8 +667,9 @@ BEGIN
     SET NOCOUNT ON;
     SELECT
         v.ID, v.UUID, v.Nombre, v.ApellidoPaterno, v.ApellidoMaterno, v.Correo, v.Empresa,
-        v.ID_Area, a.Nombre AS Area, v.Motivo, v.Observaciones, v.EsVIP, v.Anfitrion, v.FechaVisita,
+        v.ID_Area, a.Nombre AS Area, v.Motivo, v.Observaciones, v.EsVIP, v.Anfitrion, v.FechaVisita, v.HoraVisita,
         v.TraeAuto, v.Marca, v.Modelo, v.Placas,
+        v.CodigoAcceso, v.CodigoSalida,
         CASE
             WHEN v.Status = N'Cancelada'       THEN N'Cancelada'
             WHEN v.Status = N'Pendiente'       THEN N'Pendiente'
@@ -642,6 +702,7 @@ CREATE PROCEDURE dbo.sp_CV_Visitas_Actualizar
     @Observaciones      NVARCHAR(500)   = '',
     @Anfitrion          NVARCHAR(100),
     @FechaVisita        DATE,
+    @HoraVisita         TIME(0)         = NULL,   -- hora agendada (informativa)
     @TraeAuto           BIT             = 0,
     @Marca              NVARCHAR(50)    = '',
     @Modelo             NVARCHAR(50)    = '',
@@ -675,7 +736,7 @@ BEGIN
        SET Nombre = @Nombre, ApellidoPaterno = @ApellidoPaterno, ApellidoMaterno = @ApellidoMaterno,
            Correo = @Correo, Empresa = @Empresa, ID_Area = @ID_Area, Motivo = @Motivo,
            Observaciones = @Observaciones, EsVIP = @EsVIP,
-           Anfitrion = @Anfitrion, FechaVisita = @FechaVisita, TraeAuto = @TraeAuto,
+           Anfitrion = @Anfitrion, FechaVisita = @FechaVisita, HoraVisita = @HoraVisita, TraeAuto = @TraeAuto,
            Marca = @Marca, Modelo = @Modelo, Placas = @Placas,
            ID_Fecha_Modificacion = GETDATE()
      WHERE ID = @ID;
