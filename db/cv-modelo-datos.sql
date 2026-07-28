@@ -106,6 +106,7 @@ CREATE TABLE dbo.CV_Visitas (
 
     CodigoSalida            CHAR(6)         NOT NULL DEFAULT (''),  -- 6 dígitos, único entre visitas "dentro" el mismo día
     FechaSalida             DATETIME        NOT NULL DEFAULT ('1900-01-01 00:00:00'),
+    CierreAutomatico        BIT             NOT NULL DEFAULT (0),   -- 1 si la salida la puso el cierre automático de las 21:00 (no el visitante en caseta)
 
     ID_Fecha_Modificacion   DATETIME        NOT NULL DEFAULT ('1900-01-01 00:00:00'),
 
@@ -625,6 +626,29 @@ END
 GO
 
 /* -----------------------------------------------------------------------------
+   sp_CV_Visitas_CierreAutomatico
+   Cierre nocturno (lo dispara el Job de SQL Server Agent a las 21:00): registra
+   la salida de TODAS las visitas que quedaron "Dentro" (accesadas y sin salida),
+   incluyendo rezagadas de días anteriores. Marca CierreAutomatico = 1 para
+   distinguirlas de una salida registrada por el visitante en la caseta.
+   Es idempotente: al correr de nuevo solo afecta a las que sigan abiertas.
+   Devuelve cuántas cerró (queda en el historial del Job).
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Visitas_CierreAutomatico
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.CV_Visitas
+       SET FechaSalida = GETDATE(),
+           CierreAutomatico = 1,
+           ID_Fecha_Modificacion = GETDATE()
+     WHERE Status = N'Accesado' AND FechaSalida = '1900-01-01';
+
+    SELECT @@ROWCOUNT AS Cerradas;
+END
+GO
+
+/* -----------------------------------------------------------------------------
    sp_CV_Visitas_Reporte
    Reporte / bitácora por rango de fechas para los administradores.
    ----------------------------------------------------------------------------- */
@@ -641,6 +665,7 @@ BEGIN
             WHEN v.Status = N'Cancelada'       THEN N'Cancelada'
             WHEN v.Status = N'Pendiente'       THEN N'Pendiente'
             WHEN v.FechaSalida = '1900-01-01'  THEN N'Dentro'
+            WHEN v.CierreAutomatico = 1        THEN N'Cierre automático'
             ELSE N'Salida registrada'
         END AS Estado,
         v.FechaVisita, v.HoraVisita, v.FechaRegistro, v.FechaAcceso, v.CodigoAcceso, v.CodigoSalida, v.FechaSalida,
@@ -674,6 +699,7 @@ BEGIN
             WHEN v.Status = N'Cancelada'       THEN N'Cancelada'
             WHEN v.Status = N'Pendiente'       THEN N'Pendiente'
             WHEN v.FechaSalida = '1900-01-01'  THEN N'Dentro'
+            WHEN v.CierreAutomatico = 1        THEN N'Cierre automático'
             ELSE N'Salida registrada'
         END AS Estado,
         v.Status, v.FechaRegistro, v.FechaAcceso, v.FotoRuta

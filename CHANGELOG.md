@@ -7,6 +7,7 @@ quién solicitó el cambio.
 ---
 
 ## 2026-07-28
+- **Cierre automático de visitas "Dentro" a las 21:00 (v0.26)**: proceso nocturno que registra la salida de todas las visitas que quedaron accesadas y sin salida (incluye rezagadas de días anteriores). Se implementó con un **Job de SQL Server Agent** (mismo mecanismo que el correo) que a las 21:00 ejecuta el nuevo SP `sp_CV_Visitas_CierreAutomatico`; pone `FechaSalida` con la hora real de ejecución y marca la nueva columna `CV_Visitas.CierreAutomatico=1` para distinguirlas de una salida registrada por el visitante (en Reportes/Mis Visitas se muestran como **"Cierre automático"**). El SP es idempotente. Migración `db/migraciones/2026-07-28-cierre-automatico-visitas.sql` y script del Job `db/agent-job-cierre-automatico.sql` (correr una vez en producción; requiere SQL Server Agent, no Express). Verificado con SQL (cierra, marca, idempotente, estado en reporte). (G. Ramírez)
 - **Hora de visita, códigos en Mis Visitas, reenviar correo, área en el correo y retroalimentación visual (v0.25)**: cinco mejoras al flujo de visitas:
   1. **Hora de visita**: nuevo campo de hora (junto a la fecha) al registrar y editar; es informativa (no restringe el acceso, que sigue permitido todo el día) y se muestra en Mis Visitas, Reportes (y su CSV) y en el correo. Se agregó la columna `CV_Visitas.HoraVisita` (NULL en visitas previas).
   2. **Códigos en Mis Visitas**: la tabla ahora muestra el **Código de ingreso** y el **Código de salida** (este último aparece cuando el visitante ya ingresó).
