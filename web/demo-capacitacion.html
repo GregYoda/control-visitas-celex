@@ -442,6 +442,17 @@
   .btn-editar:disabled{background:#d5d8de;color:#9099a8;cursor:not-allowed;}
 
   /* ============ Responsive (móvil / tablet) — al final para ganar a las reglas base ============ */
+  /* ---------- Toast + estado "procesando" ---------- */
+  #toastHost{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;}
+  .toast{min-width:220px;max-width:90vw;padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;transform:translateY(-8px);transition:opacity .2s,transform .2s;}
+  .toast.show{opacity:1;transform:translateY(0);}
+  .toast.ok{background:#178f6f;}
+  .toast.err{background:#c0392b;}
+  .toast.info{background:#334155;}
+  .spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:cvspin .7s linear infinite;vertical-align:-2px;margin-right:7px;}
+  button.busy{opacity:.75;cursor:progress;}
+  @keyframes cvspin{to{transform:rotate(360deg);}}
+
   @media (max-width: 640px){
     .topbar{ padding:12px 16px; flex-wrap:wrap; gap:8px 10px; }
     .topbar-right{ gap:8px; }
@@ -509,7 +520,7 @@
   <div class="login-wrap">
     <div class="login-topbar">
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
-      <span class="demo-tag">VERSIÓN DEMO · CAPACITACIÓN · v0.24</span>
+      <span class="demo-tag">VERSIÓN DEMO · CAPACITACIÓN · v0.25</span>
     </div>
     <div class="login-center">
       <div class="login-card">
@@ -778,6 +789,7 @@
             <div class="field full"><label class="required">Motivo de la visita</label><input id="fMotivo" placeholder="ej. Reunión de proveedores"></div>
             <div class="field full"><label>Observaciones (opcional)</label><input id="fObservaciones" placeholder="Comentarios para el personal de vigilancia al recibir la visita"></div>
             <div class="field"><label class="required">Fecha de visita</label><input id="fFechaVisita" type="date"></div>
+            <div class="field"><label class="required">Hora de visita</label><input id="fHoraVisita" type="time"></div>
             <div class="field"><label class="required">Persona que visita (anfitrión)</label><input id="fAnfitrion"></div>
 
             <div class="toggle-row" id="fVipRow" style="display:none;">
@@ -796,7 +808,7 @@
           </div>
           <div class="login-error" id="regError"></div>
           <div class="form-actions">
-            <button class="btn-primary" onclick="generarCodigoAcceso()">Generar código de acceso</button>
+            <button class="btn-primary" onclick="generarCodigoAcceso(this)">Generar código de acceso</button>
             <button class="btn-secondary" onclick="showScreen('screen-visitas-home')">Cancelar</button>
           </div>
         </div>
@@ -908,7 +920,7 @@
       <div class="kiosk-field">
         <input id="validateApP" placeholder="Apellido paterno" autocomplete="off">
       </div>
-      <button class="btn-kiosk-main" style="padding:18px 44px;font-size:17px;" onclick="submitValidate()">Validar</button>
+      <button class="btn-kiosk-main" style="padding:18px 44px;font-size:17px;" onclick="submitValidate(this)">Validar</button>
       <div class="kiosk-msg err" id="validateMsg"></div>
       <button class="btn-kiosk-secondary" onclick="showScreen('screen-kiosk-home')">‹ Cancelar</button>
     </div>
@@ -1011,7 +1023,7 @@
       <div class="badge-card" id="salidaConfirmCard" style="max-width:380px;"><!-- filled by JS --></div>
       <div style="display:flex;gap:12px;">
         <button class="btn-kiosk-secondary" onclick="rechazarSalidaConfirm()">❌ No soy yo</button>
-        <button class="btn-kiosk-main" style="padding:16px 30px;font-size:15px;" onclick="confirmarSalida()">✅ Confirmar salida</button>
+        <button class="btn-kiosk-main" style="padding:16px 30px;font-size:15px;" onclick="confirmarSalida(this)">✅ Confirmar salida</button>
       </div>
     </div>
   </div>
@@ -1255,6 +1267,7 @@
             <div class="field full"><label class="required">Motivo de la visita</label><input id="eMotivo" placeholder="ej. Reunión de proveedores"></div>
             <div class="field full"><label>Observaciones (opcional)</label><input id="eObservaciones" placeholder="Comentarios para el personal de vigilancia al recibir la visita"></div>
             <div class="field"><label class="required">Fecha de visita</label><input id="eFechaVisita" type="date"></div>
+            <div class="field"><label class="required">Hora de visita</label><input id="eHoraVisita" type="time"></div>
             <div class="field"><label class="required">Persona que visita (anfitrión)</label><input id="eAnfitrion"></div>
             <div class="toggle-row" id="eVipRow" style="display:none;">
               <label class="switch"><input type="checkbox" id="eEsVip"><span class="slider"></span></label>
@@ -1272,10 +1285,11 @@
           </div>
           <div class="login-error" id="editError"></div>
           <div class="form-actions">
-            <button class="btn-primary" onclick="guardarEdicion()">Guardar cambios</button>
+            <button class="btn-primary" onclick="guardarEdicion(this)">Guardar cambios</button>
             <button class="btn-secondary" onclick="showScreen('screen-mis-visitas')">Volver sin guardar</button>
+            <button class="btn-secondary" id="btnReenviarCorreo" onclick="reenviarCorreo(this)" disabled title="Guarda los cambios para poder reenviar el correo">✉️ Enviar correo con los cambios</button>
           </div>
-          <button class="btn-danger" onclick="cancelarVisita()">Cancelar esta visita</button>
+          <button class="btn-danger" onclick="cancelarVisita(this)">Cancelar esta visita</button>
         </div>
       </div>
     </div>
@@ -1359,13 +1373,15 @@ const CELEX_LOGO_BN = document.getElementById('celexFavicon').href;
   function miVisita(v){
     return { id:v.id, uuid:v.uuid, nombre:v.nombre, apellidoPaterno:v.apellidoPaterno, apellidoMaterno:v.apellidoMaterno,
       correo:v.correo, empresa:v.empresa, idArea:v.idArea, area:areaNombre(v.idArea), motivo:v.motivo, observaciones:v.observaciones||null,
-      anfitrion:v.anfitrion, fechaVisita:v.fechaVisita, traeAuto:v.traeAuto, marca:v.marca||null, modelo:v.modelo||null, placas:v.placas||null,
+      anfitrion:v.anfitrion, fechaVisita:v.fechaVisita, horaVisita:v.horaVisita||null, traeAuto:v.traeAuto, marca:v.marca||null, modelo:v.modelo||null, placas:v.placas||null,
+      codigoAcceso:v.codigoAcceso||null, codigoSalida:v.codigoSalida||null,
       esVip:!!v.esVip, estado:estadoDe(v), status:v.status, fechaRegistro:v.fechaRegistro, fechaAcceso:v.fechaAcceso||null, tieneFoto:!!window.__demoFotos[v.id] };
   }
   function reporteFila(v){
     return { id:v.id, nombre:v.nombre, apellidoPaterno:v.apellidoPaterno, apellidoMaterno:v.apellidoMaterno, empresa:v.empresa,
       area:areaNombre(v.idArea), anfitrion:v.anfitrion, motivo:v.motivo, observaciones:v.observaciones||null, estado:estadoDe(v),
-      esVip:!!v.esVip, fechaVisita:v.fechaVisita, fechaRegistro:v.fechaRegistro, fechaAcceso:v.fechaAcceso||null, codigoSalida:v.codigoSalida||null,
+      esVip:!!v.esVip, fechaVisita:v.fechaVisita, horaVisita:v.horaVisita||null, fechaRegistro:v.fechaRegistro, fechaAcceso:v.fechaAcceso||null,
+      codigoAcceso:v.codigoAcceso||null, codigoSalida:v.codigoSalida||null,
       fechaSalida:v.fechaSalida||null, minutosEstancia: v.fechaSalida ? Math.round((new Date(v.fechaSalida)-new Date(v.fechaAcceso))/60000) : null,
       tieneFoto:!!window.__demoFotos[v.id] };
   }
@@ -1391,23 +1407,23 @@ const CELEX_LOGO_BN = document.getElementById('celexFavicon').href;
     // 1) Pendiente: código de acceso conocido para probar la caseta de inmediato.
     seed({ codigoAcceso:'123456', nombre:'María', apellidoPaterno:'García', apellidoMaterno:'Ruiz', correo:'maria.garcia@example.com',
       empresa:'Proveedora del Norte S.A.', idArea:5, motivo:'Reunión comercial', observaciones:'Trae identificación oficial.', esVip:true,
-      anfitrion:'demo', registradoPor:'demo', idUsuario:100, fechaVisita:h, traeAuto:false, marca:'', modelo:'', placas:'',
+      anfitrion:'demo', registradoPor:'demo', idUsuario:100, fechaVisita:h, horaVisita:'09:30', traeAuto:false, marca:'', modelo:'', placas:'',
       status:'Pendiente', fechaRegistro:ahoraMenos(90), fechaAcceso:null, codigoSalida:'', fechaSalida:null });
     // 1b) Pendiente tipo ENTREVISTA (para ver la etiqueta con "Entrevista"). Código 555000.
     seed({ codigoAcceso:'555000', nombre:'Luis', apellidoPaterno:'Hernández', apellidoMaterno:'Gómez', correo:'luis.h@example.com',
       empresa:'', idArea:4, motivo:'Entrevista', observaciones:'', esVip:false, esEntrevista:true,
-      anfitrion:'Reclutamiento', registradoPor:'demo', idUsuario:100, fechaVisita:h, traeAuto:false, marca:'', modelo:'', placas:'',
+      anfitrion:'Reclutamiento', registradoPor:'demo', idUsuario:100, fechaVisita:h, horaVisita:'09:30', traeAuto:false, marca:'', modelo:'', placas:'',
       status:'Pendiente', fechaRegistro:ahoraMenos(60), fechaAcceso:null, codigoSalida:'', fechaSalida:null });
     // 2) Dentro (ya accesó, con foto).
     const dentro = seed({ codigoAcceso:'654321', nombre:'Carlos', apellidoPaterno:'Hernández', apellidoMaterno:'Díaz', correo:'carlos.h@example.com',
       empresa:'Servicios TI Integrales', idArea:2, motivo:'Mantenimiento de equipo', observaciones:'',
-      anfitrion:'demo', registradoPor:'demo', idUsuario:100, fechaVisita:h, traeAuto:true, marca:'Nissan', modelo:'Sentra', placas:'JAL-12-34',
+      anfitrion:'demo', registradoPor:'demo', idUsuario:100, fechaVisita:h, horaVisita:'09:30', traeAuto:true, marca:'Nissan', modelo:'Sentra', placas:'JAL-12-34',
       status:'Accesado', fechaRegistro:ahoraMenos(150), fechaAcceso:ahoraMenos(120), codigoSalida:'778899', fechaSalida:null });
     window.__demoFotos[dentro.id] = avatarEjemplo('CH', '#3f6fe0');
     // 3) Salida registrada (visita completa del día).
     const salio = seed({ codigoAcceso:'246810', nombre:'Ana', apellidoPaterno:'López', apellidoMaterno:'Mora', correo:'ana.lopez@example.com',
       empresa:'Distribuciones del Centro', idArea:6, motivo:'Entrega de mercancía', observaciones:'',
-      anfitrion:'demo', registradoPor:'demo', idUsuario:100, fechaVisita:h, traeAuto:false, marca:'', modelo:'', placas:'',
+      anfitrion:'demo', registradoPor:'demo', idUsuario:100, fechaVisita:h, horaVisita:'09:30', traeAuto:false, marca:'', modelo:'', placas:'',
       status:'Accesado', fechaRegistro:ahoraMenos(300), fechaAcceso:ahoraMenos(280), codigoSalida:'112233', fechaSalida:ahoraMenos(60) });
     window.__demoFotos[salio.id] = avatarEjemplo('AL', '#17a999');
   })();
@@ -1447,7 +1463,7 @@ const CELEX_LOGO_BN = document.getElementById('celexFavicon').href;
       const cod=codigoAccesoUnico(body.fechaVisita);
       _db.visitas.push({ id, uuid, codigoAcceso:cod, nombre:body.nombre, apellidoPaterno:body.apellidoPaterno, apellidoMaterno:body.apellidoMaterno,
         correo:body.correo, empresa:body.empresa, idArea:body.idArea, motivo:body.motivo, observaciones:body.observaciones||'', esVip:!!body.esVip, esEntrevista:!!body.esEntrevista,
-        anfitrion:body.anfitrion, registradoPor:body.registradoPor, idUsuario:body.idUsuario||0, fechaVisita:body.fechaVisita,
+        anfitrion:body.anfitrion, registradoPor:body.registradoPor, idUsuario:body.idUsuario||0, fechaVisita:body.fechaVisita, horaVisita:(body.horaVisita?String(body.horaVisita).slice(0,5):null),
         traeAuto:!!body.traeAuto, marca:body.marca||'', modelo:body.modelo||'', placas:body.placas||'',
         status:'Pendiente', fechaRegistro:new Date().toISOString(), fechaAcceso:null, codigoSalida:'', fechaSalida:null });
       return ok({ id, uuid, codigoAcceso:cod });
@@ -1499,8 +1515,13 @@ const CELEX_LOGO_BN = document.getElementById('celexFavicon').href;
       if(v.status!=='Pendiente') return ok({ resultado:'NO_EDITABLE' });
       Object.assign(v, { nombre:body.nombre, apellidoPaterno:body.apellidoPaterno, apellidoMaterno:body.apellidoMaterno, correo:body.correo,
         empresa:body.empresa, idArea:body.idArea, motivo:body.motivo, observaciones:body.observaciones||'', esVip:!!body.esVip, anfitrion:body.anfitrion,
-        fechaVisita:body.fechaVisita, traeAuto:!!body.traeAuto, marca:body.marca||'', modelo:body.modelo||'', placas:body.placas||'' });
+        fechaVisita:body.fechaVisita, horaVisita:(body.horaVisita?String(body.horaVisita).slice(0,5):null), traeAuto:!!body.traeAuto, marca:body.marca||'', modelo:body.modelo||'', placas:body.placas||'' });
       return ok({ resultado:'OK' });
+    }
+    // --- reenviar correo (en el demo solo confirma; no hay envío real) ---
+    if((m=path.match(/^\/api\/visitas\/(\d+)\/reenviar-correo$/)) && method==='POST'){
+      const v = _db.visitas.find(x=>x.id===Number(m[1]));
+      return ok({ resultado: v ? 'OK' : 'NO_ENCONTRADA' });
     }
     if((m=path.match(/^\/api\/visitas\/(\d+)\/cancelar$/)) && method==='POST'){
       const v = _db.visitas.find(x=>x.id===Number(m[1]));
@@ -1612,6 +1633,31 @@ function fmtFechaVisita(s){
 function hoyISO(){
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+// "HH:mm:ss" o "HH:mm" -> "HH:mm"; vacío/null -> ''
+function fmtHora(h){ return h ? String(h).slice(0,5) : ''; }
+function fmtHoraVisita(h){ const s = fmtHora(h); return s || '—'; }
+function horaDefault(){
+  const d = new Date(); let m = d.getMinutes();
+  d.setMinutes(m <= 0 ? 0 : (m <= 30 ? 30 : 0), 0, 0);
+  if(m > 30) d.setHours(d.getHours()+1);
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function toast(msg, tipo='info', ms=3200){
+  let host = document.getElementById('toastHost');
+  if(!host){ host = document.createElement('div'); host.id = 'toastHost'; document.body.appendChild(host); }
+  const t = document.createElement('div'); t.className = 'toast ' + tipo; t.textContent = msg;
+  host.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 260); }, ms);
+}
+async function conBoton(btn, fn){
+  if(!btn) return await fn();
+  const orig = btn.innerHTML, estabaDeshab = btn.disabled;
+  btn.disabled = true; btn.classList.add('busy');
+  btn.innerHTML = '<span class="spin"></span>Procesando…';
+  try { return await fn(); }
+  finally { btn.classList.remove('busy'); btn.disabled = estabaDeshab; btn.innerHTML = orig; }
 }
 function esUsuarioDemo(){
   return (session.nombre || session.username || '').trim().toUpperCase() === 'DEMO MESA DE CONTROL ACTIVACIONES';
@@ -1756,6 +1802,7 @@ function openRegistro(){
     }
   });
   document.getElementById('fFechaVisita').value = hoyISO();
+  document.getElementById('fHoraVisita').value = horaDefault();
   document.getElementById('fAnfitrion').value = session.nombre || session.username || '';
   document.getElementById('regError').textContent='';
   // La opción VIP solo se muestra a los usuarios autorizados (config UsuariosVIP).
@@ -1848,7 +1895,7 @@ async function cargarAreas(selectId = 'fArea'){
     select.innerHTML = '<option value="">No se pudieron cargar las áreas (¿está corriendo la API?)</option>';
   }
 }
-async function generarCodigoAcceso(){
+async function generarCodigoAcceso(btn){
   const nombre = document.getElementById('fNombre').value.trim();
   const apP = document.getElementById('fApP').value.trim();
   const apM = document.getElementById('fApM').value.trim();
@@ -1860,6 +1907,7 @@ async function generarCodigoAcceso(){
   const motivo = document.getElementById('fMotivo').value.trim();
   const observaciones = document.getElementById('fObservaciones').value.trim();
   const fechaVisita = document.getElementById('fFechaVisita').value;
+  const horaVisita = document.getElementById('fHoraVisita').value;
   const anfitrion = document.getElementById('fAnfitrion').value.trim();
   const traeAuto = document.getElementById('fTraeAuto').checked;
   const marca = document.getElementById('fMarca').value.trim();
@@ -1869,41 +1917,46 @@ async function generarCodigoAcceso(){
   const esVip = session.puedeVIP && document.getElementById('fEsVip').checked;
 
   const err = document.getElementById('regError');
-  if(!nombre || !apP || !apM || !correo || !idArea || !motivo || !fechaVisita || !anfitrion){
-    err.textContent = 'Completa todos los campos obligatorios.'; return;
+  if(!nombre || !apP || !apM || !correo || !idArea || !motivo || !fechaVisita || !horaVisita || !anfitrion){
+    err.textContent = 'Completa todos los campos obligatorios.'; toast('Faltan campos obligatorios.','err'); return;
   }
   if(traeAuto && (!marca || !modelo || !placas)){
-    err.textContent = 'Indica marca, modelo y placas del vehículo.'; return;
+    err.textContent = 'Indica marca, modelo y placas del vehículo.'; toast('Faltan datos del vehículo.','err'); return;
   }
   err.textContent='';
+  const horaEnv = horaVisita ? (horaVisita.length === 5 ? horaVisita + ':00' : horaVisita) : null;
 
   let data;
   try{
-    const resp = await fetch(`${API_BASE_URL}/api/visitas`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo, observaciones, esVip,
-        anfitrion, registradoPor: session.username, idUsuario: session.usuarioId, fechaVisita, traeAuto,
-        marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
-      })
+    data = await conBoton(btn, async () => {
+      const resp = await fetch(`${API_BASE_URL}/api/visitas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo, observaciones, esVip,
+          anfitrion, registradoPor: session.username, idUsuario: session.usuarioId, fechaVisita, horaVisita: horaEnv, traeAuto,
+          marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
+        })
+      });
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      return await resp.json();
     });
-    if(!resp.ok) throw new Error('HTTP ' + resp.status);
-    data = await resp.json();
   }catch(e){
     err.textContent = 'No se pudo registrar la visita (¿está corriendo la API?).';
+    toast('No se pudo registrar la visita.','err');
     return;
   }
 
   const visit = {
     id: data.uuid, codigoAcceso: data.codigoAcceso, nombre, apellidoP: apP, apellidoM: apM, correo, empresa, area: areaNombre, motivo, observaciones, esVip,
-    fechaVisita, anfitrion, registradoPor: session.username, traeAuto, marca, modelo, placas,
+    fechaVisita, horaVisita, anfitrion, registradoPor: session.username, traeAuto, marca, modelo, placas,
     status:'pendiente', fechaRegistro:new Date(), fechaAcceso:null, foto:null, codigoSalida:null, fechaSalida:null
   };
   visits.push(visit);
   pendingVisitId = visit.id;
   renderCodigoAcceso(visit);
   showScreen('screen-codigo-acceso');
+  toast('Visita registrada. Se enviará el correo con el código.','ok');
 }
 function renderCodigoAcceso(visit){
   document.getElementById('codigoAccesoValor').textContent = visit.codigoAcceso;
@@ -1912,7 +1965,7 @@ function renderCodigoAcceso(visit){
      Empresa: <b>${visit.empresa}</b><br>
      Visita a: <b>${visit.area}</b> — Anfitrión: <b>${visit.anfitrion}</b><br>
      Motivo: ${visit.motivo}<br>
-     Fecha de visita: <b>${fmtFechaVisita(visit.fechaVisita)}</b><br>
+     Fecha de visita: <b>${fmtFechaVisita(visit.fechaVisita)}</b>${visit.horaVisita ? ` a las <b>${fmtHora(visit.horaVisita)}</b>` : ''}<br>
      ${visit.traeAuto ? `Vehículo: ${visit.marca} ${visit.modelo} — Placas ${visit.placas}` : 'Sin vehículo registrado'}`;
   document.getElementById('qrMsg').textContent='';
 }
@@ -1952,23 +2005,26 @@ function submitAccesoCodigo(){
   document.getElementById('validateMsg').textContent = '';
   showScreen('screen-validate');
 }
-async function submitValidate(){
+async function submitValidate(btn){
   const msg = document.getElementById('validateMsg');
   if(!pendingVisitId){ msg.textContent='Sesión perdida, vuelve a intentar.'; return; }
   const apellidoTecleado = document.getElementById('validateApP').value;
 
   let data;
   try{
-    const resp = await fetch(`${API_BASE_URL}/api/visitas/validar-acceso`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ codigoAcceso: pendingVisitId, apellidoTecleado })
+    data = await conBoton(btn, async () => {
+      const resp = await fetch(`${API_BASE_URL}/api/visitas/validar-acceso`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codigoAcceso: pendingVisitId, apellidoTecleado })
+      });
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      return await resp.json();
     });
-    if(!resp.ok) throw new Error('HTTP ' + resp.status);
-    data = await resp.json();
   }catch(e){
     msg.style.color='#ff9d9d';
     msg.textContent = 'No se pudo validar el acceso (¿está corriendo la API?).';
+    toast('No se pudo validar el acceso.','err');
     return;
   }
 
@@ -1984,6 +2040,7 @@ async function submitValidate(){
     };
     if(idx >= 0) visits[idx] = { ...visits[idx], ...visitaAcceso }; else visits.push(visitaAcceso);
     msg.style.color='#8dffb0';
+    toast('Acceso validado. Continúa con la foto.','ok');
     openPhotoCapture();
     return;
   }
@@ -2004,7 +2061,9 @@ async function submitValidate(){
     FECHA_NO_COINCIDE: `Esta visita está registrada para el ${fmtFechaVisita(data.fechaVisita)}, no para hoy. No se puede iniciar el acceso.`
   };
   openAccesoCodigo();
-  document.getElementById('accesoMsg').textContent = mensajes[data.resultado] || 'No se pudo validar el acceso.';
+  const detalle = mensajes[data.resultado] || 'No se pudo validar el acceso.';
+  document.getElementById('accesoMsg').textContent = detalle;
+  toast(detalle,'err',4200);
 }
 function renderBadge(visit){
   const fotoHtml = visit.foto
@@ -2245,8 +2304,9 @@ async function hacerMovAsis(tipo){
   if(!asisEmpActual) return showScreen('screen-kiosk-home');
   let r;
   try{ r = await registrarMovAsis(tipo, null); }
-  catch(e){ alert('No se pudo registrar el movimiento.'); return; }
-  if(r.resultado !== 'OK'){ alert(traducirAsisResultado(r.resultado)); return; }
+  catch(e){ toast('No se pudo registrar el movimiento.','err'); return; }
+  if(r.resultado !== 'OK'){ toast(traducirAsisResultado(r.resultado),'err',4200); return; }
+  toast(ASIS_LABEL[tipo] + ' registrada.','ok');
   const nota = tipo === 'Salida' ? 'Salida registrada. ¡Hasta pronto!'
              : (tipo === 'SalidaComer' ? 'Disfruta tu comida.' : 'Bienvenido de vuelta.');
   mostrarAsisDone(ASIS_LABEL[tipo] + ' registrada', asisEmpActual.nombreCompleto, fmtHoraCorta(r.horaMovimiento), nota, null);
@@ -2513,15 +2573,18 @@ function rechazarSalidaConfirm(){
   pendingSalidaCodigo = null;
   openSalidaCodigo();
 }
-async function confirmarSalida(){
+async function confirmarSalida(btn){
   if(!pendingSalidaVisitId){ showScreen('screen-kiosk-home'); return; }
   let resultado;
   try{
-    const resp = await fetch(`${API_BASE_URL}/api/visitas/salida/${pendingSalidaVisitId}/confirmar`, { method: 'POST' });
-    if(!resp.ok) throw new Error('HTTP ' + resp.status);
-    resultado = await resp.json();
+    resultado = await conBoton(btn, async () => {
+      const resp = await fetch(`${API_BASE_URL}/api/visitas/salida/${pendingSalidaVisitId}/confirmar`, { method: 'POST' });
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      return await resp.json();
+    });
   }catch(e){
     document.getElementById('salidaMsg').textContent = 'No se pudo confirmar la salida (¿está corriendo la API?).';
+    toast('No se pudo confirmar la salida.','err');
     showScreen('screen-salida-codigo');
     return;
   }
@@ -2531,6 +2594,7 @@ async function confirmarSalida(){
   if(local) local.fechaSalida = new Date(resultado.fechaSalida);
   renderSalidaDone(resultado);
   showScreen('screen-salida-done');
+  toast('Salida registrada.','ok');
 }
 function renderSalidaDone(resultado){
   document.getElementById('salidaDoneCard').innerHTML = `
@@ -2574,7 +2638,9 @@ function renderMisVisitas(){
       <td>${v.tieneFoto ? `<img src="${fotoDemoSrc(v.id)}" class="report-thumb" alt="Foto">` : `<div class="report-thumb report-thumb-empty">👤</div>`}</td>
       <td><b>${v.nombre} ${v.apellidoPaterno} ${v.apellidoMaterno}</b>${v.esVip ? ' <span class="vip-tag">⭐ VIP</span>' : ''}<br><span style="color:#8b93a3;font-size:12px;">${v.empresa}</span></td>
       <td>${v.area}</td>
-      <td>${fmtFechaVisita(v.fechaVisita)}</td>
+      <td>${fmtFechaVisita(v.fechaVisita)}${v.horaVisita ? `<br><span style="color:#8b93a3;font-size:12px;">${fmtHora(v.horaVisita)} h</span>` : ''}</td>
+      <td style="font-variant-numeric:tabular-nums;"><b>${v.codigoAcceso || '—'}</b></td>
+      <td style="font-variant-numeric:tabular-nums;">${v.codigoSalida || '—'}</td>
       <td><span class="status-pill ${estadoClass}">${v.estado}</span></td>
       <td>${fmtFecha(new Date(v.fechaRegistro))}</td>
       <td>${v.status !== 'Pendiente'
@@ -2585,7 +2651,7 @@ function renderMisVisitas(){
   wrap.innerHTML = `
     <div class="mv-table-wrap">
       <table class="mv-table">
-        <thead><tr><th></th><th>Visitante</th><th>Área</th><th>Fecha visita</th><th>Estado</th><th>Registrada</th><th></th></tr></thead>
+        <thead><tr><th></th><th>Visitante</th><th>Área</th><th>Fecha visita</th><th>Cód. ingreso</th><th>Cód. salida</th><th>Estado</th><th>Registrada</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
@@ -2606,6 +2672,7 @@ async function abrirEditar(id){
   document.getElementById('eMotivo').value  = v.motivo;
   document.getElementById('eObservaciones').value = v.observaciones || '';
   document.getElementById('eFechaVisita').value = v.fechaVisita || '';
+  document.getElementById('eHoraVisita').value = fmtHora(v.horaVisita);
   document.getElementById('eAnfitrion').value = v.anfitrion;
   document.getElementById('eVipRow').style.display = session.puedeVIP ? '' : 'none';
   document.getElementById('eEsVip').checked = !!v.esVip;
@@ -2615,6 +2682,9 @@ async function abrirEditar(id){
   document.getElementById('ePlacas').value  = v.placas || '';
   document.getElementById('editAutoFields').classList.toggle('show', v.traeAuto);
   document.getElementById('editError').textContent = '';
+  const btnRe = document.getElementById('btnReenviarCorreo');
+  btnRe.disabled = true;
+  btnRe.title = 'Guarda los cambios para poder reenviar el correo';
   showScreen('screen-editar-visita');
 }
 
@@ -2622,7 +2692,7 @@ function toggleEditAutoFields(){
   document.getElementById('editAutoFields').classList.toggle('show', document.getElementById('eTraeAuto').checked);
 }
 
-async function guardarEdicion(){
+async function guardarEdicion(btn){
   const nombre   = document.getElementById('eNombre').value.trim();
   const apP      = document.getElementById('eApP').value.trim();
   const apM      = document.getElementById('eApM').value.trim();
@@ -2632,6 +2702,7 @@ async function guardarEdicion(){
   const motivo   = document.getElementById('eMotivo').value.trim();
   const observaciones = document.getElementById('eObservaciones').value.trim();
   const fechaVisita = document.getElementById('eFechaVisita').value;
+  const horaVisita = document.getElementById('eHoraVisita').value;
   const anfitrion= document.getElementById('eAnfitrion').value.trim();
   const traeAuto = document.getElementById('eTraeAuto').checked;
   const marca    = document.getElementById('eMarca').value.trim();
@@ -2642,65 +2713,108 @@ async function guardarEdicion(){
   const orig = misVisitasCache.find(x => x.id === editingVisitId);
   const esVip = session.puedeVIP ? document.getElementById('eEsVip').checked : !!(orig && orig.esVip);
   const err = document.getElementById('editError');
-  if(!nombre || !apP || !apM || !correo || !idArea || !motivo || !fechaVisita || !anfitrion){
-    err.textContent = 'Completa todos los campos obligatorios.'; return;
+  if(!nombre || !apP || !apM || !correo || !idArea || !motivo || !fechaVisita || !horaVisita || !anfitrion){
+    err.textContent = 'Completa todos los campos obligatorios.'; toast('Faltan campos obligatorios.','err'); return;
   }
   if(traeAuto && (!marca || !modelo || !placas)){
-    err.textContent = 'Indica marca, modelo y placas del vehículo.'; return;
+    err.textContent = 'Indica marca, modelo y placas del vehículo.'; toast('Faltan datos del vehículo.','err'); return;
   }
+  const horaEnv = horaVisita ? (horaVisita.length === 5 ? horaVisita + ':00' : horaVisita) : null;
 
   let data;
   try{
-    const resp = await fetch(`${API_BASE_URL}/api/visitas/${editingVisitId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo, observaciones, esVip,
-        anfitrion, fechaVisita, traeAuto,
-        marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
-      })
+    data = await conBoton(btn, async () => {
+      const resp = await fetch(`${API_BASE_URL}/api/visitas/${editingVisitId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre, apellidoPaterno: apP, apellidoMaterno: apM, correo, empresa, idArea, motivo, observaciones, esVip,
+          anfitrion, fechaVisita, horaVisita: horaEnv, traeAuto,
+          marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
+        })
+      });
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      return await resp.json();
     });
-    if(!resp.ok) throw new Error('HTTP ' + resp.status);
-    data = await resp.json();
   }catch(e){
     err.textContent = 'No se pudo guardar el cambio (¿está corriendo la API?).';
+    toast('No se pudo guardar el cambio.','err');
     return;
   }
 
   if(data.resultado === 'NO_EDITABLE'){
     err.textContent = 'Esta visita ya inició su acceso y no se puede editar.';
+    toast('La visita ya inició su acceso; no se puede editar.','err');
     return;
   }
   if(data.resultado === 'NO_ENCONTRADO'){
     err.textContent = 'No se encontró la visita.';
+    toast('No se encontró la visita.','err');
     return;
   }
   err.textContent = '';
-  await openMisVisitas();
+  await refrescarMisVisitasCache();
+  const btnRe = document.getElementById('btnReenviarCorreo');
+  btnRe.disabled = false;
+  btnRe.title = 'Reenvía al visitante el correo de confirmación con los datos actualizados';
+  toast('Cambios guardados.','ok');
 }
 
-async function cancelarVisita(){
+// Recarga la caché de "Mis visitas" sin cambiar de pantalla.
+async function refrescarMisVisitasCache(){
+  try{
+    const resp = await fetch(`${API_BASE_URL}/api/visitas/mias?registradoPor=${encodeURIComponent(session.username)}`);
+    if(resp.ok) misVisitasCache = await resp.json();
+  }catch(e){ /* conserva la caché anterior */ }
+}
+
+async function reenviarCorreo(btn){
+  if(!editingVisitId) return;
+  let data;
+  try{
+    data = await conBoton(btn, async () => {
+      const resp = await fetch(`${API_BASE_URL}/api/visitas/${editingVisitId}/reenviar-correo`, { method: 'POST' });
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      return await resp.json();
+    });
+  }catch(e){
+    toast('No se pudo enviar el correo.','err');
+    return;
+  }
+  if(data.resultado === 'OK') toast('Correo enviado al visitante con los cambios.','ok');
+  else toast('No se encontró la visita.','err');
+}
+
+async function cancelarVisita(btn){
   const err = document.getElementById('editError');
-  if(!confirm('¿Seguro que quieres cancelar esta visita? El visitante ya no podrá usar su código de acceso.')) return;
+  if(!confirm('¿Seguro que quieres cancelar esta visita? El visitante ya no podrá usar su código de acceso.')){
+    toast('Cancelación descartada.','info'); return;
+  }
 
   let data;
   try{
-    const resp = await fetch(`${API_BASE_URL}/api/visitas/${editingVisitId}/cancelar`, { method: 'POST' });
-    if(!resp.ok) throw new Error('HTTP ' + resp.status);
-    data = await resp.json();
+    data = await conBoton(btn, async () => {
+      const resp = await fetch(`${API_BASE_URL}/api/visitas/${editingVisitId}/cancelar`, { method: 'POST' });
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      return await resp.json();
+    });
   }catch(e){
     err.textContent = 'No se pudo cancelar la visita (¿está corriendo la API?).';
+    toast('No se pudo cancelar la visita.','err');
     return;
   }
 
   if(data.resultado === 'NO_CANCELABLE'){
     err.textContent = 'Esta visita ya inició su acceso y no se puede cancelar.';
+    toast('La visita ya inició su acceso; no se puede cancelar.','err');
     return;
   }
   if(data.resultado === 'NO_ENCONTRADO'){
     err.textContent = 'No se encontró la visita.';
+    toast('No se encontró la visita.','err');
     return;
   }
+  toast('Visita cancelada.','ok');
   await openMisVisitas();
 }
 
@@ -2811,26 +2925,27 @@ async function generarReporte(){
       <td>${v.empresa}</td>
       <td>${v.area}</td>
       <td>${v.anfitrion}</td>
-      <td>${fmtFechaVisita(v.fechaVisita)}</td>
+      <td>${fmtFechaVisita(v.fechaVisita)}${v.horaVisita ? `<br><span style="color:#8b93a3;font-size:12px;">${fmtHora(v.horaVisita)} h</span>` : ''}</td>
       <td><span class="status-pill ${ESTADO_CLASE[v.estado] || 'pendiente'}">${v.estado}</span></td>
       <td>${fmtFecha(new Date(v.fechaRegistro))}</td>
       <td>${v.fechaAcceso ? fmtFecha(new Date(v.fechaAcceso)) : '—'}</td>
-      <td>${v.codigoSalida || '—'}</td>
+      <td style="font-variant-numeric:tabular-nums;">${v.codigoAcceso || '—'}</td>
+      <td style="font-variant-numeric:tabular-nums;">${v.codigoSalida || '—'}</td>
       <td>${v.fechaSalida ? fmtFecha(new Date(v.fechaSalida)) : '—'}</td>
       <td>${fmtDuracionMinutos(v.minutosEstancia)}</td>
     </tr>`).join('');
   wrap.innerHTML = `
     <table class="report-table">
-      <thead><tr><th></th><th>Visitante</th><th>Empresa</th><th>Área</th><th>Anfitrión</th><th>Fecha visita</th><th>Estado</th><th>Registro</th><th>Acceso</th><th>Cód. salida</th><th>Salida</th><th>Duración</th></tr></thead>
+      <thead><tr><th></th><th>Visitante</th><th>Empresa</th><th>Área</th><th>Anfitrión</th><th>Fecha visita</th><th>Estado</th><th>Registro</th><th>Acceso</th><th>Cód. ingreso</th><th>Cód. salida</th><th>Salida</th><th>Duración</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
 function exportarCSV(){
   if(!ultimoReporte.length){ alert('No hay datos para exportar. Genera el reporte primero.'); return; }
-  const header = ['Nombre','ApellidoPaterno','ApellidoMaterno','Empresa','Area','Anfitrion','Motivo','VIP','FechaVisita','Estado','FechaRegistro','FechaAcceso','CodigoSalida','FechaSalida'];
+  const header = ['Nombre','ApellidoPaterno','ApellidoMaterno','Empresa','Area','Anfitrion','Motivo','VIP','FechaVisita','HoraVisita','Estado','FechaRegistro','FechaAcceso','CodigoIngreso','CodigoSalida','FechaSalida'];
   const rows = ultimoReporte.map(v=>[
-    v.nombre,v.apellidoPaterno,v.apellidoMaterno,v.empresa,v.area,v.anfitrion,v.motivo,v.esVip?'Sí':'No',v.fechaVisita||'',v.estado,
-    v.fechaRegistro||'', v.fechaAcceso||'', v.codigoSalida||'', v.fechaSalida||''
+    v.nombre,v.apellidoPaterno,v.apellidoMaterno,v.empresa,v.area,v.anfitrion,v.motivo,v.esVip?'Sí':'No',v.fechaVisita||'',fmtHora(v.horaVisita),v.estado,
+    v.fechaRegistro||'', v.fechaAcceso||'', v.codigoAcceso||'', v.codigoSalida||'', v.fechaSalida||''
   ].map(x=>`"${String(x).replace(/"/g,'""')}"`).join(','));
   const csv = [header.join(','), ...rows].join('\n');
   const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
@@ -2944,11 +3059,11 @@ wireEnterAvanza(['repDesde','repHasta'], generarReporte);
 wireEnterAvanza(['repAsisDesde','repAsisHasta'], generarReporteAsistencia);
 wireEnterAvanza(['cfgRutaFotos','cfgPrefijoFoto','cfgDigitosFoto','cfgUsuariosVIP','cfgUsuariosKiosko'], guardarConfiguracion);
 wireEnterAvanza(
-  ['fNombre','fApP','fApM','fCorreo','fEmpresa','fArea','fMotivo','fObservaciones','fFechaVisita','fAnfitrion','fMarca','fModelo','fPlacas'],
+  ['fNombre','fApP','fApM','fCorreo','fEmpresa','fArea','fMotivo','fObservaciones','fFechaVisita','fHoraVisita','fAnfitrion','fMarca','fModelo','fPlacas'],
   generarCodigoAcceso
 );
 wireEnterAvanza(
-  ['eNombre','eApP','eApM','eCorreo','eEmpresa','eArea','eMotivo','eObservaciones','eFechaVisita','eAnfitrion','eMarca','eModelo','ePlacas'],
+  ['eNombre','eApP','eApM','eCorreo','eEmpresa','eArea','eMotivo','eObservaciones','eFechaVisita','eHoraVisita','eAnfitrion','eMarca','eModelo','ePlacas'],
   guardarEdicion
 );
 
