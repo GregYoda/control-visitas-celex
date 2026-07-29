@@ -6,6 +6,9 @@ quién solicitó el cambio.
 
 ---
 
+## 2026-07-29
+- **Validación de campos con FluentValidation (v0.27)**: se agregó una capa de validación por campo en la API (registrar y editar visita), como fuente única de verdad de las reglas. Cada regla vive en un validador (`api/Validaciones/*Validator.cs`), es fácil de mantener/ampliar y devuelve un **400 con mensaje por campo en español** (ej. correo con formato inválido, largos máximos, área requerida, y datos de vehículo obligatorios solo si trae auto). Un filtro (`FluentValidationFilter`) ejecuta el validador automáticamente antes de cada acción. El frontend (app y demo) ahora **muestra el mensaje puntual** que devuelve la API y valida el correo también del lado del cliente para UX inmediata. Verificado por HTTP (correo inválido y vehículo incompleto → 400 con el campo; válido → 200) y en navegador. (G. Ramírez)
+
 ## 2026-07-28
 - **Cierre automático de visitas "Dentro" (v0.26)**: proceso que registra la salida de todas las visitas que quedaron accesadas y sin salida (incluye rezagadas de días anteriores). El SP `sp_CV_Visitas_CierreAutomatico` pone `FechaSalida` con la hora real de ejecución y marca la nueva columna `CV_Visitas.CierreAutomatico=1` para distinguirlas de una salida registrada por el visitante (en Reportes/Mis Visitas se muestran como **"Cierre automático"**). Además:
   - **Envía un correo** con el total de visitas cerradas (y la lista de quiénes) a los destinatarios configurados; se encola en `WM_Correo` (lo manda el Job existente).

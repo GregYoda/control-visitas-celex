@@ -518,7 +518,7 @@
   <div class="login-wrap">
     <div class="login-topbar">
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
-      <span class="app-version">Control de Visitas · v0.26</span>
+      <span class="app-version">Control de Visitas · v0.27</span>
     </div>
     <div class="login-center">
       <div class="login-card">
@@ -1373,6 +1373,18 @@ async function conBoton(btn, fn){
   try { return await fn(); }
   finally { btn.classList.remove('busy'); btn.disabled = estabaDeshab; btn.innerHTML = orig; }
 }
+// Valida correo del lado del cliente (UX inmediata); la API revalida con FluentValidation.
+function esCorreoValido(c){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c); }
+// Extrae el primer mensaje de validación por campo de un 400 de la API
+// (ValidationProblemDetails: { errors: { Campo: [mensaje] } }); si no, el título.
+async function mensajeValidacion(resp, fallback){
+  try{
+    const d = await resp.json();
+    if(d && d.errors){ const primero = Object.values(d.errors)[0]; if(primero && primero[0]) return primero[0]; }
+    if(d && d.title) return d.title;
+  }catch(e){}
+  return fallback;
+}
 function esUsuarioDemo(){
   return (session.nombre || session.username || '').trim().toUpperCase() === 'DEMO MESA DE CONTROL ACTIVACIONES';
 }
@@ -1644,6 +1656,9 @@ async function generarCodigoAcceso(btn){
   if(!nombre || !apP || !apM || !correo || !idArea || !motivo || !fechaVisita || !horaVisita || !anfitrion){
     err.textContent = 'Completa todos los campos obligatorios.'; toast('Faltan campos obligatorios.','err'); return;
   }
+  if(!esCorreoValido(correo)){
+    err.textContent = 'El correo no tiene un formato válido.'; toast('El correo no tiene un formato válido.','err'); return;
+  }
   if(traeAuto && (!marca || !modelo || !placas)){
     err.textContent = 'Indica marca, modelo y placas del vehículo.'; toast('Faltan datos del vehículo.','err'); return;
   }
@@ -1662,13 +1677,14 @@ async function generarCodigoAcceso(btn){
           anfitrion, registradoPor: session.username, idUsuario: session.usuarioId, fechaVisita, horaVisita: horaEnv, traeAuto,
           marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
         })
-      });
-      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      }).catch(() => null);
+      if(!resp) throw new Error('No se pudo contactar la API (¿está corriendo?).');
+      if(!resp.ok) throw new Error(await mensajeValidacion(resp, 'No se pudo registrar la visita.'));
       return await resp.json();
     });
   }catch(e){
-    err.textContent = 'No se pudo registrar la visita (¿está corriendo la API?).';
-    toast('No se pudo registrar la visita.','err');
+    err.textContent = e.message;
+    toast(e.message, 'err');
     return;
   }
 
@@ -2356,6 +2372,9 @@ async function guardarEdicion(btn){
   if(!nombre || !apP || !apM || !correo || !idArea || !motivo || !fechaVisita || !horaVisita || !anfitrion){
     err.textContent = 'Completa todos los campos obligatorios.'; toast('Faltan campos obligatorios.','err'); return;
   }
+  if(!esCorreoValido(correo)){
+    err.textContent = 'El correo no tiene un formato válido.'; toast('El correo no tiene un formato válido.','err'); return;
+  }
   if(traeAuto && (!marca || !modelo || !placas)){
     err.textContent = 'Indica marca, modelo y placas del vehículo.'; toast('Faltan datos del vehículo.','err'); return;
   }
@@ -2372,13 +2391,14 @@ async function guardarEdicion(btn){
           anfitrion, fechaVisita, horaVisita: horaEnv, traeAuto,
           marca: traeAuto ? marca : null, modelo: traeAuto ? modelo : null, placas: traeAuto ? placas : null
         })
-      });
-      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      }).catch(() => null);
+      if(!resp) throw new Error('No se pudo contactar la API (¿está corriendo?).');
+      if(!resp.ok) throw new Error(await mensajeValidacion(resp, 'No se pudo guardar el cambio.'));
       return await resp.json();
     });
   }catch(e){
-    err.textContent = 'No se pudo guardar el cambio (¿está corriendo la API?).';
-    toast('No se pudo guardar el cambio.','err');
+    err.textContent = e.message;
+    toast(e.message, 'err');
     return;
   }
 
