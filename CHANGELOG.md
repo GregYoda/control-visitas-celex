@@ -7,6 +7,7 @@ quién solicitó el cambio.
 ---
 
 ## 2026-07-29
+- **Validación en empleados y asistencia (v0.28)**: se extendió FluentValidation a los endpoints de **alta/edición de empleados** (número y nombre obligatorios, largos máximos, tipo debe ser Empleado/Mensajero) y **registro de movimiento de asistencia** (empleado válido, tipo de movimiento dentro de los permitidos). La pantalla de administración de empleados ahora muestra el mensaje puntual del 400 y da retroalimentación (toast/spinner). Los validadores nuevos se toman solos (el registro escanea el ensamblado). Verificado por HTTP (inválidos → 400 por campo; alta válida → 200). (G. Ramírez)
 - **Validación de campos con FluentValidation (v0.27)**: se agregó una capa de validación por campo en la API (registrar y editar visita), como fuente única de verdad de las reglas. Cada regla vive en un validador (`api/Validaciones/*Validator.cs`), es fácil de mantener/ampliar y devuelve un **400 con mensaje por campo en español** (ej. correo con formato inválido, largos máximos, área requerida, y datos de vehículo obligatorios solo si trae auto). Un filtro (`FluentValidationFilter`) ejecuta el validador automáticamente antes de cada acción. El frontend (app y demo) ahora **muestra el mensaje puntual** que devuelve la API y valida el correo también del lado del cliente para UX inmediata. Verificado por HTTP (correo inválido y vehículo incompleto → 400 con el campo; válido → 200) y en navegador. (G. Ramírez)
 
 ## 2026-07-28

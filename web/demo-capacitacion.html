@@ -520,7 +520,7 @@
   <div class="login-wrap">
     <div class="login-topbar">
       <div class="brand"><div class="brand-badge">C</div><div class="brand-name">CELEX</div></div>
-      <span class="demo-tag">VERSIÓN DEMO · CAPACITACIÓN · v0.27</span>
+      <span class="demo-tag">VERSIÓN DEMO · CAPACITACIÓN · v0.28</span>
     </div>
     <div class="login-center">
       <div class="login-card">
@@ -1203,7 +1203,7 @@
           </div>
           <div class="login-error" id="empError"></div>
           <div class="form-actions">
-            <button class="btn-primary" onclick="guardarEmpleado()">Guardar</button>
+            <button class="btn-primary" onclick="guardarEmpleado(this)">Guardar</button>
             <button class="btn-secondary" onclick="showScreen('screen-admin-empleados')">Cancelar</button>
           </div>
         </div>
@@ -2486,28 +2486,32 @@ function abrirEditarEmpleado(id){
   llenarFormEmpleado(e);
   showScreen('screen-editar-empleado');
 }
-async function guardarEmpleado(){
+async function guardarEmpleado(btn){
   const err = document.getElementById('empError');
   const nombre = document.getElementById('empNombre').value.trim();
   const numero = document.getElementById('empNumero').value.trim();
   const tipo = document.getElementById('empTipo').value;
   const esAlta = editingEmpId === 0;
-  if(!nombre){ err.textContent = 'El nombre completo es obligatorio.'; return; }
-  if(!numero){ err.textContent = 'El número de empleado es obligatorio.'; return; }
+  if(!nombre){ err.textContent = 'El nombre completo es obligatorio.'; toast('El nombre completo es obligatorio.','err'); return; }
+  if(!numero){ err.textContent = 'El número de empleado es obligatorio.'; toast('El número de empleado es obligatorio.','err'); return; }
   const body = { id: editingEmpId, numeroEmpleado: numero, numeroWishPos: document.getElementById('empWishpos').value.trim(),
     nombreCompleto: nombre, tipo, activo: document.getElementById('empActivo').checked };
   let r;
   try{
-    const resp = await fetch(`${API_BASE_URL}/api/empleados`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    if(!resp.ok) throw new Error('HTTP ' + resp.status);
-    r = await resp.json();
-  }catch(e){ err.textContent = 'No se pudo guardar.'; return; }
-  if(r.resultado === 'NO_ENCONTRADO'){ err.textContent = 'El empleado ya no existe.'; return; }
-  if(r.resultado !== 'OK'){ err.textContent = 'No se pudo guardar el empleado.'; return; }
+    r = await conBoton(btn, async () => {
+      const resp = await fetch(`${API_BASE_URL}/api/empleados`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null);
+      if(!resp) throw new Error('No se pudo contactar la API (¿está corriendo?).');
+      if(!resp.ok) throw new Error(await mensajeValidacion(resp, 'No se pudo guardar el empleado.'));
+      return await resp.json();
+    });
+  }catch(e){ err.textContent = e.message; toast(e.message,'err'); return; }
+  if(r.resultado === 'NO_ENCONTRADO'){ err.textContent = 'El empleado ya no existe.'; toast('El empleado ya no existe.','err'); return; }
+  if(r.resultado !== 'OK'){ err.textContent = 'No se pudo guardar el empleado.'; toast('No se pudo guardar el empleado.','err'); return; }
   if(esAlta && r.codigoAcceso){
     alert(`Empleado dado de alta.\n\nSu código de asistencia es:  ${r.codigoAcceso}\n\nCompárteselo para que registre su asistencia en el kiosko.`);
   }
+  toast('Empleado guardado.','ok');
   await openAdminEmpleados();
 }
 
