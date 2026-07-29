@@ -52,7 +52,10 @@ dotnet publish -c Release -o C:\publish\control-visitas
 ```
 
 Esto genera:
-- El `web.config` para IIS (ANCM) automáticamente.
+- El `web.config` para IIS (ANCM). Parte de un **`web.config` base incluido en
+  `api/`** que **desactiva el módulo WebDAV** (ver la nota "WebDAV / error 405"
+  más abajo); al publicar, el SDK conserva esa exclusión e inyecta el handler
+  `aspNetCore`. No hay que tocarlo a mano.
 - `wwwroot/index.html` (el frontend, copiado desde `web/index.html` por el
   target del `.csproj`).
 
@@ -159,6 +162,28 @@ recrear, según prefiera el DBA).
 
 ## Notas
 
+- **WebDAV / error 405 al editar una visita** ⚠️: si al **guardar la edición**
+  de una visita el sistema muestra *"No se pudo guardar el cambio (¿está
+  corriendo la API?)"* y en la pestaña **Network** (F12) la petición
+  `PUT /api/visitas/{id}` responde **405 Method Not Allowed**, es porque el
+  **módulo WebDAV de IIS** está interceptando los verbos `PUT`/`DELETE` antes
+  de que lleguen a la API. Cancelar/registrar (que usan `POST`) no se ven
+  afectados, por eso solo falla la edición. En desarrollo con Kestrel
+  (`dotnet run`) no ocurre. Solución:
+  - **Ya viene resuelto al publicar** desde este repo: el `web.config` base de
+    `api/` desactiva WebDAV. Con re-desplegar (paso 2) queda corregido.
+  - **Sin re-desplegar** (parche en caliente): en el `web.config` del sitio, en
+    el servidor, agregar dentro de `<system.webServer>` (sin borrar lo demás):
+    ```xml
+    <modules runAllManagedModulesForAllRequests="false">
+      <remove name="WebDAVModule" />
+    </modules>
+    <handlers>
+      <remove name="WebDAV" />
+    </handlers>
+    ```
+    y recargar IIS con `iisreset`. (Alternativa a nivel servidor: desinstalar la
+    característica *WebDAV Publishing* de IIS.)
 - **Kiosko/caseta**: seguir `docs/checklist-modo-kiosco.md` para el equipo
   físico (Assigned Access, flags de Chrome, certificado).
 - **CORS**: no se necesita en este esquema (mismo-origen). La política

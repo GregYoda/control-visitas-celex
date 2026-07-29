@@ -92,6 +92,7 @@ CREATE TABLE dbo.CV_Visitas (
     RegistradoPor           NVARCHAR(100)   NOT NULL,   -- usuario WishPOS que capturó el registro
     ID_Usuario              INT             NOT NULL DEFAULT (0),  -- Usuario_ID (WishPOS) de quien capturó el registro
     FechaVisita             DATE            NOT NULL,   -- día para el que se agendó; el acceso solo se permite ese día
+    HoraVisita              TIME(0)         NULL,       -- hora agendada (informativa; no restringe el acceso). NULL en visitas previas a esta versión
 
     TraeAuto                BIT             NOT NULL DEFAULT (0),
     Marca                   NVARCHAR(50)    NOT NULL DEFAULT (''),
@@ -105,6 +106,7 @@ CREATE TABLE dbo.CV_Visitas (
 
     CodigoSalida            CHAR(6)         NOT NULL DEFAULT (''),  -- 6 dígitos, único entre visitas "dentro" el mismo día
     FechaSalida             DATETIME        NOT NULL DEFAULT ('1900-01-01 00:00:00'),
+    CierreAutomatico        BIT             NOT NULL DEFAULT (0),   -- 1 si la salida la puso el cierre automático de las 21:00 (no el visitante en caseta)
 
     ID_Fecha_Modificacion   DATETIME        NOT NULL DEFAULT ('1900-01-01 00:00:00'),
 
@@ -191,7 +193,17 @@ INSERT INTO dbo.CV_Configuracion (Clave, Valor) VALUES
  (N'EntrevistaIdArea', N''),
  (N'EntrevistaMotivo', N'Entrevista'),
  (N'EntrevistaFechaModo', N'dia'),
- (N'EntrevistaAnfitrion', N'Recepción');
+ (N'EntrevistaAnfitrion', N'Recepción'),
+ -- Cierre automático de visitas (proceso nocturno):
+ -- HoraCierreAutomatico: hora 'HH:mm' a la que se ejecuta el cierre (lo dispara
+ --   un agente que corre cada minuto; el SP solo actúa cuando la hora coincide).
+ -- CorreosCierreAutomatico: destinatarios del aviso, separados por ; (o ,).
+ --   Vacío = no se envía correo.
+ -- CierreAutomaticoUltimaFecha: control interno (última fecha en que corrió),
+ --   para no ejecutar/avisar dos veces el mismo día. No se edita en la UI.
+ (N'HoraCierreAutomatico', N'21:00'),
+ (N'CorreosCierreAutomatico', N''),
+ (N'CierreAutomaticoUltimaFecha', N'1900-01-01');
 GO
 
 /* -----------------------------------------------------------------------------
@@ -301,6 +313,7 @@ CREATE PROCEDURE dbo.sp_CV_Visitas_Registrar
     @RegistradoPor      NVARCHAR(100),
     @ID_Usuario         INT             = 0,   -- Usuario_ID (WishPOS) de quien registra
     @FechaVisita        DATE,
+    @HoraVisita         TIME(0)         = NULL,   -- hora agendada (informativa)
     @TraeAuto           BIT             = 0,
     @Marca              NVARCHAR(50)    = '',
     @Modelo             NVARCHAR(50)    = '',
@@ -335,56 +348,150 @@ BEGIN
 
     INSERT INTO dbo.CV_Visitas
         (UUID, CodigoAcceso, Nombre, ApellidoPaterno, ApellidoMaterno, Correo, Empresa, ID_Area, Motivo, Observaciones, EsVIP, EsEntrevista,
-         Anfitrion, RegistradoPor, ID_Usuario, FechaVisita, TraeAuto, Marca, Modelo, Placas)
+         Anfitrion, RegistradoPor, ID_Usuario, FechaVisita, HoraVisita, TraeAuto, Marca, Modelo, Placas)
     VALUES
         (@NuevoUUID, @CodigoAcceso, @Nombre, @ApellidoPaterno, @ApellidoMaterno, @Correo, @Empresa, @ID_Area, @Motivo, @Observaciones, @EsVIP, @EsEntrevista,
-         @Anfitrion, @RegistradoPor, @ID_Usuario, @FechaVisita, @TraeAuto, @Marca, @Modelo, @Placas);
+         @Anfitrion, @RegistradoPor, @ID_Usuario, @FechaVisita, @HoraVisita, @TraeAuto, @Marca, @Modelo, @Placas);
 
-    -- Capturar el ID de la visita AQUÍ, antes del INSERT a WM_Correo. Si se
-    -- deja el SCOPE_IDENTITY() para el final, devolvería el ID de WM_Correo
-    -- (el último insert del scope), no el de la visita.
+    -- Capturar el ID de la visita AQUÍ, antes de encolar el correo.
     DECLARE @NuevoId BIGINT = SCOPE_IDENTITY();
 
-    -- Correo de confirmación al visitante: se encola en WM_Correo, el
-    -- SQL Server Agent Job existente lo envía (revisa cada minuto).
-    -- Nota: se construye en NVARCHAR y se convierte a VARCHAR (tipo real de
-    -- WM_Correo) hasta el final -- concatenar literales sin N'' aquí
-    -- corrompe los acentos al pasar por el driver de sqlcmd/ODBC.
-    DECLARE @VehiculoHtml NVARCHAR(MAX) = N'';
-    IF @TraeAuto = 1
-    BEGIN
-        SET @VehiculoHtml =
-            N'<p>Como registraste que acudirás en automóvil, estos son los datos que proporcionaste:</p>' +
-            N'<table style="margin-bottom:16px;">' +
-            N'<tr><td style="padding:2px 12px 2px 0;color:#555;">Marca:</td><td><b>' + dbo.fn_CV_EscaparHtml(@Marca)  + N'</b></td></tr>' +
-            N'<tr><td style="padding:2px 12px 2px 0;color:#555;">Modelo:</td><td><b>' + dbo.fn_CV_EscaparHtml(@Modelo) + N'</b></td></tr>' +
-            N'<tr><td style="padding:2px 12px 2px 0;color:#555;">Placas:</td><td><b>' + dbo.fn_CV_EscaparHtml(@Placas) + N'</b></td></tr>' +
-            N'</table>';
-    END
+    -- Correo de confirmación al visitante: se arma y se encola en un SP
+    -- compartido (misma plantilla para el registro y para el reenvío desde
+    -- la edición). Ver dbo.sp_CV_Visitas_EncolarCorreo.
+    EXEC dbo.sp_CV_Visitas_EncolarCorreo @ID = @NuevoId;
+
+    SELECT @NuevoId AS ID, @NuevoUUID AS UUID, @CodigoAcceso AS CodigoAcceso;
+END
+GO
+
+/* -----------------------------------------------------------------------------
+   sp_CV_Visitas_EncolarCorreo
+   Arma el correo de confirmación (formato Celular Express) para una visita ya
+   registrada y lo encola en WM_Correo. Fuente única de verdad del correo: lo
+   usan tanto el registro (sp_CV_Visitas_Registrar) como el reenvío desde la
+   edición (sp_CV_Visitas_ReenviarCorreo). Los textos cambian según sea Visita
+   o Entrevista. No devuelve result set (para no interferir con el SELECT final
+   del SP que lo invoca).
+
+   Nota: el HTML se construye en NVARCHAR con literales N'' y se convierte a
+   VARCHAR (tipo real de WM_Correo) al insertar; concatenar sin N'' corrompe los
+   acentos al pasar por el driver de sqlcmd/ODBC.
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Visitas_EncolarCorreo
+    @ID BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Nombre NVARCHAR(100), @ApellidoPaterno NVARCHAR(100), @ApellidoMaterno NVARCHAR(100),
+            @Correo NVARCHAR(150), @Empresa NVARCHAR(150), @Motivo NVARCHAR(300), @Anfitrion NVARCHAR(100),
+            @Area NVARCHAR(100), @FechaVisita DATE, @HoraVisita TIME(0),
+            @TraeAuto BIT, @Marca NVARCHAR(50), @Modelo NVARCHAR(50), @Placas NVARCHAR(20),
+            @EsEntrevista BIT, @CodigoAcceso CHAR(6), @UUID UNIQUEIDENTIFIER, @ID_Usuario INT;
+
+    SELECT
+        @Nombre = v.Nombre, @ApellidoPaterno = v.ApellidoPaterno, @ApellidoMaterno = v.ApellidoMaterno,
+        @Correo = v.Correo, @Empresa = v.Empresa, @Motivo = v.Motivo, @Anfitrion = v.Anfitrion,
+        @Area = a.Nombre, @FechaVisita = v.FechaVisita, @HoraVisita = v.HoraVisita,
+        @TraeAuto = v.TraeAuto, @Marca = v.Marca, @Modelo = v.Modelo, @Placas = v.Placas,
+        @EsEntrevista = v.EsEntrevista, @CodigoAcceso = v.CodigoAcceso, @UUID = v.UUID, @ID_Usuario = v.ID_Usuario
+    FROM dbo.CV_Visitas v
+    JOIN dbo.CV_Areas a ON a.ID = v.ID_Area
+    WHERE v.ID = @ID;
+
+    IF @@ROWCOUNT = 0 RETURN;   -- visita inexistente: nada que encolar
+
+    DECLARE @TipoDoc  VARCHAR(20)  = CASE WHEN @EsEntrevista = 1 THEN 'Entrevista' ELSE 'Visita' END;
+    DECLARE @Asunto   NVARCHAR(150) = CASE WHEN @EsEntrevista = 1 THEN N'Confirmación de tu entrevista en Celex' ELSE N'Confirmación de tu visita a Celex' END;
+    DECLARE @Intro    NVARCHAR(600) = CASE WHEN @EsEntrevista = 1
+        THEN N'Le confirmamos su entrevista en Celex con los siguientes datos. Presente el código de acceso en la recepción el día de su cita para agilizar su ingreso.'
+        ELSE N'Le confirmamos su visita a Celex con los siguientes datos. Presente el código de acceso en la recepción el día de su visita para agilizar su ingreso.' END;
+    DECLARE @LblFecha NVARCHAR(60) = CASE WHEN @EsEntrevista = 1 THEN N'Fecha de la entrevista' ELSE N'Fecha de la visita' END;
+    DECLARE @Saludo   NVARCHAR(400) = dbo.fn_CV_EscaparHtml(@Nombre + N' ' + @ApellidoPaterno + N' ' + @ApellidoMaterno);
+
+    -- Estilos reutilizados para las filas de datos (label / valor).
+    DECLARE @LS NVARCHAR(200) = N'padding:5px 12px 5px 0;color:#555555;font-size:14px;vertical-align:top;white-space:nowrap;';
+    DECLARE @VS NVARCHAR(200) = N'padding:5px 0;font-size:14px;font-weight:700;color:#002f87;';
+
+    -- Fila de hora: solo si la visita tiene hora (las previas a esta versión son NULL).
+    DECLARE @FilaHora NVARCHAR(MAX) = CASE WHEN @HoraVisita IS NOT NULL
+        THEN N'<tr><td style="' + @LS + N'">Hora:</td><td style="' + @VS + N'">' + FORMAT(CAST(@HoraVisita AS DATETIME), 'HH:mm') + N'</td></tr>' ELSE N'' END;
+    DECLARE @FilaEmpresa NVARCHAR(MAX) = CASE WHEN @Empresa <> N''
+        THEN N'<tr><td style="' + @LS + N'">Empresa:</td><td style="' + @VS + N'">' + dbo.fn_CV_EscaparHtml(@Empresa) + N'</td></tr>' ELSE N'' END;
+    DECLARE @FilaVehiculo NVARCHAR(MAX) = CASE WHEN @TraeAuto = 1
+        THEN N'<tr><td style="' + @LS + N'">Vehículo:</td><td style="' + @VS + N'">' + dbo.fn_CV_EscaparHtml(@Marca + N' ' + @Modelo) + N' &middot; ' + dbo.fn_CV_EscaparHtml(@Placas) + N'</td></tr>' ELSE N'' END;
+
+    DECLARE @Logo1 NVARCHAR(300) = N'https://cdn.shopify.com/s/files/1/0877/3052/files/LogoCelularExpress.png?v=1688569794';
+    DECLARE @Logo2 NVARCHAR(300) = N'https://cdn.shopify.com/s/files/1/0877/3052/files/LogoDistribuidorAutorizado.png?v=1688569794';
 
     DECLARE @HTML NVARCHAR(MAX) =
-        N'<p>Hola ' + dbo.fn_CV_EscaparHtml(@Nombre + N' ' + @ApellidoPaterno + N' ' + @ApellidoMaterno) + N',</p>' +
-        N'<p>Confirmamos tu visita a Celex con los siguientes datos:</p>' +
-        N'<table style="margin-bottom:16px;">' +
-        N'<tr><td style="padding:2px 12px 2px 0;color:#555;">Fecha:</td><td><b>' + FORMAT(@FechaVisita, 'dd/MM/yyyy') + N'</b></td></tr>' +
-        N'<tr><td style="padding:2px 12px 2px 0;color:#555;">Empresa:</td><td><b>' + dbo.fn_CV_EscaparHtml(@Empresa) + N'</b></td></tr>' +
-        N'<tr><td style="padding:2px 12px 2px 0;color:#555;">Persona que visitas:</td><td><b>' + dbo.fn_CV_EscaparHtml(@Anfitrion) + N'</b></td></tr>' +
-        N'<tr><td style="padding:2px 12px 2px 0;color:#555;">Motivo:</td><td><b>' + dbo.fn_CV_EscaparHtml(@Motivo) + N'</b></td></tr>' +
+        N'<!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
+        N'<body style="margin:0;padding:0;background:#ffffff;font-family:Helvetica,Arial,sans-serif;">' +
+        N'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;"><tr><td align="center" style="padding:24px 0;">' +
+        N'<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border:1px solid #e6e9f0;">' +
+        -- Encabezado con los dos logos
+        N'<tr><td style="padding:22px 26px 10px 26px;"><table role="presentation" width="100%"><tr>' +
+        N'<td align="left" valign="middle"><img src="' + @Logo1 + N'" width="180" alt="Celular Express" style="display:block;max-width:180px;height:auto;border:0;"></td>' +
+        N'<td align="right" valign="middle"><img src="' + @Logo2 + N'" width="130" alt="Distribuidor Autorizado Telcel" style="display:block;max-width:130px;height:auto;border:0;margin-left:auto;"></td>' +
+        N'</tr></table></td></tr>' +
+        N'<tr><td style="padding:0 26px;"><div style="border-top:2px solid #002f87;font-size:0;line-height:0;">&nbsp;</div></td></tr>' +
+        -- Cuerpo
+        N'<tr><td style="padding:22px 30px 30px 30px;color:#757575;font-size:16px;line-height:1.55;">' +
+        N'<p style="font-weight:700;color:#002f87;margin:6px 0 12px 0;">Estimada(o): ' + @Saludo + N'</p>' +
+        N'<p style="text-align:justify;margin:0 0 18px 0;">' + @Intro + N'</p>' +
+        -- Caja del código de acceso
+        N'<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:16px;background:#f2f6fc;border:1px dashed #002f87;">' +
+        N'<div style="font-size:12px;color:#002f87;font-weight:700;letter-spacing:2px;">CÓDIGO DE ACCESO</div>' +
+        N'<div style="font-size:34px;font-weight:700;letter-spacing:8px;color:#002f87;margin-top:4px;">' + @CodigoAcceso + N'</div>' +
+        N'</td></tr></table>' +
+        -- Datos
+        N'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0 4px 0;">' +
+        N'<tr><td style="' + @LS + N'">' + @LblFecha + N':</td><td style="' + @VS + N'">' + FORMAT(@FechaVisita, 'dd/MM/yyyy') + N'</td></tr>' +
+        @FilaHora +
+        @FilaEmpresa +
+        N'<tr><td style="' + @LS + N'">Persona que visita:</td><td style="' + @VS + N'">' + dbo.fn_CV_EscaparHtml(@Anfitrion) + N'</td></tr>' +
+        N'<tr><td style="' + @LS + N'">Área que visita:</td><td style="' + @VS + N'">' + dbo.fn_CV_EscaparHtml(@Area) + N'</td></tr>' +
+        N'<tr><td style="' + @LS + N'">Motivo:</td><td style="' + @VS + N'">' + dbo.fn_CV_EscaparHtml(@Motivo) + N'</td></tr>' +
+        @FilaVehiculo +
         N'</table>' +
-        N'<p>Tu código de acceso es:</p>' +
-        N'<p style="font-size:28px;font-weight:bold;letter-spacing:4px;">' + @CodigoAcceso + N'</p>' +
-        N'<p>Preséntalo en la recepción el día de tu visita para agilizar tu ingreso.</p>' +
-        @VehiculoHtml +
-        N'<p>Te esperamos.</p>' +
-        N'<p>Celex</p>';
+        N'<p style="text-align:justify;margin:18px 0 0 0;">Gracias por su preferencia. ¡Le esperamos!</p>' +
+        N'</td></tr></table></td></tr>' +
+        -- Pie azul con soporte
+        N'<tr><td align="center" style="background:#002f87;padding:34px 18px;">' +
+        N'<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;"><tr>' +
+        N'<td style="color:#ffffff;font-size:12px;line-height:1.6;text-align:center;font-family:Helvetica,Arial,sans-serif;">' +
+        N'Si tiene algún problema para acceder o cualquier duda, no dude en contactarnos a través del correo<br>' +
+        N'<a href="mailto:sistemas@celex.com" target="_blank" style="color:#ffffff;text-decoration:underline;">sistemas@celex.com</a><br>' +
+        N'Estaremos más que dispuestos a asistirle.' +
+        N'</td></tr></table></td></tr>' +
+        N'</table></td></tr></table></body></html>';
 
     INSERT INTO dbo.WM_Correo
         (Asunto, Correos, Enviado, EnviadoFechaHr, Enviar, HTML, Usuario_ID, ID_UUID, IDFecha, TipoDocumento)
     VALUES
-        (N'Confirmación de tu visita a Celex', @Correo, 'No', '1900-01-01 00:00:00', 'Si', @HTML, @ID_Usuario,
-         CAST(@NuevoUUID AS VARCHAR(128)), GETDATE(), 'Visita');
+        (@Asunto, @Correo, 'No', '1900-01-01 00:00:00', 'Si', @HTML, @ID_Usuario,
+         CAST(@UUID AS VARCHAR(128)), GETDATE(), @TipoDoc);
+END
+GO
 
-    SELECT @NuevoId AS ID, @NuevoUUID AS UUID, @CodigoAcceso AS CodigoAcceso;
+/* -----------------------------------------------------------------------------
+   sp_CV_Visitas_ReenviarCorreo
+   Reencola el correo de confirmación de una visita existente (con sus datos
+   actuales). Lo usa el botón "Enviar correo con los cambios" de la edición.
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Visitas_ReenviarCorreo
+    @ID BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF NOT EXISTS (SELECT 1 FROM dbo.CV_Visitas WHERE ID = @ID)
+    BEGIN
+        SELECT N'NO_ENCONTRADA' AS Resultado;
+        RETURN;
+    END
+    EXEC dbo.sp_CV_Visitas_EncolarCorreo @ID = @ID;
+    SELECT N'OK' AS Resultado;
 END
 GO
 
@@ -529,6 +636,109 @@ END
 GO
 
 /* -----------------------------------------------------------------------------
+   sp_CV_Visitas_CierreAutomatico
+   Cierre nocturno de visitas que quedaron "Dentro" (accesadas y sin salida),
+   incluyendo rezagadas de días anteriores. Marca CierreAutomatico = 1 para
+   distinguirlas de una salida registrada por el visitante en la caseta.
+
+   Diseñado para dispararse desde un agente que corre CADA MINUTO: solo ACTÚA
+   cuando la hora actual (HH:mm) coincide con CV_Configuracion.HoraCierreAutomatico,
+   y como máximo UNA VEZ AL DÍA (se apoya en CierreAutomaticoUltimaFecha). En
+   cualquier otro minuto retorna sin hacer nada.
+
+   Al ejecutar, además encola en WM_Correo un aviso con cuántas visitas cerró
+   (y la lista) dirigido a CV_Configuracion.CorreosCierreAutomatico (separados
+   por ; o ,). Si no hay destinatarios configurados, no envía correo.
+
+   @Forzar = 1 omite las validaciones de hora y de "una vez al día" (para
+   ejecutar el cierre manualmente / pruebas). Devuelve cuántas cerró.
+   ----------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.sp_CV_Visitas_CierreAutomatico
+    @Forzar BIT = 0
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @HoraCfg   NVARCHAR(10)  = (SELECT Valor FROM dbo.CV_Configuracion WHERE Clave = N'HoraCierreAutomatico');
+    DECLARE @Correos   NVARCHAR(500) = (SELECT Valor FROM dbo.CV_Configuracion WHERE Clave = N'CorreosCierreAutomatico');
+    DECLARE @UltFecha  NVARCHAR(20)  = (SELECT Valor FROM dbo.CV_Configuracion WHERE Clave = N'CierreAutomaticoUltimaFecha');
+    DECLARE @AhoraHHMM NVARCHAR(5)   = FORMAT(GETDATE(), 'HH:mm');
+    DECLARE @HoyISO    NVARCHAR(10)  = CONVERT(NVARCHAR(10), CAST(GETDATE() AS DATE), 23);  -- yyyy-MM-dd
+
+    SET @HoraCfg = ISNULL(NULLIF(LTRIM(RTRIM(@HoraCfg)), N''), N'21:00');
+
+    -- Si no se fuerza: actuar solo en el minuto configurado y una vez por día.
+    IF @Forzar = 0
+    BEGIN
+        IF @AhoraHHMM <> LEFT(@HoraCfg, 5) RETURN;          -- no es la hora: salir silencioso
+        IF ISNULL(@UltFecha, N'') = @HoyISO RETURN;         -- ya se ejecutó hoy
+    END
+
+    -- Cerrar todas las visitas "Dentro" y capturar cuáles se cerraron.
+    -- (OUTPUT no admite subconsultas, así que se guarda ID_Area y se une a
+    --  CV_Areas al armar el correo.)
+    DECLARE @Cerradas TABLE (ID BIGINT, Nombre NVARCHAR(320), ID_Area INT, FechaAcceso DATETIME);
+
+    UPDATE v
+       SET v.FechaSalida = GETDATE(),
+           v.CierreAutomatico = 1,
+           v.ID_Fecha_Modificacion = GETDATE()
+    OUTPUT inserted.ID,
+           inserted.Nombre + N' ' + inserted.ApellidoPaterno + N' ' + inserted.ApellidoMaterno,
+           inserted.ID_Area,
+           inserted.FechaAcceso
+      INTO @Cerradas
+      FROM dbo.CV_Visitas v
+     WHERE v.Status = N'Accesado' AND v.FechaSalida = '1900-01-01';
+
+    DECLARE @N INT = (SELECT COUNT(*) FROM @Cerradas);
+
+    -- Registrar que ya corrió hoy (para el modo agente cada minuto).
+    UPDATE dbo.CV_Configuracion SET Valor = @HoyISO, ID_Fecha_Modificacion = GETDATE()
+     WHERE Clave = N'CierreAutomaticoUltimaFecha';
+    IF @@ROWCOUNT = 0
+        INSERT INTO dbo.CV_Configuracion (Clave, Valor, ID_Fecha_Modificacion)
+        VALUES (N'CierreAutomaticoUltimaFecha', @HoyISO, GETDATE());
+
+    -- Aviso por correo (si hay destinatarios). dbo.WM_Correo lo envía el Job
+    -- existente; los destinatarios van separados por ; (se normaliza , -> ;).
+    SET @Correos = REPLACE(ISNULL(@Correos, N''), N',', N';');
+    IF LTRIM(RTRIM(@Correos)) <> N''
+    BEGIN
+        DECLARE @Filas NVARCHAR(MAX) = N'';
+        SELECT @Filas = @Filas +
+            N'<tr><td style="padding:4px 12px 4px 0;">' + dbo.fn_CV_EscaparHtml(c.Nombre) + N'</td>' +
+            N'<td style="padding:4px 12px 4px 0;">' + dbo.fn_CV_EscaparHtml(ISNULL(a.Nombre, N'')) + N'</td>' +
+            N'<td style="padding:4px 0;">' + FORMAT(c.FechaAcceso, 'dd/MM/yyyy HH:mm') + N'</td></tr>'
+        FROM @Cerradas c
+        LEFT JOIN dbo.CV_Areas a ON a.ID = c.ID_Area;
+
+        DECLARE @Tabla NVARCHAR(MAX) = CASE WHEN @N = 0 THEN N''
+            ELSE N'<table style="border-collapse:collapse;font-size:14px;margin-top:10px;">' +
+                 N'<tr style="color:#555555;text-align:left;"><th style="padding:4px 12px 4px 0;">Visitante</th><th style="padding:4px 12px 4px 0;">Área</th><th style="padding:4px 0;">Acceso</th></tr>' +
+                 @Filas + N'</table>' END;
+
+        DECLARE @HTML NVARCHAR(MAX) =
+            N'<div style="font-family:Helvetica,Arial,sans-serif;color:#333333;font-size:15px;line-height:1.5;">' +
+            N'<p style="font-weight:700;color:#002f87;">Cierre automático de visitas — Celex</p>' +
+            N'<p>El ' + FORMAT(GETDATE(), 'dd/MM/yyyy') + N' a las ' + FORMAT(GETDATE(), 'HH:mm') +
+            N' se cerraron <b>' + CAST(@N AS NVARCHAR(10)) + N'</b> visita(s) que quedaron <b>Dentro</b> (sin registrar salida).</p>' +
+            @Tabla +
+            N'<p style="color:#888888;font-size:12px;margin-top:16px;">Mensaje automático del sistema Control de Visitas.</p></div>';
+
+        INSERT INTO dbo.WM_Correo
+            (Asunto, Correos, Enviado, EnviadoFechaHr, Enviar, HTML, Usuario_ID, ID_UUID, IDFecha, TipoDocumento)
+        VALUES
+            (N'Cierre automático de visitas (' + CAST(@N AS NVARCHAR(10)) + N') — Celex',
+             @Correos, 'No', '1900-01-01 00:00:00', 'Si', @HTML, 0,
+             CAST(NEWID() AS VARCHAR(128)), GETDATE(), 'CierreAutomatico');
+    END
+
+    SELECT @N AS Cerradas;
+END
+GO
+
+/* -----------------------------------------------------------------------------
    sp_CV_Visitas_Reporte
    Reporte / bitácora por rango de fechas para los administradores.
    ----------------------------------------------------------------------------- */
@@ -545,9 +755,10 @@ BEGIN
             WHEN v.Status = N'Cancelada'       THEN N'Cancelada'
             WHEN v.Status = N'Pendiente'       THEN N'Pendiente'
             WHEN v.FechaSalida = '1900-01-01'  THEN N'Dentro'
+            WHEN v.CierreAutomatico = 1        THEN N'Cierre automático'
             ELSE N'Salida registrada'
         END AS Estado,
-        v.FechaVisita, v.FechaRegistro, v.FechaAcceso, v.CodigoSalida, v.FechaSalida,
+        v.FechaVisita, v.HoraVisita, v.FechaRegistro, v.FechaAcceso, v.CodigoAcceso, v.CodigoSalida, v.FechaSalida,
         CASE WHEN v.FechaSalida = '1900-01-01' THEN NULL
              ELSE DATEDIFF(MINUTE, v.FechaAcceso, v.FechaSalida) END AS MinutosEstancia,
         v.FotoRuta
@@ -571,12 +782,14 @@ BEGIN
     SET NOCOUNT ON;
     SELECT
         v.ID, v.UUID, v.Nombre, v.ApellidoPaterno, v.ApellidoMaterno, v.Correo, v.Empresa,
-        v.ID_Area, a.Nombre AS Area, v.Motivo, v.Observaciones, v.EsVIP, v.Anfitrion, v.FechaVisita,
+        v.ID_Area, a.Nombre AS Area, v.Motivo, v.Observaciones, v.EsVIP, v.Anfitrion, v.FechaVisita, v.HoraVisita,
         v.TraeAuto, v.Marca, v.Modelo, v.Placas,
+        v.CodigoAcceso, v.CodigoSalida,
         CASE
             WHEN v.Status = N'Cancelada'       THEN N'Cancelada'
             WHEN v.Status = N'Pendiente'       THEN N'Pendiente'
             WHEN v.FechaSalida = '1900-01-01'  THEN N'Dentro'
+            WHEN v.CierreAutomatico = 1        THEN N'Cierre automático'
             ELSE N'Salida registrada'
         END AS Estado,
         v.Status, v.FechaRegistro, v.FechaAcceso, v.FotoRuta
@@ -605,6 +818,7 @@ CREATE PROCEDURE dbo.sp_CV_Visitas_Actualizar
     @Observaciones      NVARCHAR(500)   = '',
     @Anfitrion          NVARCHAR(100),
     @FechaVisita        DATE,
+    @HoraVisita         TIME(0)         = NULL,   -- hora agendada (informativa)
     @TraeAuto           BIT             = 0,
     @Marca              NVARCHAR(50)    = '',
     @Modelo             NVARCHAR(50)    = '',
@@ -638,7 +852,7 @@ BEGIN
        SET Nombre = @Nombre, ApellidoPaterno = @ApellidoPaterno, ApellidoMaterno = @ApellidoMaterno,
            Correo = @Correo, Empresa = @Empresa, ID_Area = @ID_Area, Motivo = @Motivo,
            Observaciones = @Observaciones, EsVIP = @EsVIP,
-           Anfitrion = @Anfitrion, FechaVisita = @FechaVisita, TraeAuto = @TraeAuto,
+           Anfitrion = @Anfitrion, FechaVisita = @FechaVisita, HoraVisita = @HoraVisita, TraeAuto = @TraeAuto,
            Marca = @Marca, Modelo = @Modelo, Placas = @Placas,
            ID_Fecha_Modificacion = GETDATE()
      WHERE ID = @ID;
