@@ -1,11 +1,17 @@
 using ControlVisitas.Api.Datos;
 using ControlVisitas.Api.Servicios;
+using ControlVisitas.Api.Validaciones;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+// Validaciones por campo con FluentValidation. Los validadores viven en
+// api/Validaciones (uno por request); el FluentValidationFilter los ejecuta
+// automáticamente antes de cada acción y devuelve 400 con errores por campo.
+builder.Services.AddValidatorsFromAssemblyContaining<VisitaRegistroRequestValidator>();
+builder.Services.AddControllers(opciones => opciones.Filters.Add<FluentValidationFilter>());
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

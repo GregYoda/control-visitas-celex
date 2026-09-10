@@ -51,6 +51,13 @@ public class VisitasController(IVisitasRepositorio repositorio, IFotoService fot
         return Ok(resultado);
     }
 
+    [HttpPost("{id:long}/reenviar-correo")]
+    public async Task<IActionResult> ReenviarCorreo(long id)
+    {
+        var resultado = await repositorio.ReenviarCorreoAsync(id);
+        return Ok(resultado);
+    }
+
     [HttpPost("{id:long}/foto")]
     public async Task<IActionResult> GuardarFoto(long id, GuardarFotoRequest datos)
     {

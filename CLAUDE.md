@@ -89,7 +89,14 @@ recepción/caseta por un flujo digital con código de acceso, foto y código de 
   y todo el manejo de Client Secret que eso implicaba.
   `sp_CV_Visitas_Registrar` construye el asunto/HTML (código de acceso,
   datos del vehículo si `TraeAuto`, sin mencionar el código de salida) e
-  inserta un renglón en `WM_Correo` con `TipoDocumento='Visita'`,
+  inserta un renglón en `WM_Correo`. El HTML usa el **formato institucional
+  tipo Celular Express** (encabezado con los dos logos, azul Telcel `#002f87`,
+  código de acceso destacado en recuadro y pie con soporte `sistemas@celex.com`)
+  y **cambia los textos según `@EsEntrevista`**: asunto "Confirmación de tu
+  visita a Celex" / "…entrevista en Celex", "el día de su visita" / "…de su
+  cita", `TipoDocumento` `'Visita'` / `'Entrevista'`; la fila Empresa solo
+  aparece si viene informada y la fila Vehículo solo si `TraeAuto=1`. Los logos
+  se referencian por URL (CDN de Shopify de Celular Express). El renglón queda con `TipoDocumento`,
   `ID_UUID` = UUID de la visita, `Enviado='No'`, `Enviar='Si'`,
   `EnviadoFechaHr='1900-01-01 00:00:00'` (centinela), `IDFecha` = fecha de
   creación. El texto libre (Nombre, Empresa, Motivo, Observaciones) se
@@ -468,15 +475,16 @@ pedirlo, preguntarlo. Las entradas históricas quedaron atribuidas a
 
 Ambos frontends muestran un número de versión en el login:
 - **Producción** (`web/index.html`): chip `.app-version` en el topbar del login
-  ("Control de Visitas · v0.21").
+  ("Control de Visitas · v0.23").
 - **Capacitación** (`web/demo-capacitacion.html`): etiqueta `.demo-tag`
-  ("VERSIÓN DEMO · CAPACITACIÓN · v0.21").
+  ("VERSIÓN DEMO · CAPACITACIÓN · v0.23").
 
 **Subir la versión en cada cambio** del archivo correspondiente (v0.15, v0.16,
-…) para identificar el build. Ambas van en **v0.21**: incluye asistencia,
-etiqueta imprimible 3.5"×1.5" y tipo "Entrevista" en la etiqueta. El demo
-(`web/demo-capacitacion.html`) replica la etiqueta imprimible con su backend
-simulado (código de prueba de entrevista: 555000).
+…) para identificar el build. Ambas van en **v0.23**: sitio independiente
+(tras el login se llega DIRECTO a Control de Visitas, sin el menú estilo WishPOS),
+asistencia, etiqueta imprimible 3.5"×1.5" y tipo "Entrevista". El demo
+(`web/demo-capacitacion.html`) replica todo con su backend simulado
+(código de prueba de entrevista: 555000).
 
 ## Etiqueta de acceso imprimible (kiosko)
 
@@ -487,10 +495,15 @@ imprimir vía `@media print` con `@page size: 3.5in 1.5in`), que `renderBadge`
 llena con `renderPrintLabel(visit)`: **código de salida** (número grande),
 tipo (Visita/Entrevista), **fecha/hora de acceso**, nombre completo y
 "Visita a: anfitrión · área". El **logo Celex** (emblema redondo) va **embebido
-como data URI** en `index.html` (constante `CELEX_LOGO_BN`, autocontenido; no
-depende de un archivo externo al desplegar) y se imprime en B/N con
-`filter:grayscale(1) contrast(...)`. El logo fuente está en el Escritorio como
-`CELEX_Logo.png` (225×225, fondo transparente).
+como data URI en un solo lugar**: el `<link id="celexFavicon" rel="icon">` del
+`<head>` (que además es el **favicon**/ícono de la pestaña). La constante JS
+`CELEX_LOGO_BN` **lee ese data URI del link** (`document.getElementById('celexFavicon').href`),
+así no se duplican los ~100 KB. Ese mismo logo se usa en 3 lugares: (1) favicon,
+(2) inyectado por JS —a color, sin filtro— dentro de cada `.brand-badge` de la
+barra superior (por eso el `.brand-badge` viene vacío en el HTML y en runtime
+muestra el logo), y (3) la etiqueta imprimible en B/N (`filter:grayscale(1)
+contrast(...)`). El logo fuente está en el Escritorio como `CELEX_Logo.png`
+(225×225, fondo transparente).
 
 ## Idioma y tono
 
