@@ -423,17 +423,15 @@ BEGIN
         THEN N'<tr><td style="' + @LS + N'">Vehículo:</td><td style="' + @VS + N'">' + dbo.fn_CV_EscaparHtml(@Marca + N' ' + @Modelo) + N' &middot; ' + dbo.fn_CV_EscaparHtml(@Placas) + N'</td></tr>' ELSE N'' END;
 
     DECLARE @Logo1 NVARCHAR(300) = N'https://cdn.shopify.com/s/files/1/0877/3052/files/LogoCelularExpress.png?v=1688569794';
-    DECLARE @Logo2 NVARCHAR(300) = N'https://cdn.shopify.com/s/files/1/0877/3052/files/LogoDistribuidorAutorizado.png?v=1688569794';
 
     DECLARE @HTML NVARCHAR(MAX) =
         N'<!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
         N'<body style="margin:0;padding:0;background:#ffffff;font-family:Helvetica,Arial,sans-serif;">' +
         N'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;"><tr><td align="center" style="padding:24px 0;">' +
         N'<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border:1px solid #e6e9f0;">' +
-        -- Encabezado con los dos logos
+        -- Encabezado con el logo de Celular Express
         N'<tr><td style="padding:22px 26px 10px 26px;"><table role="presentation" width="100%"><tr>' +
         N'<td align="left" valign="middle"><img src="' + @Logo1 + N'" width="180" alt="Celular Express" style="display:block;max-width:180px;height:auto;border:0;"></td>' +
-        N'<td align="right" valign="middle"><img src="' + @Logo2 + N'" width="130" alt="Distribuidor Autorizado Telcel" style="display:block;max-width:130px;height:auto;border:0;margin-left:auto;"></td>' +
         N'</tr></table></td></tr>' +
         N'<tr><td style="padding:0 26px;"><div style="border-top:2px solid #002f87;font-size:0;line-height:0;">&nbsp;</div></td></tr>' +
         -- Cuerpo
