@@ -6,6 +6,9 @@ quién solicitó el cambio.
 
 ---
 
+## 2026-09-10
+- **Correo: nueva leyenda del pie**: en el pie del correo de confirmación se cambió "…no dude en contactarnos a través del correo sistemas@celex.com. Estaremos más que dispuestos a asistirle." por **"Si tiene algún problema para acceder o cualquier duda, por favor contacte a su anfitrión."** (se quitó el correo de sistemas y el cierre). Aplica a Visita y Entrevista (SP compartido `sp_CV_Visitas_EncolarCorreo`). Migración `db/migraciones/2026-09-10-leyenda-anfitrion.sql` (idempotente). Verificado renderizando el correo. (G. Ramírez)
+
 ## 2026-09-09
 - **Correo sin el logo de Telcel**: se quitó el logo de "Distribuidor Autorizado Telcel" del encabezado del correo de confirmación de visitas/entrevistas; queda solo el logo de Celular Express. Se refrescó `sp_CV_Visitas_EncolarCorreo` (migración `db/migraciones/2026-09-09-quitar-logo-telcel.sql`, idempotente). Verificado renderizando el correo. (G. Ramírez)
 

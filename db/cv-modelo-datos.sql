@@ -459,9 +459,7 @@ BEGIN
         N'<tr><td align="center" style="background:#002f87;padding:34px 18px;">' +
         N'<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;"><tr>' +
         N'<td style="color:#ffffff;font-size:12px;line-height:1.6;text-align:center;font-family:Helvetica,Arial,sans-serif;">' +
-        N'Si tiene algún problema para acceder o cualquier duda, no dude en contactarnos a través del correo<br>' +
-        N'<a href="mailto:sistemas@celex.com" target="_blank" style="color:#ffffff;text-decoration:underline;">sistemas@celex.com</a><br>' +
-        N'Estaremos más que dispuestos a asistirle.' +
+        N'Si tiene algún problema para acceder o cualquier duda, por favor contacte a su anfitrión.' +
         N'</td></tr></table></td></tr>' +
         N'</table></td></tr></table></body></html>';
 
